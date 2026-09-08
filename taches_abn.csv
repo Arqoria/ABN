@@ -1,0 +1,26 @@
+Nom,Projets,Statut,Priorité,Date d'échéance,Type de tâche,tâches interne,Notes
+01. Création BDD Supabase & RLS,ABN,À faire,Urgente,2026-09-01,Développement,Tech/Outils,Créer tables clés étrangères RLS et bucket Storage.
+02. Init Next.js Tailwind & Shadcn,ABN,À faire,Urgente,2026-09-02,Développement,Tech/Outils,Init Next.js config Tailwind Shadcn et types TypeScript.
+03. Auth & Rôles (4 profils),ABN,À faire,Urgente,2026-09-03,Développement,Tech/Outils,Page login session persistante AuthContext et redirection.
+04. Layout Mobile PWA (BottomNav),ABN,À faire,Haute,2026-09-04,Développement,Tech/Outils,Barre de navigation mobile du bas selon les rôles.
+05. Planning Maraudes & Jauges,ABN,À faire,Haute,2026-09-05,Développement,Tech/Outils,Page maraudes cartes graphiques et calcul des places.
+06. Inscription 1 Clic & Liste d'attente,ABN,À faire,Urgente,2026-09-06,Développement,Tech/Outils,Bouton participer/annuler bascule auto liste attente.
+07. Carnet de transmission hebdo,ABN,À faire,Moyenne,2026-09-06,Développement,Tech/Outils,Encart alerte avec notes de la semaine précédente.
+08. Formulaire Cuisine Express 3 clics,ABN,À faire,Haute,2026-09-08,Développement,Tech/Outils,Page cuisine 4 boutons plats sélecteur portions.
+09. Déduction Allergènes & Hygiène,ABN,À faire,Moyenne,2026-09-09,Développement,Tech/Outils,Tag auto Gluten/Halal/Veg et case décharge hygiène.
+10. Récapitulatif Plats du Soir,ABN,À faire,Moyenne,2026-09-10,Développement,Tech/Outils,Vue terrain pour l'équipe avec total portions.
+11. Liste de Courses Partagée,ABN,À faire,Moyenne,2026-09-11,Développement,Tech/Outils,Page courses bouton Je m'en occupe.
+12. Upload Photos Tickets de Caisse,ABN,À faire,Haute,2026-09-13,Développement,Tech/Outils,Saisie prix + upload photo ticket dans Storage.
+13. Checklist de Départ Collaborative,ABN,À faire,Moyenne,2026-09-15,Développement,Tech/Outils,To-do list partagée (Thermos lampes secours).
+14. Registre des Incidents & Sécurité,ABN,À faire,Moyenne,2026-09-16,Développement,Tech/Outils,Formulaire incident avec alerte semaine suivante.
+15. Bouton SOS & Alerte Telegram,ABN,À faire,Urgente,2026-09-17,Automatisation,Tech/Outils,Bouton SOS envoyant GPS au canal Telegram bureau.
+16. Météo du Bénévole (Débrief psy),ABN,À faire,Basse,2026-09-18,Développement,Tech/Outils,Modale fin maraude si Rouge alerte Président.
+17. Radar Social (RGPD épuré),ABN,À faire,Haute,2026-09-19,Développement,Tech/Outils,Menus déroulants Santé/Hébergement sans texte libre.
+18. Annuaire 10 Adresses & SMS Boussole,ABN,À faire,Haute,2026-09-20,Automatisation,Tech/Outils,Répertoire 10 adresses + envoi SMS Brevo API.
+19. Validation RH des Bénévoles,ABN,À faire,Haute,2026-09-21,Développement,Tech/Outils,Back-office admin pour activer comptes et rôles.
+20. Multi-Shift & Quotas d'Urgence,ABN,À faire,Moyenne,2026-09-22,Développement,Tech/Outils,Bouton Admin pour passer de 4 à 8 places.
+21. Dashboard Statistiques Subventions,ABN,À faire,Urgente,2026-09-23,Développement,Compta/Finance,Calcul auto heures et repas + export Mairie.
+22. Mini-CMS Gestion Actualités,ABN,À faire,Moyenne,2026-09-23,Développement,Tech/Outils,Onglet Admin pour publier articles et photos.
+23. Landing Page Marketing & Dons,ABN,À faire,Haute,2026-09-24,Développement,Tech/Outils,Page d'accueil publique Hero section et besoins.
+24. Config PWA & Mode Sombre Nuit,ABN,À faire,Haute,2026-09-24,Développement,Tech/Outils,Icône smartphone next-pwa et contrastes de nuit.
+25. Déploiement Vercel & Crash-Test,ABN,À faire,Urgente,2026-09-25,Automatisation,Tech/Outils,Mise en ligne HTTPS et test maraude 18h30.
