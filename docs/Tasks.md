@@ -7,7 +7,8 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ✅ Design system / styleguide intégré (couleurs, typographie, boutons, badges, cartes) — abn-theta-murex.vercel.app
 - ⬜ Validation visuelle par Aymen + référent association (dark mode, contrastes, taille des boutons sur mobile réel)
 - ⬜ Ajustements design suite aux retours de validation
-- ⬜ Manifest PWA + Service Worker de base (installabilité uniquement, pas encore la synchro offline)
+- ✅ Manifest PWA (icônes 192/512/maskable/apple-icon, theme-color, apple-web-app) — déployé et vérifié en ligne
+- ⬜ Service Worker de base (offline minimal, volontairement reporté)
 - ⬜ Structure des pages/routes publiques accessibles (squelette de navigation, pas encore de contenu final)
 
 ## Étape 2 — Fondations BDD (Supabase)

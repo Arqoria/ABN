@@ -78,6 +78,16 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 &#x20; filet de sécurité, indépendant du risque de pause pour inactivité
 
+\- ATTENTION Vercel Hobby : les déploiements sont bloqués ("Blocked") si l'auteur du commit git n'est pas
+
+&#x20; reconnu comme le propriétaire du projet Vercel. Vercel matche l'auteur via l'email git vérifié sur
+
+&#x20; GitHub, pas via le nom affiché. Le compte Vercel du projet est connecté au compte GitHub `Arqoria`
+
+&#x20; (email `arqoria.pro@gmail.com`) — toujours committer avec `git config user.email "arqoria.pro@gmail.com"`
+
+&#x20; sur cette machine, sinon les push passent mais ne déploient jamais en prod
+
 
 
 \## Identité visuelle
