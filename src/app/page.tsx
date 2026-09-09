@@ -66,14 +66,16 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-brand-navy px-4 py-3 text-white shadow-sm sm:px-6">
         <div className="flex items-center gap-3">
-          <Image
-            src="/logo-abn-icon.png"
-            alt="Logo Les Anges de la Baie"
-            width={35}
-            height={40}
-            className="h-10 w-auto"
-            priority
-          />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F5F7FA] p-1.5 shadow-sm">
+            <Image
+              src="/logo-abn-icon.png"
+              alt="Logo Les Anges de la Baie"
+              width={28}
+              height={32}
+              className="h-full w-auto"
+              priority
+            />
+          </div>
           <div className="leading-tight">
             <p className="text-sm font-semibold tracking-wide sm:text-base">
               Les Anges de la Baie
