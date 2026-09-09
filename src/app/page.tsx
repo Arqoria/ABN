@@ -67,11 +67,11 @@ export default function Home() {
       <header className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-brand-navy px-4 py-3 text-white shadow-sm sm:px-6">
         <div className="flex items-center gap-3">
           <Image
-            src="/logo-abn.jpg"
+            src="/logo-abn-icon.png"
             alt="Logo Les Anges de la Baie"
-            width={40}
+            width={35}
             height={40}
-            className="size-10 rounded-full object-cover ring-2 ring-white/30"
+            className="h-10 w-auto"
             priority
           />
           <div className="leading-tight">
@@ -210,7 +210,7 @@ export default function Home() {
             </div>
             <div className="flex -space-x-2">
               <Avatar className="ring-2 ring-background">
-                <AvatarImage src="/logo-abn.jpg" alt="Bénévole" />
+                <AvatarImage src="/logo-abn-icon.png" alt="Bénévole" />
                 <AvatarFallback>LA</AvatarFallback>
               </Avatar>
               <Avatar className="ring-2 ring-background">
