@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: "Les Anges de la Baie de Nice",
   description:
     "Application métier des Anges de la Baie de Nice — coordination des maraudes et de l'aide aux personnes sans-abri.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ABN",
+  },
 };
 
 export const viewport: Viewport = {
