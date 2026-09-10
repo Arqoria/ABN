@@ -18,7 +18,7 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 \## Stack
 
-\- Next.js 14+ (App Router), React, TypeScript
+\- Next.js 16 (App Router), React, TypeScript
 
 \- Tailwind CSS, Shadcn UI, Lucide Icons, next-themes
 
