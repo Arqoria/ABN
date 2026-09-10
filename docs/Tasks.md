@@ -8,7 +8,7 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ⬜ Validation visuelle par Aymen + référent association (dark mode, contrastes, taille des boutons sur mobile réel)
 - ⬜ Ajustements design suite aux retours de validation
 - ✅ Manifest PWA (icônes 192/512/maskable/apple-icon, theme-color, apple-web-app) — déployé et vérifié en ligne
-- ⬜ Service Worker de base (offline minimal, volontairement reporté)
+- ✅ Service Worker de base (public/sw.js, pass-through — installabilité uniquement, aucun cache/offline)
 - ⬜ Structure des pages/routes publiques accessibles (squelette de navigation, pas encore de contenu final)
 
 ## Étape 2 — Fondations BDD (Supabase)
