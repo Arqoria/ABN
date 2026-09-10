@@ -32,7 +32,11 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 \## Architecture validée
 
-\- Mono-app Next.js, route groups `(public)` et `(app)` protégé par middleware — PAS deux apps séparées
+\- Mono-app Next.js, route groups `(public)` et `(app)` protégé par `src/proxy.ts` — PAS deux apps séparées.
+
+&#x20; ATTENTION : `middleware.ts` est déprécié depuis Next.js 16, renommé `proxy.ts` (export `proxy`,
+
+&#x20; pas `middleware`) — mêmes API/matcher, juste le nom qui change
 
 \- RLS : jamais de sous-requête sur `profiles` dans une policy de `profiles` (risque de récursion infinie).
 

@@ -60,7 +60,7 @@ const brandColors = [
   },
 ];
 
-export default function Home() {
+export default function StyleguidePage() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Header */}
