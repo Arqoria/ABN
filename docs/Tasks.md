@@ -244,16 +244,38 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   pendant la maraude donc l'évènement `online` suffit en pratique. Pas de
   synchro en tâche de fond quand l'app est fermée — limite assumée, à
   reconsidérer si le besoin réel apparaît
-- 🟨 Intégration avec les saisies terrain : **repas, météo et points de
-  passage faits et testés** — RepasForm/MeteoForm/CapturePointForm basculent
-  en file locale (magasins Dexie dédiés pendingRepas/pendingMeteo/
-  pendingPointsPassage) si hors ligne ou si l'appel réseau échoue, message
-  explicite, resynchronisation automatique. Tous testés en conditions
-  réelles (navigator.onLine forcé à false, IndexedDB vérifiée, puis
-  évènement 'online' déclenché, IndexedDB vidée et donnée confirmée en base
-  à chaque fois). **Tickets de dépense reste à faire** — plus délicat, upload
-  de photo, un File ne se sérialise pas comme un objet JSON simple (même si
-  IndexedDB peut stocker des Blob/File directement)
+- ✅ Intégration avec les saisies terrain : **repas, météo, points de passage
+  ET tickets de dépense faits et testés** — RepasForm/MeteoForm/
+  CapturePointForm/TicketForm basculent en file locale (magasins Dexie
+  dédiés pendingRepas/pendingMeteo/pendingPointsPassage/pendingTickets) si
+  hors ligne ou si l'appel réseau échoue, message explicite,
+  resynchronisation automatique. Pour les tickets, la photo (File) est
+  stockée directement en IndexedDB (Blob nativement supporté, pas besoin de
+  sérialiser en base64) et reconstruite en File au moment de la synchro.
+  Tous testés en conditions réelles (navigator.onLine forcé à false,
+  IndexedDB vérifiée, puis évènement 'online' déclenché, IndexedDB vidée et
+  donnée confirmée en base à chaque fois — pour les tickets, upload réel de
+  la photo vérifié après synchro). **Étape 8 terminée.**
+
+## Ajout — catégorie de dépense (compta)
+
+Besoin exprimé en testant l'Étape 8 : le Trésorier a besoin de classer les
+tickets de dépense par catégorie pour la comptabilité, pas seulement un
+montant brut.
+
+- ✅ Migration `20260912190000_categorie_depense.sql` : enum
+  `categorie_depense` (alimentaire/carburant/materiel/autre), colonne
+  `categorie` sur `tickets_depense` (NOT NULL, pas de default — le
+  formulaire impose toujours un choix explicite)
+- ✅ TicketForm : sélecteur de catégorie ajouté, affichée dans la liste des
+  tickets. `CATEGORIE_LABELS`/`CategorieDepense` vivent dans
+  `src/lib/categorie-depense.ts` (module neutre, ni "use server" ni
+  "server-only") — **piège rencontré** : un fichier `"use server"` ne peut
+  exporter QUE des fonctions async ("A 'use server' file can only export
+  async functions, found object"), donc ces constantes ne pouvaient pas
+  rester dans `src/lib/actions/tickets.ts` ; même famille de bug que
+  l'erreur de build server-only déjà rencontrée plus haut — capturé cette
+  fois par `npm run build` avant de pousser, pas en production
 
 ## Étape 9 — Reporting & KPIs
 - ⬜ Vue agrégée compteurs (repas, personnes aidées, orientations sociales)

@@ -5,6 +5,7 @@ import {
   flushPendingRepas,
   flushPendingMeteo,
   flushPendingPointsPassage,
+  flushPendingTickets,
 } from "@/lib/offline/sync";
 
 // Monté une fois dans le layout (protected) : tente une synchro au chargement
@@ -17,6 +18,7 @@ export function OfflineSync() {
       void flushPendingRepas();
       void flushPendingMeteo();
       void flushPendingPointsPassage();
+      void flushPendingTickets();
     }
 
     flushAll();

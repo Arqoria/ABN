@@ -2,6 +2,7 @@ import { offlineDb } from "./db";
 import { ajouterRepas } from "@/lib/actions/repas";
 import { saisirMeteo } from "@/lib/actions/meteo";
 import { capturerPointPassage } from "@/lib/actions/points-passage";
+import { creerTicket } from "@/lib/actions/tickets";
 
 // Vide la file d'attente locale en rejouant chaque saisie via la Server
 // Action normale (RLS/triggers s'appliquent exactement comme en ligne — pas
@@ -98,5 +99,38 @@ export async function flushPendingPointsPassage() {
     }
 
     await offlineDb.pendingPointsPassage.delete(item.id!);
+  }
+}
+
+// Même logique que les précédentes, avec en plus la reconstruction d'un
+// File à partir du Blob stocké tel quel dans IndexedDB (voir
+// src/lib/offline/db.ts) — la Server Action reçoit un vrai File via
+// FormData, exactement comme depuis un vrai formulaire.
+export async function flushPendingTickets() {
+  const pending = await offlineDb.pendingTickets
+    .orderBy("createdAt")
+    .toArray();
+
+  for (const item of pending) {
+    const formData = new FormData();
+    formData.set("maraudeId", item.maraudeId);
+    formData.set("montant", String(item.montant));
+    formData.set("categorie", item.categorie);
+    formData.set(
+      "photo",
+      new File([item.photo], item.photoName, { type: item.photo.type }),
+    );
+
+    try {
+      const result = await creerTicket(undefined, formData);
+      if (result?.error) {
+        await offlineDb.pendingTickets.delete(item.id!);
+        continue;
+      }
+    } catch {
+      return;
+    }
+
+    await offlineDb.pendingTickets.delete(item.id!);
   }
 }

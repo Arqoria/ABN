@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CATEGORIE_LABELS, type CategorieDepense } from "@/lib/categorie-depense";
 import { TicketForm } from "./ticket-form";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -34,7 +35,7 @@ export default async function TicketsMaraudePage({
 
   const { data: tickets } = await supabase
     .from("tickets_depense")
-    .select("id, montant, photo_path, statut_remboursement, created_at")
+    .select("id, montant, categorie, photo_path, statut_remboursement, created_at")
     .eq("maraude_id", maraudeId)
     .order("created_at", { ascending: false });
 
@@ -85,6 +86,7 @@ export default async function TicketsMaraudePage({
               <CardHeader>
                 <CardTitle>{(t.montant as number).toFixed(2)} €</CardTitle>
                 <CardDescription>
+                  {CATEGORIE_LABELS[t.categorie as CategorieDepense]} ·{" "}
                   {new Date(t.created_at as string).toLocaleDateString("fr-FR")}
                 </CardDescription>
               </CardHeader>

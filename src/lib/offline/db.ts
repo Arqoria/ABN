@@ -30,10 +30,23 @@ export type PendingPointPassage = {
   createdAt: number;
 };
 
+export type PendingTicket = {
+  id?: number;
+  maraudeId: string;
+  montant: number;
+  categorie: "alimentaire" | "carburant" | "materiel" | "autre";
+  // IndexedDB (et donc Dexie) sait stocker un Blob/File directement — pas
+  // besoin de le convertir en base64 ou de le sérialiser autrement.
+  photo: Blob;
+  photoName: string;
+  createdAt: number;
+};
+
 class OfflineDB extends Dexie {
   pendingRepas!: Table<PendingRepas, number>;
   pendingMeteo!: Table<PendingMeteo, number>;
   pendingPointsPassage!: Table<PendingPointPassage, number>;
+  pendingTickets!: Table<PendingTicket, number>;
 
   constructor() {
     super("abn-offline");
@@ -52,6 +65,12 @@ class OfflineDB extends Dexie {
       pendingRepas: "++id, maraudeId, createdAt",
       pendingMeteo: "++id, maraudeId, createdAt",
       pendingPointsPassage: "++id, maraudeId, createdAt",
+    });
+    this.version(4).stores({
+      pendingRepas: "++id, maraudeId, createdAt",
+      pendingMeteo: "++id, maraudeId, createdAt",
+      pendingPointsPassage: "++id, maraudeId, createdAt",
+      pendingTickets: "++id, maraudeId, createdAt",
     });
   }
 }

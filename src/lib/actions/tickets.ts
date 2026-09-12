@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
+import { CATEGORIES, type CategorieDepense } from "@/lib/categorie-depense";
 
 export type TicketState = { error: string } | undefined;
 
@@ -15,6 +16,7 @@ export async function creerTicket(
   const caller = await getCurrentProfile();
   const maraudeId = formData.get("maraudeId");
   const montant = formData.get("montant");
+  const categorie = formData.get("categorie");
   const photo = formData.get("photo");
 
   if (typeof maraudeId !== "string" || !maraudeId) {
@@ -24,6 +26,13 @@ export async function creerTicket(
   const montantNum = Number(montant);
   if (!Number.isFinite(montantNum) || montantNum <= 0) {
     return { error: "Montant invalide." };
+  }
+
+  if (
+    typeof categorie !== "string" ||
+    !CATEGORIES.includes(categorie as CategorieDepense)
+  ) {
+    return { error: "Catégorie invalide." };
   }
 
   if (!(photo instanceof File) || photo.size === 0) {
@@ -50,6 +59,7 @@ export async function creerTicket(
     maraude_id: maraudeId,
     user_id: caller.id,
     montant: montantNum,
+    categorie,
     photo_path: path,
   });
 
