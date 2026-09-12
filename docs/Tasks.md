@@ -61,10 +61,21 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   qu'à l'Étape 4 — dépend d'une session utilisateur réelle, pas encore d'Auth branchée
 
 ## Étape 6 — Suivi terrain & cartographie
-- ⬜ Activer extension PostGIS sur Supabase
-- ⬜ Table points_passage (maraude_id, user_id, geo_arrondi, horodatage, type_action, compteurs)
-- ⬜ Fonction d'arrondi géographique côté serveur (grille ~100m) — jamais de GPS exact stocké
-- ⬜ Policies RLS (Admin/Manager uniquement)
+- ✅ Extension PostGIS activée (schéma `extensions`)
+- ✅ Table points_passage (maraude_id, user_id, type_action, compteur, geo_arrondi,
+  horodatage — type_action est l'enum type_action_terrain : repas_distribue/
+  personne_aidee/orientation_sociale, qui correspond exactement aux 3 KPIs de
+  docs/Specs.md)
+- ✅ Fonction d'arrondi géographique côté serveur (grille ~100m, projection
+  Lambert-93/EPSG:2154) — ET forcée par un trigger (force_geo_arrondi) sur
+  TOUTE écriture, quelle que soit la précision envoyée par le client : jamais
+  de GPS exact stocké, même en cas de bug ou de client malveillant
+  — migration `20260912160000_suivi_terrain.sql`
+- ✅ Policies RLS : lecture réservée Admin + Manager de la maraude concernée
+  (conforme "Admin/Manager uniquement" de docs/Specs.md) ; écriture ouverte en
+  plus au participant qui capture sa propre entrée (compte actif) — nécessaire
+  pour la capture en un tap prévue à l'Étape 8, sinon personne ne pourrait
+  jamais écrire dans cette table
 - ⬜ Capture géoloc en un tap côté client (intégrée à la queue offline, voir Étape 8)
 
 ## Étape 7 — UI métier principale (connectée à Supabase)
