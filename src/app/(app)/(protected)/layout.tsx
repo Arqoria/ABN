@@ -1,17 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getCurrentProfile } from "@/lib/supabase/dal";
+import { getCurrentProfile, ROLE_LABELS } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  maraudeur: "Maraudeur",
-  cuisinier: "Cuisinier",
-};
 
 // Layout partagé par toutes les routes protégées (/dashboard,
 // /compte-en-attente, ...) — PAS par /login ni /signup, qui restent en
@@ -28,7 +21,7 @@ export default async function ProtectedLayout({
   const profile = await getCurrentProfile();
 
   let comptesEnAttenteCount = 0;
-  if (profile.role === "admin") {
+  if (profile.roles.includes("admin")) {
     const supabase = await createClient();
     const { count } = await supabase
       .from("profiles")
@@ -47,7 +40,7 @@ export default async function ProtectedLayout({
           Les Anges de la Baie
         </Link>
         <nav className="flex flex-wrap items-center gap-3">
-          {profile.role === "admin" && (
+          {profile.roles.includes("admin") && (
             <Link
               href="/dashboard/comptes"
               className="flex items-center gap-1.5 text-sm text-white/90 hover:text-white"
@@ -58,9 +51,11 @@ export default async function ProtectedLayout({
               )}
             </Link>
           )}
-          {profile.role && (
-            <Badge variant="secondary">{ROLE_LABELS[profile.role]}</Badge>
-          )}
+          {profile.roles.map((role) => (
+            <Badge key={role} variant="secondary">
+              {ROLE_LABELS[role]}
+            </Badge>
+          ))}
           <span className="hidden text-sm text-white/80 sm:inline">
             {profile.full_name ?? "Bénévole"}
           </span>

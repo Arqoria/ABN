@@ -24,10 +24,11 @@ export default async function DashboardPage() {
     redirect("/compte-en-attente");
   }
 
-  const isAdminOrManager = profile.role === "admin" || profile.role === "manager";
+  const isAdminOrManager =
+    profile.roles.includes("admin") || profile.roles.includes("manager");
 
   let comptesEnAttenteCount = 0;
-  if (profile.role === "admin") {
+  if (profile.roles.includes("admin")) {
     const supabase = await createClient();
     const { count } = await supabase
       .from("profiles")
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {profile.role === "admin" && (
+      {profile.roles.includes("admin") && (
         <Card>
           <CardHeader>
             <CardTitle>Comptes en attente de validation</CardTitle>

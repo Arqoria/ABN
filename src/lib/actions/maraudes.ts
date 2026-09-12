@@ -15,7 +15,7 @@ export async function creerMaraude(
   formData: FormData,
 ): Promise<ActionState> {
   const caller = await getCurrentProfile();
-  if (caller.role !== "admin" && caller.role !== "manager") {
+  if (!caller.roles.includes("admin") && !caller.roles.includes("manager")) {
     return { error: "Action réservée aux Admins/Managers." };
   }
 

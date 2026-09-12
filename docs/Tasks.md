@@ -154,11 +154,42 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   manager), bouton S'inscrire/Se désister par bénévole (toute la logique de
   capacité reste en base, cette UI ne fait qu'insérer/mettre à jour un statut).
   Admin/Manager peuvent en plus créer une maraude (nécessite un Manager actif
-  existant — sinon message explicite plutôt qu'un formulaire cassé). Testé en
-  local : page fonctionnelle, aucune erreur ; le flow complet création +
-  inscription + liste d'attente n'a pas pu être testé de bout en bout faute
-  d'un second compte de test (Manager) — à faire : inscrire un 2ᵉ compte,
-  le valider en Manager via /dashboard/comptes, puis tester
+  existant — sinon message explicite plutôt qu'un formulaire cassé). **Testé
+  de bout en bout en conditions réelles** avec un 2ᵉ compte de test validé en
+  Manager : création de maraude + inscription confirmées (1/6 inscrits), aucune
+  erreur
+
+## Refactor — rôles multiples par profil (profile_roles)
+
+Déclenché par un besoin réel identifié en testant l'Étape 7 : une personne peut
+cumuler plusieurs rôles (ex. Manager + Cuisinier), et le parcours d'un nouveau
+membre est progressif (adhérent au départ, rôles supplémentaires ajoutés par
+un Admin au fil de sa validation/implication — vidéo, entretien de motivation).
+Un seul champ `profiles.role` ne pouvait pas représenter ça.
+
+- ✅ `profiles.role` (une seule valeur) remplacé par la table `public.profile_roles`
+  (plusieurs lignes possibles par profil) — migrations
+  `20260912180000_add_roles_adherent_donateur.sql` (ajoute adherent/donateur à
+  l'enum user_role, dans une migration séparée car Postgres interdit d'utiliser
+  une nouvelle valeur d'enum dans la transaction qui l'ajoute) et
+  `20260912180500_profile_roles_refactor.sql` (table, fonction
+  `current_user_has_role()` qui remplace `current_user_role()`, ré-écriture de
+  toutes les policies RLS/triggers basés sur le rôle depuis l'Étape 2 — 21
+  policies + 3 triggers touchés, sur 8 tables). `handle_new_user` attribue
+  désormais automatiquement le rôle `adherent` à l'inscription
+- ✅ RLS sur `profile_roles` (self lit ses propres rôles, Admin lit/écrit tout)
+  remplace nativement l'ancien trigger `protect_profile_role_status` pour la
+  partie rôle — plus besoin de trigger dédié, la policy suffit
+- ✅ UI /dashboard/comptes : cases à cocher (shadcn Checkbox ajouté) au lieu
+  d'un menu déroulant — plusieurs rôles assignables en une fois, avec les
+  rôles déjà détenus pré-cochés
+- ✅ Le suivi "parcours d'onboarding" (vidéo débloquée, entretien de motivation)
+  reste volontairement hors scope ici — sujet à part, pas construit
+- **Testé en conditions réelles** : une erreur d'attribution (rôle Admin
+  attribué par erreur à un compte de test via l'ancien menu déroulant, avant
+  le refactor) corrigée directement en base via l'API service_role ; le
+  refactor complet vérifié ensuite avec le flow création de maraude +
+  inscription (voir Étape 7 ci-dessus)
 - ⬜ Saisie météo bénévole en fin de maraude
 - ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
 

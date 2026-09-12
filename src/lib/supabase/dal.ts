@@ -4,14 +4,32 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+export type RoleName =
+  | "admin"
+  | "manager"
+  | "maraudeur"
+  | "cuisinier"
+  | "adherent"
+  | "donateur";
+
+export const ROLE_LABELS: Record<RoleName, string> = {
+  admin: "Admin",
+  manager: "Manager",
+  maraudeur: "Maraudeur",
+  cuisinier: "Cuisinier",
+  adherent: "Adhérent",
+  donateur: "Donateur",
+};
+
 export type Profile = {
   id: string;
   full_name: string | null;
-  role: "admin" | "manager" | "maraudeur" | "cuisinier" | null;
   status: "en_attente" | "actif" | "suspendu";
+  roles: RoleName[];
 };
 
-// Data Access Layer : vérifie la session ET charge le profil associé, en un
+// Data Access Layer : vérifie la session ET charge le profil associé (avec
+// ses rôles — plusieurs possibles par profil, voir profile_roles), en un
 // seul point centralisé (voir guide Next.js sur l'auth — "Creating a Data
 // Access Layer"). cache() mémoïse le résultat pour la durée du rendu, pour
 // éviter des requêtes dupliquées si plusieurs composants l'appellent.
@@ -32,9 +50,9 @@ export const getCurrentProfile = cache(async (): Promise<Profile> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, role, status")
+    .select("id, full_name, status")
     .eq("id", user.id)
-    .single<Profile>();
+    .single<Omit<Profile, "roles">>();
 
   if (!profile) {
     // Ne devrait jamais arriver : le trigger handle_new_user crée toujours
@@ -42,5 +60,12 @@ export const getCurrentProfile = cache(async (): Promise<Profile> => {
     redirect("/login");
   }
 
-  return profile;
+  const { data: roleRows } = await supabase
+    .from("profile_roles")
+    .select("role")
+    .eq("profile_id", user.id);
+
+  const roles = (roleRows ?? []).map((r) => r.role as RoleName);
+
+  return { ...profile, roles };
 });

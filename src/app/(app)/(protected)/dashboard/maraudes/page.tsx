@@ -45,16 +45,26 @@ export default async function MaraudesPage() {
         .in("maraude_id", maraudeIds)
     : { data: [] as Inscription[] };
 
-  const isAdminOrManager = profile.role === "admin" || profile.role === "manager";
+  const isAdminOrManager =
+    profile.roles.includes("admin") || profile.roles.includes("manager");
 
   let managers: { id: string; full_name: string | null }[] = [];
   if (isAdminOrManager) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("role", "manager")
-      .eq("status", "actif");
-    managers = data ?? [];
+    const { data: managerRoleRows } = await supabase
+      .from("profile_roles")
+      .select("profile_id")
+      .eq("role", "manager");
+
+    const managerIds = (managerRoleRows ?? []).map((r) => r.profile_id as string);
+
+    if (managerIds.length) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", managerIds)
+        .eq("status", "actif");
+      managers = data ?? [];
+    }
   }
 
   return (

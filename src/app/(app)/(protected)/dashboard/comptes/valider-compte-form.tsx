@@ -2,54 +2,58 @@
 
 import { useActionState } from "react";
 import { validerCompte } from "@/lib/actions/comptes";
+import { ROLE_LABELS, type RoleName } from "@/lib/supabase/dal";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-const ROLES = [
-  { value: "maraudeur", label: "Maraudeur" },
-  { value: "cuisinier", label: "Cuisinier" },
-  { value: "manager", label: "Manager" },
-  { value: "admin", label: "Admin" },
-] as const;
+const ROLES: RoleName[] = [
+  "adherent",
+  "donateur",
+  "maraudeur",
+  "cuisinier",
+  "manager",
+  "admin",
+];
 
-export function ValiderCompteForm({ userId }: { userId: string }) {
+export function ValiderCompteForm({
+  userId,
+  defaultRoles = [],
+}: {
+  userId: string;
+  defaultRoles?: RoleName[];
+}) {
   const [state, action, pending] = useActionState(validerCompte, undefined);
 
   return (
-    <form
-      action={action}
-      className="flex flex-col gap-3 sm:flex-row sm:items-center"
-    >
+    <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="userId" value={userId} />
-      {/* Select name="role" : Radix Select.Root rend un <select> natif caché
-          pour participer à la soumission de formulaire — pas besoin de
-          gérer la valeur manuellement en React. */}
-      <Select name="role" defaultValue="maraudeur" required>
-        <SelectTrigger className="h-12 w-full sm:w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {ROLES.map((r) => (
-            <SelectItem key={r.value} value={r.value}>
-              {r.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button type="submit" disabled={pending} className="h-12">
-        {pending ? "Validation…" : "Valider le compte"}
-      </Button>
-      {state?.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      {/* Checkbox name="roles" : Radix rend un input caché par case, formData
+          .getAll("roles") renvoie toutes les valeurs cochées — pas besoin
+          d'état React manuel. */}
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {ROLES.map((role) => (
+          <div key={role} className="flex items-center gap-2">
+            <Checkbox
+              id={`${userId}-${role}`}
+              name="roles"
+              value={role}
+              defaultChecked={defaultRoles.includes(role)}
+            />
+            <Label htmlFor={`${userId}-${role}`}>{ROLE_LABELS[role]}</Label>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={pending} className="h-12">
+          {pending ? "Validation…" : "Valider le compte"}
+        </Button>
+        {state?.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {state.error}
+          </p>
+        )}
+      </div>
     </form>
   );
 }
