@@ -1,9 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { REMEMBER_ME_COOKIE, sessionMaxAge } from "@/lib/supabase/remember-me";
+
+const OAUTH_PROVIDERS = ["google", "azure", "facebook"] as const;
+type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
 
 export type LoginState = { error: string } | undefined;
 
@@ -53,6 +56,40 @@ export async function login(
   }
 
   redirect("/dashboard");
+}
+
+// Google, Microsoft (provider "azure" côté Supabase) et Facebook — même
+// mécanisme pour les trois, un seul callback (src/app/auth/callback/route.ts).
+// Ne fonctionne qu'une fois le fournisseur activé et configuré dans le
+// Dashboard Supabase (Authentication → Providers), avec une app OAuth créée
+// côté Google/Microsoft/Facebook — ça ne dépend pas que de ce code.
+export async function loginWithOAuth(
+  _prevState: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const provider = formData.get("provider");
+  if (
+    typeof provider !== "string" ||
+    !OAUTH_PROVIDERS.includes(provider as OAuthProvider)
+  ) {
+    return { error: "Fournisseur invalide." };
+  }
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: provider as OAuthProvider,
+    options: { redirectTo: `${proto}://${host}/auth/callback` },
+  });
+
+  if (error || !data.url) {
+    return { error: "Connexion impossible pour l'instant." };
+  }
+
+  redirect(data.url);
 }
 
 export type SignupState =

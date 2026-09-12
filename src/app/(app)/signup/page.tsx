@@ -6,6 +6,7 @@ import { signup } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import {
   Card,
   CardContent,
@@ -108,6 +109,9 @@ export default function SignupPage() {
               </Link>
             </p>
           </form>
+          <div className="mt-4">
+            <OAuthButtons />
+          </div>
         </CardContent>
       </Card>
     </div>

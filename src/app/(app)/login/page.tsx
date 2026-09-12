@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import {
   Card,
   CardContent,
@@ -70,6 +71,9 @@ export default function LoginPage() {
               </Link>
             </p>
           </form>
+          <div className="mt-4">
+            <OAuthButtons />
+          </div>
         </CardContent>
       </Card>
       {/* Lien discret — charte graphique conservée pour validation par le
