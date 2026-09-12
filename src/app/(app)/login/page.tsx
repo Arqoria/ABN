@@ -1,14 +1,63 @@
-// Placeholder — pas de logique d'auth ici. Le vrai formulaire de
-// connexion (Supabase Auth) arrive à l'Étape 7 du backlog.
+"use client";
+
+import { useActionState } from "react";
+import { login } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function LoginPage() {
+  const [state, action, pending] = useActionState(login, undefined);
+
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-16">
-      <div className="text-center">
-        <h1 className="text-xl font-semibold text-foreground">Connexion</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Formulaire à venir (Étape 7 — Auth Supabase).
-        </p>
-      </div>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Connexion</CardTitle>
+          <CardDescription>Accédez à votre espace bénévole.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={action} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="h-12"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="h-12"
+              />
+            </div>
+            {state?.error && (
+              <p role="alert" className="text-sm text-destructive">
+                {state.error}
+              </p>
+            )}
+            <Button type="submit" disabled={pending} className="h-12">
+              {pending ? "Connexion…" : "Se connecter"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -83,9 +83,13 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   - ✅ Socle : @supabase/ssr installé, clients Supabase (browser/server/proxy),
     src/proxy.ts vérifie une vraie session et redirige vers /login si absente
     (testé en local : /dashboard sans session → redirection /login confirmée)
-  - ⬜ Formulaire de connexion (email/mot de passe)
+  - ✅ Formulaire de connexion (email/mot de passe, Server Action + useActionState,
+    shadcn Input/Label ajoutés) — testé en local contre l'API Supabase Auth réelle :
+    mauvais identifiants → message d'erreur générique affiché (jamais "email
+    inconnu" vs "mot de passe incorrect", pour éviter l'énumération de comptes)
   - ⬜ Formulaire d'inscription
-  - ⬜ Écran "compte en attente de validation" (status en_attente)
+  - ⬜ Écran "compte en attente de validation" (status en_attente) — /dashboard
+    ne vérifie pas encore le statut du profil, prochaine itération
 - ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
   — déplacé depuis l'Étape 4, dépend de l'Auth ci-dessus
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
