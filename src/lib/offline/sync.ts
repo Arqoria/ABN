@@ -1,5 +1,6 @@
 import { offlineDb } from "./db";
 import { ajouterRepas } from "@/lib/actions/repas";
+import { saisirMeteo } from "@/lib/actions/meteo";
 
 // Vide la file d'attente locale en rejouant chaque saisie via la Server
 // Action normale (RLS/triggers s'appliquent exactement comme en ligne — pas
@@ -39,4 +40,31 @@ export async function flushPendingRepas() {
 
 export async function countPendingRepas(): Promise<number> {
   return offlineDb.pendingRepas.count();
+}
+
+// Même logique que flushPendingRepas() ci-dessus.
+export async function flushPendingMeteo() {
+  const pending = await offlineDb.pendingMeteo.orderBy("createdAt").toArray();
+
+  for (const item of pending) {
+    const formData = new FormData();
+    formData.set("maraudeId", item.maraudeId);
+    formData.set("userId", item.userId);
+    formData.set("valeur", item.valeur);
+
+    try {
+      const result = await saisirMeteo(undefined, formData);
+      if (result?.status === "error") {
+        // Ex. le bénévole a été désinscrit, ou une météo a déjà été saisie
+        // entretemps par un Manager — on retire l'entrée plutôt que de
+        // bloquer la file dessus.
+        await offlineDb.pendingMeteo.delete(item.id!);
+        continue;
+      }
+    } catch {
+      return;
+    }
+
+    await offlineDb.pendingMeteo.delete(item.id!);
+  }
 }

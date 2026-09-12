@@ -1,18 +1,26 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 import { saisirMeteo } from "@/lib/actions/meteo";
+import { offlineDb } from "@/lib/offline/db";
 import { Button } from "@/components/ui/button";
 
-const OPTIONS = [
+type Valeur = "vert" | "jaune" | "rouge";
+
+const OPTIONS: { value: Valeur; label: string }[] = [
   { value: "vert", label: "🟢 Ça va" },
   { value: "jaune", label: "🟡 Moyen" },
   { value: "rouge", label: "🔴 Difficile" },
-] as const;
+];
+
+type Message = { type: "error" | "queued" | "success"; text: string };
 
 // Auto-déclaration en fin de maraude — une seule fois (contrainte unique en
 // base). Volontairement AUCUN affichage de la valeur transmise : le bénévole
 // ne doit jamais pouvoir relire sa propre météo (voir docs/Specs.md).
+// Hors-ligne (ou réseau indisponible) : la saisie part dans la file
+// d'attente locale (Dexie/IndexedDB) au lieu d'appeler la Server Action, et
+// sera rejouée automatiquement au retour du réseau — Étape 8.
 export function MeteoForm({
   maraudeId,
   userId,
@@ -20,12 +28,54 @@ export function MeteoForm({
   maraudeId: string;
   userId: string;
 }) {
-  const [state, action, pending] = useActionState(saisirMeteo, undefined);
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<Message | null>(null);
 
-  if (state?.status === "success") {
-    return (
-      <p className="text-sm text-muted-foreground">Météo transmise, merci.</p>
-    );
+  function submit(valeur: Valeur) {
+    startTransition(async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await offlineDb.pendingMeteo.add({
+          maraudeId,
+          userId,
+          valeur,
+          createdAt: Date.now(),
+        });
+        setMessage({
+          type: "queued",
+          text: "Hors ligne : enregistré sur l'appareil, envoyé automatiquement au retour du réseau.",
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("maraudeId", maraudeId);
+      formData.set("userId", userId);
+      formData.set("valeur", valeur);
+
+      try {
+        const result = await saisirMeteo(undefined, formData);
+        if (result?.status === "error") {
+          setMessage({ type: "error", text: result.message });
+          return;
+        }
+        setMessage({ type: "success", text: "Météo transmise, merci." });
+      } catch {
+        await offlineDb.pendingMeteo.add({
+          maraudeId,
+          userId,
+          valeur,
+          createdAt: Date.now(),
+        });
+        setMessage({
+          type: "queued",
+          text: "Connexion indisponible : enregistré sur l'appareil, envoyé automatiquement au retour du réseau.",
+        });
+      }
+    });
+  }
+
+  if (message?.type === "success") {
+    return <p className="text-sm text-muted-foreground">{message.text}</p>;
   }
 
   return (
@@ -35,19 +85,24 @@ export function MeteoForm({
       </p>
       <div className="flex flex-wrap gap-2">
         {OPTIONS.map((o) => (
-          <form action={action} key={o.value}>
-            <input type="hidden" name="maraudeId" value={maraudeId} />
-            <input type="hidden" name="userId" value={userId} />
-            <input type="hidden" name="valeur" value={o.value} />
-            <Button type="submit" variant="outline" size="sm" disabled={pending}>
-              {o.label}
-            </Button>
-          </form>
+          <Button
+            key={o.value}
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() => submit(o.value)}
+          >
+            {o.label}
+          </Button>
         ))}
       </div>
-      {state?.status === "error" && (
-        <p role="alert" className="text-sm text-destructive">
-          {state.message}
+      {message && (
+        <p
+          role={message.type === "error" ? "alert" : undefined}
+          className={`text-sm ${message.type === "error" ? "text-destructive" : "text-muted-foreground"}`}
+        >
+          {message.text}
         </p>
       )}
     </div>

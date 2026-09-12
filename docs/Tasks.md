@@ -234,14 +234,18 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   pendant la maraude donc l'évènement `online` suffit en pratique. Pas de
   synchro en tâche de fond quand l'app est fermée — limite assumée, à
   reconsidérer si le besoin réel apparaît
-- 🟨 Intégration avec les saisies terrain : **repas fait et testé** (pilote du
-  pattern) — RepasForm bascule en file locale si hors ligne ou si l'appel
-  réseau échoue, message explicite, resynchronise automatiquement. Testé en
-  conditions réelles (navigator.onLine forcé à false, IndexedDB vérifiée,
-  puis évènement 'online' déclenché, IndexedDB vidée et donnée confirmée en
-  base). **Météo, tickets de dépense et points de passage restent à faire**
-  (même pattern à répliquer — points_passage n'a même pas encore d'UI de
-  capture, prévue ici à l'origine)
+- 🟨 Intégration avec les saisies terrain : **repas et météo faits et testés**
+  — RepasForm/MeteoForm basculent en file locale (magasins Dexie dédiés
+  pendingRepas/pendingMeteo) si hors ligne ou si l'appel réseau échoue,
+  message explicite, resynchronisation automatique. Testés en conditions
+  réelles (navigator.onLine forcé à false, IndexedDB vérifiée, puis
+  évènement 'online' déclenché, IndexedDB vidée et donnée confirmée en base
+  à chaque fois — pour météo, la valeur "vert" retrouvée en base avec le bon
+  horodatage). **Tickets de dépense et points de passage restent à faire**
+  — tickets est plus délicat (upload de photo, un File ne se sérialise pas
+  comme un objet JSON simple, même si IndexedDB peut stocker des Blob/File
+  directement) ; points_passage n'a même pas encore d'UI de capture, prévue
+  ici à l'origine
 
 ## Étape 9 — Reporting & KPIs
 - ⬜ Vue agrégée compteurs (repas, personnes aidées, orientations sociales)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { flushPendingRepas } from "@/lib/offline/sync";
+import { flushPendingRepas, flushPendingMeteo } from "@/lib/offline/sync";
 
 // Monté une fois dans le layout (protected) : tente une synchro au chargement
 // (couvre le cas "app rouverte après être restée hors ligne") ET à chaque
@@ -10,9 +10,11 @@ import { flushPendingRepas } from "@/lib/offline/sync";
 export function OfflineSync() {
   useEffect(() => {
     void flushPendingRepas();
+    void flushPendingMeteo();
 
     function handleOnline() {
       void flushPendingRepas();
+      void flushPendingMeteo();
     }
 
     window.addEventListener("online", handleOnline);
