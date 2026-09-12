@@ -200,7 +200,16 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   pouvoir lire/corriger). **Testé de bout en bout en conditions réelles** :
   saisie self-service confirmée ("Météo transmise, merci."), relecture Admin
   confirmée (valeur correcte affichée et mise en avant), aucune erreur
-- ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
+- ✅ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5
+  (dépendait de l'Auth). Saisie repas (/dashboard/maraudes/[id]/repas) :
+  formulaire visible uniquement au rôle Cuisinier, lecture large pour tous
+  (RLS Étape 5). Tickets de dépense (/dashboard/maraudes/[id]/tickets) :
+  upload photo vers le bucket Storage privé (Server Action reçoit le File
+  directement via FormData, convention de chemin {user_id}/{fichier}), liste
+  ses propres tickets avec URL signée pour voir la photo. **Testé de bout en
+  bout en conditions réelles** : repas ajouté et affiché, ticket envoyé avec
+  upload réel d'une image, URL signée générée et vérifiée (image chargée
+  correctement, 969×1097px), aucune erreur — Étape 7 entièrement terminée
 
 ## Étape 8 — PWA offline-first (synchro réelle)
 - ⬜ IndexedDB (Dexie.js) comme file d'attente locale

@@ -149,14 +149,26 @@ export default async function MaraudesPage() {
                     userId={profile.id}
                   />
                 )}
-                {(profile.roles.includes("admin") ||
-                  maraude.manager_id === profile.id) && (
-                  <Button asChild variant="outline" size="sm" className="w-fit">
-                    <Link href={`/dashboard/maraudes/${maraude.id}/meteo`}>
-                      Météo équipe
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/dashboard/maraudes/${maraude.id}/repas`}>
+                      Repas
                     </Link>
                   </Button>
-                )}
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/dashboard/maraudes/${maraude.id}/tickets`}>
+                      Tickets de dépense
+                    </Link>
+                  </Button>
+                  {(profile.roles.includes("admin") ||
+                    maraude.manager_id === profile.id) && (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/dashboard/maraudes/${maraude.id}/meteo`}>
+                        Météo équipe
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
