@@ -10,6 +10,8 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ✅ Manifest PWA (icônes 192/512/maskable/apple-icon, theme-color, apple-web-app) — déployé et vérifié en ligne
 - ✅ Service Worker de base (public/sw.js, pass-through — installabilité uniquement, aucun cache/offline)
 - ✅ Structure des pages/routes (squelette (public)/(app) + proxy.ts, pas encore de contenu final)
+  — note : '/' sert temporairement le styleguide (charte graphique) au lieu du placeholder vitrine ;
+  la vraie page d'accueil sera construite séparément à l'Étape 10
 
 ## Étape 2 — Fondations BDD (Supabase)
 - ⬜ Créer le projet Supabase réel (compte Arqoria, région Europe)
