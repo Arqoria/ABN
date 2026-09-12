@@ -79,7 +79,13 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ⬜ Capture géoloc en un tap côté client (intégrée à la queue offline, voir Étape 8)
 
 ## Étape 7 — UI métier principale (connectée à Supabase)
-- ⬜ Auth (connexion, inscription, écran "compte en attente de validation")
+- 🟨 Auth (connexion, inscription, écran "compte en attente de validation")
+  - ✅ Socle : @supabase/ssr installé, clients Supabase (browser/server/proxy),
+    src/proxy.ts vérifie une vraie session et redirige vers /login si absente
+    (testé en local : /dashboard sans session → redirection /login confirmée)
+  - ⬜ Formulaire de connexion (email/mot de passe)
+  - ⬜ Formulaire d'inscription
+  - ⬜ Écran "compte en attente de validation" (status en_attente)
 - ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
   — déplacé depuis l'Étape 4, dépend de l'Auth ci-dessus
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
