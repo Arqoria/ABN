@@ -15,10 +15,12 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 
 ## Étape 2 — Fondations BDD (Supabase)
 - ✅ Créer le projet Supabase réel (compte Arqoria, projet `kjwjkzoepjaepxjkquwr`)
-- ⬜ Appliquer migration : enums (user_role, account_status, meteo_benevole) + table profiles + RLS de base
-- ⬜ Appliquer migration : fonctions helper security definer (current_user_role, current_user_status)
-- ⬜ Réécrire policy profiles_select_admin_manager avec les fonctions helper (fix récursion RLS)
-- ⬜ Trigger handle_new_user (auto-création du profil à l'inscription Supabase Auth)
+- ✅ Appliquer migration : enums (user_role, account_status, meteo_benevole) + table profiles + RLS de base
+- ✅ Appliquer migration : fonctions helper security definer (current_user_role, current_user_status)
+- ✅ Policy profiles_select_admin_manager construite directement avec les fonctions helper (pas de récursion à corriger, jamais de sous-requête sur profiles depuis le début)
+- ✅ Trigger handle_new_user (auto-création du profil à l'inscription Supabase Auth)
+  — les 4 lignes ci-dessus : migration `20260910043205_init_profiles.sql` appliquée le 13/09
+  via `supabase db push`, confirmée par `supabase migration list` (local = remote)
 - ✅ Connecter Claude Code au projet Supabase via MCP (--read-only + --project-ref) — connecté, vérifié via `claude mcp get` (nécessite une nouvelle session pour être utilisable)
 
 ## Étape 3 — Maraudes & équipes
