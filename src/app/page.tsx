@@ -1,7 +1,9 @@
-// '/' sert temporairement le styleguide en attendant la vraie page d'accueil
-// (Étape 10 du backlog). La page en elle-même vit désormais à demeure sur
-// /styleguide (voir docs/Tasks.md) : quand la vraie page d'accueil sera
-// construite, il suffira de remplacer ce re-export par son propre contenu —
-// /styleguide continuera d'exister pour la validation charte graphique par
-// le client, indépendamment de ce qui se passe sur '/'.
-export { default } from "./styleguide/page";
+import { redirect } from "next/navigation";
+
+// '/' redirige vers la connexion — c'est le vrai point d'entrée de l'app tant
+// que la page d'accueil publique (Étape 10) n'existe pas. La charte graphique
+// reste consultable à demeure sur /styleguide (lien discret en bas de la page
+// de connexion) pour la validation par le référent association.
+export default function Home() {
+  redirect("/login");
+}

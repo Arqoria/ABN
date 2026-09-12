@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-16">
+    <div className="relative flex flex-1 items-center justify-center px-4 py-16">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Connexion</CardTitle>
@@ -65,6 +65,14 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      {/* Lien discret — charte graphique conservée pour validation par le
+          référent association, voir docs/Tasks.md */}
+      <Link
+        href="/styleguide"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/60 hover:text-muted-foreground"
+      >
+        Charte graphique
+      </Link>
     </div>
   );
 }

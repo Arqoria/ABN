@@ -125,6 +125,24 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   confirmée sur /dashboard/comptes) ; le flow complet (Admin réel qui valide
   un compte) n'a pas pu être testé, ni la clé service_role, faute de compte
   de test en production (même réserve que les points précédents)
+- ✅ **Correctif critique découvert en testant avec un vrai compte** : les 7 tables
+  créées depuis l'Étape 2 avaient RLS correctement configuré mais **aucun GRANT
+  Postgres de base pour `authenticated`/`service_role`** — RLS ne sert à rien sans
+  ça, résultat "permission denied for table profiles" au premier vrai accès
+  authentifié. Cause : `supabase db push` exécute les migrations sous le rôle
+  `postgres`, dont les privilèges par défaut sur `public` excluent explicitement
+  SELECT/INSERT/UPDATE/DELETE pour anon/authenticated/service_role (contrairement
+  aux tables créées via le Dashboard). Corrigé par
+  `20260912170000_fix_grants_authenticated.sql` et
+  `20260912171500_fix_grants_service_role.sql` (GRANT rétroactif + ALTER DEFAULT
+  PRIVILEGES pour que les futures tables n'aient pas le même problème). **Testé
+  et confirmé en conditions réelles** : inscription → confirmation email → connexion
+  → redirection /compte-en-attente, avec un vrai compte (06aymen.gasmi@gmail.com)
+- ⬜ Bootstrap du tout premier compte Admin — aucun compte admin n'existe encore,
+  et le trigger protect_profile_role_status bloque même une modification manuelle
+  via le SQL Editor du Dashboard (auth.role() y est toujours NULL, jamais
+  'service_role' — ce GUC n'est posé que par PostgREST). Un appel direct à l'API
+  REST avec la clé service_role (qui passe par PostgREST) fonctionne, lui.
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
 - ⬜ Inscription à une maraude + visualisation liste/liste d'attente
 - ⬜ Saisie météo bénévole en fin de maraude
