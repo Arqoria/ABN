@@ -64,9 +64,11 @@ export default async function CarteMaraudePage({
     .eq("maraude_id", maraudeId)
     .order("horodatage", { ascending: true });
 
-  // Heatmap : historique visible par l'appelant (RLS limite déjà un Manager
-  // à ses propres maraudes, un Admin voit tout) — sert de fond de carte pour
-  // aider à définir le circuit planifié.
+  // Heatmap : historique complet, toutes maraudes confondues (RLS Admin ET
+  // Manager depuis la migration 20260912240000 — un Manager doit voir
+  // l'activité de toute l'association pour bien planifier un circuit, pas
+  // seulement ses propres maraudes) — sert de fond de carte pour aider à
+  // définir le circuit planifié.
   const { data: pointsHeat } = await supabase
     .from("points_passage_geo")
     .select("lat, lng")

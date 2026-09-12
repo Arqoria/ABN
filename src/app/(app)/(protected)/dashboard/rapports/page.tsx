@@ -18,11 +18,12 @@ import { ActiviteChart } from "./activite-chart";
 import { DepensesChart } from "./depenses-chart";
 
 // Réservée à Admin/Manager (docs/Specs.md : "compteurs détaillés réservés à
-// Admin/Manager"). Un Manager ne voit que les points de passage des
-// maraudes qu'il gère — c'est déjà imposé par RLS (Étape 6), cette page
-// n'a aucune logique de scope à gérer elle-même. Compteurs agrégés
-// uniquement : aucune donnée individuelle sur les personnes aidées
-// (docs/Specs.md : anonymat strict).
+// Admin/Manager"). Un Manager voit désormais l'historique complet, toutes
+// maraudes confondues (RLS élargie migration 20260912240000 — utile pour
+// s'appuyer sur la heatmap globale en planifiant un circuit), aucune
+// logique de scope à gérer côté page. Compteurs agrégés uniquement : aucune
+// donnée individuelle sur les personnes aidées (docs/Specs.md : anonymat
+// strict).
 export default async function RapportsPage({
   searchParams,
 }: {
