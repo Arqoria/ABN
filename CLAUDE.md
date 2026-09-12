@@ -74,11 +74,9 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 \- Hébergement : Vercel (plan gratuit)
 
-\- BDD : Supabase, projet `kjwjkzoepjaepxjkquwr` créé le 10/09 — propriétaire du compte à CONFIRMER
+\- BDD : Supabase, projet `kjwjkzoepjaepxjkquwr` créé le 10/09 sous le compte **Arqoria** (confirmé le
 
-&#x20; (Tasks.md visait le compte Arqoria, jamais vérifié depuis) — dans tous les cas, à transférer vers
-
-&#x20; un compte contrôlé par l'association avant toute mise en prod réelle si ce n'est pas déjà le cas
+&#x20; 12/09) — déjà le compte contrôlé par l'association, pas de transfert nécessaire
 
 \- Free tier Supabase : pas de backup automatique → prévoir un `pg\_dump` planifié (GitHub Action) comme
 
@@ -104,9 +102,7 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 \- Vercel Hobby : voir note dans Infrastructure ci-dessous (email d'auteur git = `arqoria.pro@gmail.com`)
 
-\- Supabase : compte propriétaire du projet à confirmer/documenter ici (voir Infrastructure) — ne pas
-
-&#x20; supposer, vérifier avant toute décision d'accès
+\- Supabase : projet créé sous le compte Arqoria (confirmé le 12/09, voir Infrastructure)
 
 \- RLS `profiles` : en plus des fonctions `security definer`, un trigger
 
