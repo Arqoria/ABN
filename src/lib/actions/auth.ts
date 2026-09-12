@@ -113,3 +113,11 @@ export async function signup(
 
   return { status: "success" };
 }
+
+// Server Action de déconnexion — invalide la session côté Supabase (pas
+// juste un oubli du cookie côté client).
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}

@@ -143,7 +143,12 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   via le SQL Editor du Dashboard (auth.role() y est toujours NULL, jamais
   'service_role' — ce GUC n'est posé que par PostgREST). Un appel direct à l'API
   REST avec la clé service_role (qui passe par PostgREST) fonctionne, lui.
-- ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
+- ✅ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données
+  factices du styleguide — layout partagé src/app/(app)/(protected)/layout.tsx (header,
+  badge de rôle, bouton déconnexion, lien "Comptes en attente" + compteur pour Admin) ;
+  page /dashboard affiche un contenu différent Admin/Manager vs Maraudeur/Cuisinier, sans
+  données inventées (les fonctionnalités métier réelles arrivent aux points suivants).
+  Testé en local avec le vrai compte de test : header affiché, déconnexion fonctionnelle
 - ⬜ Inscription à une maraude + visualisation liste/liste d'attente
 - ⬜ Saisie météo bénévole en fin de maraude
 - ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
