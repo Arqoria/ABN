@@ -419,7 +419,18 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
 - ⬜ Pages SEO local (accueil, présentation, actions)
 - ⬜ Formulaire recrutement bénévoles
 - ⬜ Module dons financiers
-- ⬜ Module dons matériels
+- ⬜ Module dons matériels — **passerelle déjà préparée** (retour
+  utilisateur, 12/09 : "anticiper le lien dans l'espace de dons") : la vue
+  SQL `public.besoins_publics` (migration `20260912270000_besoins_publics.sql`)
+  agrège déjà les besoins signalés (Étape 9) des 30 derniers jours par
+  catégorie, lisible SANS authentification (`anon`). La page de dons pourra
+  simplement l'interroger pour afficher les besoins réels et actuels
+  ("actuellement, on manque de couvertures") plutôt qu'une liste générique.
+  **Première surface de données publique (anon) du projet** — vue
+  volontairement restreinte à categorie+total (jamais de commentaire, de
+  maraude, ni de qui a signalé) ; `besoins_signales` reste, elle,
+  strictement protégée par RLS. **Vérifié** : lecture anon de la vue OK,
+  lecture anon directe de la table refusée ("permission denied")
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)
