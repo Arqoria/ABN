@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
@@ -20,42 +20,53 @@ const chartConfig: ChartConfig = Object.fromEntries(
   ]),
 );
 
-// Tendance sur la période filtrée — un empilement par jour permet de voir à
-// la fois le volume total et sa répartition par type d'action, l'info la
-// plus utile pour un suivi d'activité (pas de camembert : moins lisible
-// pour comparer plusieurs jours entre eux).
+// Une courbe par type plutôt qu'un empilement (version précédente) : un
+// empilement rend impossible de suivre l'évolution d'un seul type (sa
+// bande "flotte" au-dessus des autres et change de hauteur de base à
+// chaque jour) — quatre lignes se comparent et se suivent dans le temps
+// bien plus facilement, l'objectif premier d'un suivi d'activité.
 export function ActiviteChart({ data }: { data: DailyPoint[] }) {
   if (data.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
+      <p className="py-12 text-center text-sm text-muted-foreground">
         Aucune donnée sur cette période.
       </p>
     );
   }
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
-      <BarChart data={data}>
-        <CartesianGrid vertical={false} />
+    <ChartContainer config={chartConfig} className="aspect-auto h-[320px] w-full">
+      <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="date"
           tickLine={false}
           axisLine={false}
-          tickMargin={8}
+          tickMargin={10}
+          fontSize={12}
         />
-        <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          allowDecimals={false}
+          width={28}
+          fontSize={12}
+        />
+        <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
         <ChartLegend content={<ChartLegendContent />} />
         {TYPE_ACTIONS.map((type) => (
-          <Bar
+          <Line
             key={type}
+            type="monotone"
             dataKey={type}
-            stackId="total"
-            fill={`var(--color-${type})`}
-            radius={0}
+            stroke={`var(--color-${type})`}
+            strokeWidth={2.5}
+            dot={{ r: 3.5, strokeWidth: 0, fill: `var(--color-${type})` }}
+            activeDot={{ r: 5 }}
           />
         ))}
-      </BarChart>
+      </LineChart>
     </ChartContainer>
   );
 }

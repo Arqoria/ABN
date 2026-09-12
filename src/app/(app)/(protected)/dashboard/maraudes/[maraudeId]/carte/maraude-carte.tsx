@@ -16,9 +16,18 @@ import "leaflet.heat";
 import { Button } from "@/components/ui/button";
 import { enregistrerCircuitPlanifie } from "@/lib/actions/circuits";
 import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS_COURT, type TypeAction } from "@/lib/type-action";
+import {
+  ORGANISME_ORIENTATION_LABELS,
+  type OrganismeOrientation,
+} from "@/lib/organisme-orientation";
 
 type LatLng = { lat: number; lng: number };
-type PointReel = LatLng & { typeAction: TypeAction; horodatage: string };
+type PointReel = LatLng & {
+  typeAction: TypeAction;
+  horodatage: string;
+  orientationVers: OrganismeOrientation | null;
+  orientationVersAutre: string | null;
+};
 
 // leaflet.heat n'est pas un composant react-leaflet — on l'ajoute
 // impérativement à l'instance de carte via useMap(), comme documenté pour
@@ -125,7 +134,16 @@ export function MaraudeCarte({
               }}
             >
               <Tooltip>
-                {TYPE_LABELS_COURT[p.typeAction] ?? p.typeAction} —{" "}
+                {TYPE_LABELS_COURT[p.typeAction] ?? p.typeAction}
+                {p.typeAction === "orientation_sociale" && p.orientationVers && (
+                  <>
+                    {" → "}
+                    {p.orientationVers === "autre"
+                      ? (p.orientationVersAutre ?? "Autre")
+                      : ORGANISME_ORIENTATION_LABELS[p.orientationVers]}
+                  </>
+                )}
+                {" — "}
                 {new Date(p.horodatage).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",

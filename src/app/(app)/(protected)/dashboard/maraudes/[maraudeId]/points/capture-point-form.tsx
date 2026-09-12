@@ -4,6 +4,19 @@ import { useState, useTransition } from "react";
 import { capturerPointPassage } from "@/lib/actions/points-passage";
 import { offlineDb } from "@/lib/offline/db";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ORGANISMES_ORIENTATION,
+  ORGANISME_ORIENTATION_LABELS,
+  type OrganismeOrientation,
+} from "@/lib/organisme-orientation";
 
 type TypeAction =
   | "repas_distribue"
@@ -11,11 +24,10 @@ type TypeAction =
   | "personne_rencontree"
   | "orientation_sociale";
 
-const OPTIONS: { value: TypeAction; label: string }[] = [
+const OPTIONS_SIMPLES: { value: Exclude<TypeAction, "orientation_sociale">; label: string }[] = [
   { value: "repas_distribue", label: "🍲 Repas distribué" },
   { value: "personne_rencontree", label: "👋 Personne rencontrée" },
   { value: "personne_aidee", label: "🤝 Personne aidée" },
-  { value: "orientation_sociale", label: "🧭 Orientation sociale" },
 ];
 
 type Message = { type: "error" | "queued" | "success"; text: string };
@@ -33,11 +45,15 @@ function getPosition(): Promise<GeolocationPosition> {
   });
 }
 
-// Un tap = une capture (pas de formulaire à remplir sur le terrain, souvent
-// de nuit et parfois avec des gants — voir CLAUDE.md). La position brute
-// n'est utilisée qu'une fois, le temps du trajet réseau : le trigger
-// force_geo_arrondi (Étape 6) la recale sur une grille ~100m côté serveur,
-// jamais stockée précisément — y compris dans la file d'attente hors-ligne.
+// Un tap = une capture pour 3 des 4 actions (pas de formulaire à remplir sur
+// le terrain, souvent de nuit et parfois avec des gants — voir CLAUDE.md).
+// "Orientation sociale" est la seule exception délibérée : il faut savoir
+// vers quel organisme (retour utilisateur, 12/09) pour que ce soit
+// exploitable dans les rapports — ouvre un petit panneau (organisme +
+// éventuel texte libre si "Autre") avant de capturer la position. La
+// position brute n'est utilisée qu'une fois, le temps du trajet réseau : le
+// trigger force_geo_arrondi (Étape 6) la recale sur une grille ~100m côté
+// serveur, jamais stockée précisément — y compris hors-ligne.
 export function CapturePointForm({
   maraudeId,
   userId,
@@ -47,8 +63,14 @@ export function CapturePointForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<Message | null>(null);
+  const [panelOuvert, setPanelOuvert] = useState(false);
+  const [organisme, setOrganisme] = useState<OrganismeOrientation | "">("");
+  const [organismeAutre, setOrganismeAutre] = useState("");
 
-  function submit(typeAction: TypeAction) {
+  function submit(
+    typeAction: TypeAction,
+    extra?: { orientationVers: OrganismeOrientation; orientationVersAutre?: string },
+  ) {
     startTransition(async () => {
       let lat: number;
       let lng: number;
@@ -65,19 +87,23 @@ export function CapturePointForm({
         return;
       }
 
+      const pendingPayload = {
+        maraudeId,
+        userId,
+        typeAction,
+        lat,
+        lng,
+        createdAt: Date.now(),
+        ...(extra ?? {}),
+      };
+
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await offlineDb.pendingPointsPassage.add({
-          maraudeId,
-          userId,
-          typeAction,
-          lat,
-          lng,
-          createdAt: Date.now(),
-        });
+        await offlineDb.pendingPointsPassage.add(pendingPayload);
         setMessage({
           type: "queued",
           text: "Hors ligne : enregistré sur l'appareil, envoyé automatiquement au retour du réseau.",
         });
+        resetPanel();
         return;
       }
 
@@ -86,6 +112,12 @@ export function CapturePointForm({
       formData.set("typeAction", typeAction);
       formData.set("lat", String(lat));
       formData.set("lng", String(lng));
+      if (extra) {
+        formData.set("orientationVers", extra.orientationVers);
+        if (extra.orientationVersAutre) {
+          formData.set("orientationVersAutre", extra.orientationVersAutre);
+        }
+      }
 
       try {
         const result = await capturerPointPassage(undefined, formData);
@@ -94,27 +126,37 @@ export function CapturePointForm({
           return;
         }
         setMessage({ type: "success", text: "Capturé." });
+        resetPanel();
       } catch {
-        await offlineDb.pendingPointsPassage.add({
-          maraudeId,
-          userId,
-          typeAction,
-          lat,
-          lng,
-          createdAt: Date.now(),
-        });
+        await offlineDb.pendingPointsPassage.add(pendingPayload);
         setMessage({
           type: "queued",
           text: "Connexion indisponible : enregistré sur l'appareil, envoyé automatiquement au retour du réseau.",
         });
+        resetPanel();
       }
+    });
+  }
+
+  function resetPanel() {
+    setPanelOuvert(false);
+    setOrganisme("");
+    setOrganismeAutre("");
+  }
+
+  function validerOrientation() {
+    if (!organisme) return;
+    if (organisme === "autre" && !organismeAutre.trim()) return;
+    submit("orientation_sociale", {
+      orientationVers: organisme,
+      orientationVersAutre: organisme === "autre" ? organismeAutre.trim() : undefined,
     });
   }
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {OPTIONS.map((o) => (
+        {OPTIONS_SIMPLES.map((o) => (
           <Button
             key={o.value}
             type="button"
@@ -125,7 +167,57 @@ export function CapturePointForm({
             {o.label}
           </Button>
         ))}
+        <Button
+          type="button"
+          variant={panelOuvert ? "secondary" : "default"}
+          disabled={pending}
+          className="h-12"
+          onClick={() => setPanelOuvert((v) => !v)}
+        >
+          🧭 Orientation sociale
+        </Button>
       </div>
+
+      {panelOuvert && (
+        <div className="flex flex-col gap-2 rounded-md border p-3">
+          <Select
+            value={organisme}
+            onValueChange={(v) => setOrganisme(v as OrganismeOrientation)}
+          >
+            <SelectTrigger className="h-12 w-full">
+              <SelectValue placeholder="Vers quel organisme ?" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORGANISMES_ORIENTATION.map((o) => (
+                <SelectItem key={o} value={o}>
+                  {ORGANISME_ORIENTATION_LABELS[o]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {organisme === "autre" && (
+            <Input
+              className="h-12"
+              placeholder="Nom de l'organisme"
+              value={organismeAutre}
+              onChange={(e) => setOrganismeAutre(e.target.value)}
+            />
+          )}
+          <Button
+            type="button"
+            className="h-12"
+            disabled={
+              pending ||
+              !organisme ||
+              (organisme === "autre" && !organismeAutre.trim())
+            }
+            onClick={validerOrientation}
+          >
+            Valider l&apos;orientation
+          </Button>
+        </div>
+      )}
+
       {message && (
         <p
           role={message.type === "error" ? "alert" : undefined}

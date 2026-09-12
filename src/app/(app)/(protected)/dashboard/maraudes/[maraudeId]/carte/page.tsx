@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TypeAction } from "@/lib/type-action";
+import type { OrganismeOrientation } from "@/lib/organisme-orientation";
 import MaraudeCarte from "./maraude-carte-client";
 
 // Centre par défaut si aucune donnée exploitable (Nice, place Masséna) —
@@ -60,7 +61,7 @@ export default async function CarteMaraudePage({
   // Circuit réellement effectué pour CETTE maraude, chaîné chronologiquement.
   const { data: pointsReel } = await supabase
     .from("points_passage_geo")
-    .select("lat, lng, type_action, horodatage")
+    .select("lat, lng, type_action, horodatage, orientation_vers, orientation_vers_autre")
     .eq("maraude_id", maraudeId)
     .order("horodatage", { ascending: true });
 
@@ -85,6 +86,8 @@ export default async function CarteMaraudePage({
     lng: p.lng as number,
     typeAction: p.type_action as TypeAction,
     horodatage: p.horodatage as string,
+    orientationVers: p.orientation_vers as OrganismeOrientation | null,
+    orientationVersAutre: p.orientation_vers_autre as string | null,
   }));
 
   const heatPoints = (pointsHeat ?? []).map((p) => ({

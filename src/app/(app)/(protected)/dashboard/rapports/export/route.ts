@@ -4,6 +4,7 @@ import { getCurrentProfile } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
 import { TYPE_ACTIONS, TYPE_LABELS } from "@/lib/type-action";
 import { CATEGORIE_LABELS } from "@/lib/categorie-depense";
+import { ORGANISME_ORIENTATION_LABELS } from "@/lib/organisme-orientation";
 import { getRapportsData } from "@/lib/rapports";
 
 // Export .xlsx des mêmes données que /dashboard/rapports (même fonction
@@ -31,11 +32,10 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get("to") ?? undefined;
 
   const supabase = await createClient();
-  const { totals, activiteData, depensesData } = await getRapportsData(supabase, {
-    from,
-    to,
-    isAdmin,
-  });
+  const { totals, activiteData, depensesData, orientationsData } = await getRapportsData(
+    supabase,
+    { from, to, isAdmin },
+  );
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Les Anges de la Baie de Nice";
@@ -69,6 +69,16 @@ export async function GET(request: NextRequest) {
   activite.columns.forEach((col) => {
     col.width = 20;
   });
+
+  if (orientationsData.length > 0) {
+    const orientations = workbook.addWorksheet("Orientations par organisme");
+    orientations.addRow(["Organisme", "Total"]).font = { bold: true };
+    for (const o of orientationsData) {
+      orientations.addRow([ORGANISME_ORIENTATION_LABELS[o.organisme], o.total]);
+    }
+    orientations.getColumn(1).width = 26;
+    orientations.getColumn(2).width = 12;
+  }
 
   if (isAdmin && depensesData.length > 0) {
     const depenses = workbook.addWorksheet("Dépenses par catégorie");

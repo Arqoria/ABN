@@ -336,16 +336,47 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   tactile restent disponibles. **Testé en conditions réelles** : 3 points
   cliqués, enregistrement confirmé en base, persistance vérifiée après
   rechargement de page
-- ✅ Dashboard visuel — /dashboard/rapports enrichi : graphique "Activité par
-  jour" (recharts, barres empilées par type d'action, `shadcn/chart`),
-  graphique "Dépenses par catégorie" (réservé Admin — RLS `tickets_depense`
-  ne donne à un Manager que ses propres tickets, un total agrégé serait
-  trompeur pour lui), heatmap globale filtrable par type (client-side, sans
-  rechargement) pour repérer les zones à couvrir et aider à planifier les
-  circuits. Module partagé `src/lib/type-action.ts` (labels/couleurs/ordre
-  des 4 types, utilisé aussi par la carte par maraude). **Testé en
-  conditions réelles** : graphiques affichés avec les vraies données,
-  filtre heatmap testé (décocher un type retire ses points instantanément)
+- ✅ Dashboard visuel — /dashboard/rapports enrichi : graphique "Dépenses par
+  catégorie" (réservé Admin — RLS `tickets_depense` ne donne à un Manager
+  que ses propres tickets, un total agrégé serait trompeur pour lui),
+  heatmap globale filtrable par type (client-side, sans rechargement) pour
+  repérer les zones à couvrir et aider à planifier les circuits. Module
+  partagé `src/lib/type-action.ts` (labels/couleurs/ordre des 4 types,
+  utilisé aussi par la carte par maraude).
+- ✅ **Refonte visuelle** (retour "rendu dégueulasse", 12/09) :
+  - Carte remontée juste après les KPI (elle sert activement à planifier
+    les circuits, ce n'est pas une curiosité à faire défiler jusqu'en bas) ;
+    agrandie (540px), cadrage automatique sur les points réels (`fitBounds`,
+    pas un zoom fixe arbitraire qui pouvait couper des données), compteur
+    par type dans la légende, popups au clic (pas juste au survol — plus
+    fiable au tactile) avec date/heure
+  - "Activité par jour" passé de barres empilées à 4 courbes distinctes —
+    un empilement rend impossible de suivre un seul type dans le temps (sa
+    bande "flotte" à une hauteur de base différente chaque jour)
+  - KPI cards réorganisées en grille 2×2 (mobile) / 4 colonnes (desktop)
+    avec bande de couleur, plus compactes
+  - **Testé en conditions réelles** : carte cadrée correctement sur les 5
+    points de test, popup avec détail au clic, courbes lisibles avec
+    tooltip multi-séries, rendu vérifié en mobile (375px)
+- ✅ **Orientation vers qui** (retour utilisateur, 12/09) — une orientation
+  sociale ne disait pas vers quel organisme. Migration
+  `20260912250000_orientation_vers.sql` : enum `organisme_orientation` (18
+  valeurs : 115, CCAS, CCAS 15e corps, Croix-Rouge, Secours Catholique,
+  Restos du Cœur, Emmaüs, Douche municipale, Autre maraude, Médecins Sans
+  Frontières, COVIAM, France Services, MSD, CSAPA, CAARUD, Halte de nuit,
+  CHRS, Autre), colonnes `orientation_vers`/`orientation_vers_autre` sur
+  `points_passage` avec 2 contraintes CHECK (cohérence avec type_action,
+  "Autre" impose un texte libre non vide) — défense en profondeur, jamais
+  de confiance dans la seule validation cliente. Capture terrain :
+  exception délibérée au principe "un tap = une action" — le bouton
+  "Orientation sociale" ouvre un petit panneau (Select organisme + texte
+  libre si "Autre") avant de capturer la position, les 3 autres boutons
+  restent un tap direct. Nouveau graphique "Orientations par organisme"
+  (barres horizontales, triées par fréquence) + nouvelle feuille dans
+  l'export .xlsx + destination affichée dans les popups de la heatmap et
+  les tooltips du circuit réel par maraude. **Testé en conditions
+  réelles** : capture avec organisme nommé et avec "Autre" + texte libre,
+  contraintes CHECK vérifiées en base, graphique et export corrects
 - ✅ Export tableur (.xlsx) — bouton "Exporter" sur /dashboard/rapports,
   route `/dashboard/rapports/export` (Route Handler et non Server Action :
   seule une Route Handler peut renvoyer un fichier binaire avec ses propres

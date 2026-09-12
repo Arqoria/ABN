@@ -32,6 +32,11 @@ export type PendingPointPassage = {
   lat: number;
   lng: number;
   createdAt: number;
+  // Uniquement pour typeAction === "orientation_sociale" — pas de nouvelle
+  // version Dexie nécessaire, ce sont de simples champs optionnels non
+  // indexés (voir stores() ci-dessous, inchangés).
+  orientationVers?: string;
+  orientationVersAutre?: string;
 };
 
 export type PendingTicket = {

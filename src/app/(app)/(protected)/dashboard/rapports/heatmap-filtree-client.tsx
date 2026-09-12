@@ -10,7 +10,7 @@ const HeatmapFiltree = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[380px] w-full items-center justify-center rounded-lg border text-sm text-muted-foreground">
+      <div className="flex h-[540px] w-full items-center justify-center rounded-lg border text-sm text-muted-foreground">
         Chargement de la carte…
       </div>
     ),

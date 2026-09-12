@@ -87,6 +87,12 @@ export async function flushPendingPointsPassage() {
     formData.set("typeAction", item.typeAction);
     formData.set("lat", String(item.lat));
     formData.set("lng", String(item.lng));
+    if (item.orientationVers) {
+      formData.set("orientationVers", item.orientationVers);
+    }
+    if (item.orientationVersAutre) {
+      formData.set("orientationVersAutre", item.orientationVersAutre);
+    }
 
     try {
       const result = await capturerPointPassage(undefined, formData);

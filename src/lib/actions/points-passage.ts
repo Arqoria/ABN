@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
+import { ORGANISMES_ORIENTATION, type OrganismeOrientation } from "@/lib/organisme-orientation";
 
 export type ActionState = { error: string } | undefined;
 
@@ -18,6 +19,11 @@ type TypeAction = (typeof TYPES_ACTION)[number];
 // jamais de position exacte stockée. Le trigger
 // check_points_passage_user_participant impose que l'utilisateur soit
 // réellement inscrit à la maraude.
+//
+// orientation_vers/orientation_vers_autre : uniquement pour type_action =
+// "orientation_sociale" (contrainte points_passage_orientation_vers_coherent
+// en base, défense en profondeur — jamais de confiance dans la seule
+// validation cliente). "autre" impose un texte libre non vide.
 export async function capturerPointPassage(
   _prevState: ActionState,
   formData: FormData,
@@ -41,11 +47,35 @@ export async function capturerPointPassage(
     return { error: "Position introuvable." };
   }
 
+  let orientationVers: OrganismeOrientation | null = null;
+  let orientationVersAutre: string | null = null;
+
+  if (typeAction === "orientation_sociale") {
+    const raw = formData.get("orientationVers");
+    if (
+      typeof raw !== "string" ||
+      !ORGANISMES_ORIENTATION.includes(raw as OrganismeOrientation)
+    ) {
+      return { error: "Précisez vers quel organisme." };
+    }
+    orientationVers = raw as OrganismeOrientation;
+
+    if (orientationVers === "autre") {
+      const autre = formData.get("orientationVersAutre");
+      if (typeof autre !== "string" || !autre.trim()) {
+        return { error: "Précisez le nom de l'organisme." };
+      }
+      orientationVersAutre = autre.trim();
+    }
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("points_passage").insert({
     maraude_id: maraudeId,
     user_id: caller.id,
     type_action: typeAction,
+    orientation_vers: orientationVers,
+    orientation_vers_autre: orientationVersAutre,
     // Format EWKT — Postgres/PostGIS l'interprète nativement pour une
     // colonne geography.
     geo_arrondi: `SRID=4326;POINT(${lng} ${lat})`,
