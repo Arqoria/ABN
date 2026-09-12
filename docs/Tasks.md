@@ -49,10 +49,16 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   qui est connecté et vérifier que c'est un Admin, impossible à construire avant
 
 ## Étape 5 — Logistique repas
-- ⬜ Table repas (maraude_id, cuisinier_id, quoi, quantité)
-- ⬜ Table tickets_depense (maraude_id, user_id, montant, photo_url, statut_remboursement)
-- ⬜ Bucket Storage pour photos de tickets + policies RLS Storage
-- ⬜ UI upload photo + saisie repas (mobile-first)
+- ✅ Table repas (maraude_id, cuisinier_id, quoi, quantité — cuisinier_id doit désigner
+  un profil role='cuisinier')
+- ✅ Table tickets_depense (maraude_id, user_id, montant, photo_path, statut_remboursement
+  — colonne nommée `photo_path` et non `photo_url` : le bucket est privé, il n'y a pas
+  d'URL stable, seulement un chemin d'objet + URL signée générée à la demande)
+- ✅ Bucket Storage `tickets-depense` (privé, 8 Mo max, images) + policies RLS Storage
+  (déposant = propriétaire par le chemin `{user_id}/...`, Trésorier/Admin en plus)
+  — migration `20260912150000_logistique_repas.sql`
+- ➡️ UI upload photo + saisie repas (mobile-first) : déplacé à l'Étape 7, même raison
+  qu'à l'Étape 4 — dépend d'une session utilisateur réelle, pas encore d'Auth branchée
 
 ## Étape 6 — Suivi terrain & cartographie
 - ⬜ Activer extension PostGIS sur Supabase
@@ -68,6 +74,7 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
 - ⬜ Inscription à une maraude + visualisation liste/liste d'attente
 - ⬜ Saisie météo bénévole en fin de maraude
+- ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
 
 ## Étape 8 — PWA offline-first (synchro réelle)
 - ⬜ IndexedDB (Dexie.js) comme file d'attente locale
