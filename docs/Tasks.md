@@ -19,7 +19,7 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ⬜ Appliquer migration : fonctions helper security definer (current_user_role, current_user_status)
 - ⬜ Réécrire policy profiles_select_admin_manager avec les fonctions helper (fix récursion RLS)
 - ⬜ Trigger handle_new_user (auto-création du profil à l'inscription Supabase Auth)
-- ⬜ Connecter Claude Code au projet Supabase via MCP (--read-only + --project-ref)
+- ✅ Connecter Claude Code au projet Supabase via MCP (--read-only + --project-ref) — connecté, vérifié via `claude mcp get` (nécessite une nouvelle session pour être utilisable)
 
 ## Étape 3 — Maraudes & équipes
 - ⬜ Table maraudes (date, statut, manager_id)
