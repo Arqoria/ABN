@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { REMEMBER_ME_COOKIE, sessionMaxAge } from "@/lib/supabase/remember-me";
 
 // Client Supabase pour les Server Components, Server Actions et Route
 // Handlers. Lit/écrit les cookies de session via l'API cookies() de Next.js
@@ -18,8 +19,16 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
+            // "Se souvenir de moi" (src/lib/actions/auth.ts) : applique la
+            // même politique de durée à CHAQUE écriture de cookie de
+            // session, pas seulement à la connexion initiale — sinon un
+            // simple rafraîchissement de token réinstaurerait le maxAge
+            // persistant par défaut de la librairie.
+            const remember =
+              cookieStore.get(REMEMBER_ME_COOKIE)?.value !== "0";
+            const maxAge = sessionMaxAge(remember);
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, { ...options, maxAge }),
             );
           } catch {
             // setAll() appelé depuis un Server Component (rendu, pas une

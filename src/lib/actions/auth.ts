@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { REMEMBER_ME_COOKIE, sessionMaxAge } from "@/lib/supabase/remember-me";
 
 export type LoginState = { error: string } | undefined;
 
@@ -25,6 +27,18 @@ export async function login(
   ) {
     return { error: "Email et mot de passe requis." };
   }
+
+  // Posé AVANT signInWithPassword() : le client Supabase (server.ts) lit ce
+  // cookie pour décider du maxAge de la session qu'il s'apprête à écrire.
+  const remember = formData.get("remember") === "on";
+  const cookieStore = await cookies();
+  cookieStore.set(REMEMBER_ME_COOKIE, remember ? "1" : "0", {
+    maxAge: sessionMaxAge(remember),
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
@@ -119,5 +133,6 @@ export async function signup(
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  (await cookies()).delete(REMEMBER_ME_COOKIE);
   redirect("/login");
 }

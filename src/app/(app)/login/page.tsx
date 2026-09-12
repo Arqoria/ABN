@@ -6,6 +6,7 @@ import { login } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -47,6 +48,12 @@ export default function LoginPage() {
                 required
                 className="h-12"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="remember" name="remember" defaultChecked />
+              <Label htmlFor="remember" className="font-normal">
+                Se souvenir de moi
+              </Label>
             </div>
             {state?.error && (
               <p role="alert" className="text-sm text-destructive">
