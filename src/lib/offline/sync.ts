@@ -1,6 +1,7 @@
 import { offlineDb } from "./db";
 import { ajouterRepas } from "@/lib/actions/repas";
 import { saisirMeteo } from "@/lib/actions/meteo";
+import { capturerPointPassage } from "@/lib/actions/points-passage";
 
 // Vide la file d'attente locale en rejouant chaque saisie via la Server
 // Action normale (RLS/triggers s'appliquent exactement comme en ligne — pas
@@ -66,5 +67,36 @@ export async function flushPendingMeteo() {
     }
 
     await offlineDb.pendingMeteo.delete(item.id!);
+  }
+}
+
+// Même logique que les deux précédentes. lat/lng sont la position brute
+// captée côté client — c'est le trigger force_geo_arrondi (Étape 6) qui la
+// recale sur une grille ~100m côté serveur, jamais stockée précisément
+// même dans cette file d'attente locale (elle ne quitte l'appareil que
+// le temps du trajet réseau, jamais persistée ailleurs).
+export async function flushPendingPointsPassage() {
+  const pending = await offlineDb.pendingPointsPassage
+    .orderBy("createdAt")
+    .toArray();
+
+  for (const item of pending) {
+    const formData = new FormData();
+    formData.set("maraudeId", item.maraudeId);
+    formData.set("typeAction", item.typeAction);
+    formData.set("lat", String(item.lat));
+    formData.set("lng", String(item.lng));
+
+    try {
+      const result = await capturerPointPassage(undefined, formData);
+      if (result?.error) {
+        await offlineDb.pendingPointsPassage.delete(item.id!);
+        continue;
+      }
+    } catch {
+      return;
+    }
+
+    await offlineDb.pendingPointsPassage.delete(item.id!);
   }
 }

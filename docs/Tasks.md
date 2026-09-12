@@ -81,7 +81,17 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   plus au participant qui capture sa propre entrée (compte actif) — nécessaire
   pour la capture en un tap prévue à l'Étape 8, sinon personne ne pourrait
   jamais écrire dans cette table
-- ⬜ Capture géoloc en un tap côté client (intégrée à la queue offline, voir Étape 8)
+- ✅ Capture géoloc en un tap côté client (intégrée à la queue offline) —
+  /dashboard/maraudes/[id]/points : 3 boutons (repas distribué/personne
+  aidée/orientation sociale), navigator.geolocation, bascule en file Dexie
+  hors ligne (magasin pendingPointsPassage, même pattern que repas/météo).
+  Réservée aux bénévoles inscrits à la maraude + Admin/Manager ; pas de
+  liste/compteur affiché (lecture réservée à Admin/Manager par RLS, voir
+  Étape 9). **Testé en conditions réelles** (géolocalisation simulée,
+  coordonnées de Nice) : capture en ligne confirmée en base avec position
+  correctement anonymisée (arrondie par le trigger force_geo_arrondi,
+  différente de la position brute envoyée) ; capture hors ligne confirmée
+  dans IndexedDB puis synchronisée automatiquement au retour du réseau
 
 ## Étape 7 — UI métier principale (connectée à Supabase)
 - ✅ Auth (connexion, inscription, écran "compte en attente de validation")
@@ -234,18 +244,16 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   pendant la maraude donc l'évènement `online` suffit en pratique. Pas de
   synchro en tâche de fond quand l'app est fermée — limite assumée, à
   reconsidérer si le besoin réel apparaît
-- 🟨 Intégration avec les saisies terrain : **repas et météo faits et testés**
-  — RepasForm/MeteoForm basculent en file locale (magasins Dexie dédiés
-  pendingRepas/pendingMeteo) si hors ligne ou si l'appel réseau échoue,
-  message explicite, resynchronisation automatique. Testés en conditions
+- 🟨 Intégration avec les saisies terrain : **repas, météo et points de
+  passage faits et testés** — RepasForm/MeteoForm/CapturePointForm basculent
+  en file locale (magasins Dexie dédiés pendingRepas/pendingMeteo/
+  pendingPointsPassage) si hors ligne ou si l'appel réseau échoue, message
+  explicite, resynchronisation automatique. Tous testés en conditions
   réelles (navigator.onLine forcé à false, IndexedDB vérifiée, puis
   évènement 'online' déclenché, IndexedDB vidée et donnée confirmée en base
-  à chaque fois — pour météo, la valeur "vert" retrouvée en base avec le bon
-  horodatage). **Tickets de dépense et points de passage restent à faire**
-  — tickets est plus délicat (upload de photo, un File ne se sérialise pas
-  comme un objet JSON simple, même si IndexedDB peut stocker des Blob/File
-  directement) ; points_passage n'a même pas encore d'UI de capture, prévue
-  ici à l'origine
+  à chaque fois). **Tickets de dépense reste à faire** — plus délicat, upload
+  de photo, un File ne se sérialise pas comme un objet JSON simple (même si
+  IndexedDB peut stocker des Blob/File directement)
 
 ## Étape 9 — Reporting & KPIs
 - ⬜ Vue agrégée compteurs (repas, personnes aidées, orientations sociales)

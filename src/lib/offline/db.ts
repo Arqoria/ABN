@@ -20,22 +20,38 @@ export type PendingMeteo = {
   createdAt: number;
 };
 
+export type PendingPointPassage = {
+  id?: number;
+  maraudeId: string;
+  userId: string;
+  typeAction: "repas_distribue" | "personne_aidee" | "orientation_sociale";
+  lat: number;
+  lng: number;
+  createdAt: number;
+};
+
 class OfflineDB extends Dexie {
   pendingRepas!: Table<PendingRepas, number>;
   pendingMeteo!: Table<PendingMeteo, number>;
+  pendingPointsPassage!: Table<PendingPointPassage, number>;
 
   constructor() {
     super("abn-offline");
     this.version(1).stores({
       pendingRepas: "++id, maraudeId, createdAt",
     });
-    // v2 : ajoute pendingMeteo. Dexie applique les versions successives dans
-    // l'ordre chez les navigateurs qui ont déjà la v1 — ne jamais modifier
+    // Dexie applique les versions successives dans l'ordre chez les
+    // navigateurs qui ont déjà une version antérieure — ne jamais modifier
     // les stores() d'une version déjà déployée, toujours en ajouter une
     // nouvelle.
     this.version(2).stores({
       pendingRepas: "++id, maraudeId, createdAt",
       pendingMeteo: "++id, maraudeId, createdAt",
+    });
+    this.version(3).stores({
+      pendingRepas: "++id, maraudeId, createdAt",
+      pendingMeteo: "++id, maraudeId, createdAt",
+      pendingPointsPassage: "++id, maraudeId, createdAt",
     });
   }
 }
