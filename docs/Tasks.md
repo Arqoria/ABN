@@ -14,7 +14,7 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   la vraie page d'accueil sera construite séparément à l'Étape 10
 
 ## Étape 2 — Fondations BDD (Supabase)
-- ⬜ Créer le projet Supabase réel (compte Arqoria, région Europe)
+- ✅ Créer le projet Supabase réel (compte Arqoria, projet `kjwjkzoepjaepxjkquwr`)
 - ⬜ Appliquer migration : enums (user_role, account_status, meteo_benevole) + table profiles + RLS de base
 - ⬜ Appliquer migration : fonctions helper security definer (current_user_role, current_user_status)
 - ⬜ Réécrire policy profiles_select_admin_manager avec les fonctions helper (fix récursion RLS)
