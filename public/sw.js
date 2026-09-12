@@ -13,6 +13,15 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Laisse chaque requête suivre son cours normal vers le réseau.
+  // Ne jamais intercepter les requêtes avec un corps (POST des Server
+  // Actions : connexion, inscription, tous les formulaires métier) —
+  // rejouer un Request qui a un body via fetch(event.request) peut échouer
+  // selon le navigateur (le body est un flux à usage unique), ce qui
+  // bloquait silencieusement la connexion sur le site déployé. On ne fait
+  // du pass-through explicite que pour les GET, sans bénéfice ni risque
+  // pour les autres méthodes : on les laisse suivre leur cours nativement.
+  if (event.request.method !== "GET") {
+    return;
+  }
   event.respondWith(fetch(event.request));
 });
