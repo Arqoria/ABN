@@ -79,7 +79,7 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ⬜ Capture géoloc en un tap côté client (intégrée à la queue offline, voir Étape 8)
 
 ## Étape 7 — UI métier principale (connectée à Supabase)
-- 🟨 Auth (connexion, inscription, écran "compte en attente de validation")
+- ✅ Auth (connexion, inscription, écran "compte en attente de validation")
   - ✅ Socle : @supabase/ssr installé, clients Supabase (browser/server/proxy),
     src/proxy.ts vérifie une vraie session et redirige vers /login si absente
     (testé en local : /dashboard sans session → redirection /login confirmée)
@@ -97,8 +97,15 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
     direct pour ne pas polluer la base Supabase de production avec un compte
     de test (MCP en lecture seule, impossible de le nettoyer après coup) —
     à vérifier manuellement une fois prêt, ou via un compte jetable
-  - ⬜ Écran "compte en attente de validation" (status en_attente) — /dashboard
-    ne vérifie pas encore le statut du profil, prochaine itération
+  - ✅ Écran "compte en attente de validation" (/compte-en-attente) — DAL
+    centralisée (src/lib/supabase/dal.ts, getCurrentProfile()) : /dashboard
+    vérifie le statut réel du profil (vérification "secure" contre la base,
+    pas juste le cookie du proxy) et renvoie vers /compte-en-attente si
+    status ≠ 'actif' ; message différent si 'suspendu'. Testé en local pour
+    le cas non connecté (redirection /login confirmée sur les deux routes) ;
+    le branchement actif/en_attente réel n'a PAS pu être testé avec un vrai
+    compte, faute de compte existant en base et pour la même raison qu'au
+    point précédent (pas de compte de test en production)
 - ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
   — déplacé depuis l'Étape 4, dépend de l'Auth ci-dessus
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/proxy";
 // Cible les routes protégées du groupe (app). Étendre le matcher au fur
 // et à mesure que de nouvelles routes (app) apparaissent.
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/compte-en-attente/:path*"],
 };
 
 export async function proxy(request: NextRequest) {
