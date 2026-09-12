@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { login } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,12 @@ export default function LoginPage() {
             <Button type="submit" disabled={pending} className="h-12">
               {pending ? "Connexion…" : "Se connecter"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Pas encore de compte ?{" "}
+              <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
+                S&apos;inscrire
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

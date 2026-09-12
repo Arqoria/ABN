@@ -87,7 +87,16 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
     shadcn Input/Label ajoutés) — testé en local contre l'API Supabase Auth réelle :
     mauvais identifiants → message d'erreur générique affiché (jamais "email
     inconnu" vs "mot de passe incorrect", pour éviter l'énumération de comptes)
-  - ⬜ Formulaire d'inscription
+  - ✅ Formulaire d'inscription (nom, email, mot de passe + confirmation) —
+    signup() transmet full_name dans les métadonnées Auth (lu par le trigger
+    handle_new_user pour créer le profil, status='en_attente' par défaut) ;
+    gère le cas où la confirmation email est activée sur le projet (pas de
+    session immédiate → message "vérifiez votre boîte mail" au lieu d'une
+    redirection). Validations (champs requis, mot de passe ≥ 8, confirmation)
+    testées en local ; la création de compte réelle n'a PAS été testée en
+    direct pour ne pas polluer la base Supabase de production avec un compte
+    de test (MCP en lecture seule, impossible de le nettoyer après coup) —
+    à vérifier manuellement une fois prêt, ou via un compte jetable
   - ⬜ Écran "compte en attente de validation" (status en_attente) — /dashboard
     ne vérifie pas encore le statut du profil, prochaine itération
 - ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
