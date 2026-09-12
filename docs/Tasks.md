@@ -5,13 +5,18 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 ## Étape 1 — Socle & validation design (EN COURS)
 - ✅ Repo Arqoria/ABN connecté à Vercel, premier déploiement réussi
 - ✅ Design system / styleguide intégré (couleurs, typographie, boutons, badges, cartes) — abn-theta-murex.vercel.app
-- ⬜ Validation visuelle par Aymen + référent association (dark mode, contrastes, taille des boutons sur mobile réel)
-- ⬜ Ajustements design suite aux retours de validation
+  — vit désormais de façon permanente sur /styleguide (déplacé le 12/09, voir plus bas),
+  indépendamment de '/' qui affichera la vraie page d'accueil à l'Étape 10
+- 🟨 Validation visuelle : validée par Aymen (par conviction personnelle) ; validation du
+  référent association toujours en attente (dark mode, contrastes, taille des boutons sur
+  mobile réel) — page de référence stable pour cette validation : /styleguide
+- ⬜ Ajustements design suite aux retours de validation (du référent association)
 - ✅ Manifest PWA (icônes 192/512/maskable/apple-icon, theme-color, apple-web-app) — déployé et vérifié en ligne
 - ✅ Service Worker de base (public/sw.js, pass-through — installabilité uniquement, aucun cache/offline)
 - ✅ Structure des pages/routes (squelette (public)/(app) + proxy.ts, pas encore de contenu final)
-  — note : '/' sert temporairement le styleguide (charte graphique) au lieu du placeholder vitrine ;
-  la vraie page d'accueil sera construite séparément à l'Étape 10
+  — note : '/' sert temporairement le styleguide (ré-export de /styleguide) au lieu du
+  placeholder vitrine ; la vraie page d'accueil sera construite séparément à l'Étape 10,
+  à ce moment-là il suffira de remplacer le ré-export dans src/app/page.tsx
 
 ## Étape 2 — Fondations BDD (Supabase)
 - ✅ Créer le projet Supabase réel (compte Arqoria, projet `kjwjkzoepjaepxjkquwr`)
