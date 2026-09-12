@@ -111,6 +111,18 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
     le branchement actif/en_attente réel n'a PAS pu être testé avec un vrai
     compte, faute de compte existant en base et pour la même raison qu'au
     point précédent (pas de compte de test en production)
+  - ✅ Case "Se souvenir de moi" — cookie marqueur dédié (abn-remember-me),
+    lu par toute écriture de cookie de session (server.ts + proxy.ts) pour
+    que chaque rafraîchissement de token respecte le même choix
+  - ✅ Connexion Google/Microsoft/Facebook (OAuth) — code générique testé
+    (redirection propre jusqu'à Supabase confirmée), mais aucun fournisseur
+    n'est encore activé côté Supabase : ça demande de créer une app OAuth
+    chez Google/Microsoft/Meta et de coller Client ID + Secret dans le
+    Dashboard Supabase. Décision (12/09) : pas de nom de domaine ni d'email
+    pro pour l'association pour l'instant, donc les comptes développeur
+    OAuth seront créés plus tard sous le nom de l'association (pas sous
+    Arqoria, pour éviter d'avoir à tout recréer). Apple reporté (compte
+    Apple Developer payant, 99$/an, même décision que pour l'app iOS native)
 - ✅ Flow de validation manuelle des comptes par un Admin (server action + UI)
   — déplacé depuis l'Étape 4 (dépendait de l'Auth ci-dessus). Server Action
   validerCompte() : vérifie que l'appelant est bien Admin (seule barrière,
