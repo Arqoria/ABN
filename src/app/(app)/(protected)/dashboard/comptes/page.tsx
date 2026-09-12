@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import type { RoleName } from "@/lib/roles";
+import type { FonctionBureau } from "@/lib/fonction-bureau";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ValiderCompteForm } from "./valider-compte-form";
+import { BureauForm } from "./bureau-form";
 
 // Réservée aux Admins : liste les comptes 'en_attente' et permet d'assigner
 // un ou plusieurs rôles pour les activer (voir src/lib/actions/comptes.ts).
@@ -34,6 +36,22 @@ export default async function ComptesPage() {
         .select("profile_id, role")
         .in("profile_id", compteIds)
     : { data: [] as { profile_id: string; role: RoleName }[] };
+
+  // Liste des Admins actifs, pour la section "Bureau" ci-dessous (fonction
+  // purement informative — voir bureau-form.tsx).
+  const { data: adminRoleRows } = await supabase
+    .from("profile_roles")
+    .select("profile_id")
+    .eq("role", "admin");
+  const adminIds = (adminRoleRows ?? []).map((r) => r.profile_id as string);
+  const { data: admins } = adminIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name, fonction_bureau")
+        .in("id", adminIds)
+        .eq("status", "actif")
+        .order("full_name", { ascending: true })
+    : { data: [] as { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[] };
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
@@ -79,6 +97,33 @@ export default async function ComptesPage() {
             </Card>
           );
         })
+      )}
+
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold text-foreground">Bureau</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Fonction purement informative (affichage) — n&apos;importe quel
+          Admin garde un accès complet, quelle que soit sa fonction.
+        </p>
+      </div>
+
+      {!admins || admins.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Aucun Admin actif.
+          </CardContent>
+        </Card>
+      ) : (
+        admins.map((a) => (
+          <Card key={a.id}>
+            <CardHeader>
+              <CardTitle>{a.full_name ?? "(sans nom)"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BureauForm userId={a.id} fonctionActuelle={a.fonction_bureau} />
+            </CardContent>
+          </Card>
+        ))
       )}
     </div>
   );

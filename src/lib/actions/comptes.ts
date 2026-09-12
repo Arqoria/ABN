@@ -14,6 +14,9 @@ const ROLES = [
 ] as const;
 type Role = (typeof ROLES)[number];
 
+const FONCTIONS_BUREAU = ["president", "tresorier", "secretaire"] as const;
+type FonctionBureau = (typeof FONCTIONS_BUREAU)[number];
+
 export type ValiderCompteState = { error: string } | undefined;
 
 // Server Action réservée aux Admins : attribue un ou plusieurs rôles
@@ -48,6 +51,13 @@ export async function validerCompte(
     return { error: "Sélectionnez au moins un rôle." };
   }
 
+  const fonctionBureauRaw = formData.get("fonctionBureau");
+  const fonctionBureau: FonctionBureau | null =
+    typeof fonctionBureauRaw === "string" &&
+    FONCTIONS_BUREAU.includes(fonctionBureauRaw as FonctionBureau)
+      ? (fonctionBureauRaw as FonctionBureau)
+      : null;
+
   const admin = createAdminClient();
 
   const { error: rolesError } = await admin.from("profile_roles").upsert(
@@ -65,11 +75,49 @@ export async function validerCompte(
 
   const { error: statusError } = await admin
     .from("profiles")
-    .update({ status: "actif" })
+    .update({ status: "actif", fonction_bureau: fonctionBureau })
     .eq("id", userId);
 
   if (statusError) {
     return { error: "Échec de l'activation du compte." };
+  }
+
+  revalidatePath("/dashboard/comptes");
+  return undefined;
+}
+
+// Modifie la fonction bureau d'un profil déjà actif (contrairement à
+// validerCompte ci-dessus, qui ne s'applique qu'aux comptes en attente).
+// Purement informatif — voir supabase/migrations/20260912230000_fonction_bureau.sql.
+export async function definirFonctionBureau(
+  _prevState: ValiderCompteState,
+  formData: FormData,
+): Promise<ValiderCompteState> {
+  const caller = await getCurrentProfile();
+  if (!caller.roles.includes("admin") || caller.status !== "actif") {
+    return { error: "Action réservée aux administrateurs." };
+  }
+
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) {
+    return { error: "Compte introuvable." };
+  }
+
+  const fonctionBureauRaw = formData.get("fonctionBureau");
+  const fonctionBureau: FonctionBureau | null =
+    typeof fonctionBureauRaw === "string" &&
+    FONCTIONS_BUREAU.includes(fonctionBureauRaw as FonctionBureau)
+      ? (fonctionBureauRaw as FonctionBureau)
+      : null;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profiles")
+    .update({ fonction_bureau: fonctionBureau })
+    .eq("id", userId);
+
+  if (error) {
+    return { error: "Échec de la mise à jour." };
   }
 
   revalidatePath("/dashboard/comptes");

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { ROLE_LABELS } from "@/lib/roles";
+import { FONCTION_BUREAU_LABELS } from "@/lib/fonction-bureau";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,11 @@ export default async function ProtectedLayout({
                 <Badge variant="destructive">{comptesEnAttenteCount}</Badge>
               )}
             </Link>
+          )}
+          {profile.fonction_bureau && (
+            <Badge variant="outline" className="border-white/40 text-white">
+              {FONCTION_BUREAU_LABELS[profile.fonction_bureau]}
+            </Badge>
           )}
           {profile.roles.map((role) => (
             <Badge key={role} variant="secondary">

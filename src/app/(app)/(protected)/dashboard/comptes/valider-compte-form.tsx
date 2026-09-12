@@ -3,9 +3,19 @@
 import { useActionState } from "react";
 import { validerCompte } from "@/lib/actions/comptes";
 import { ROLE_LABELS, type RoleName } from "@/lib/roles";
+import { FONCTION_BUREAU_LABELS, type FonctionBureau } from "@/lib/fonction-bureau";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const FONCTIONS_BUREAU: FonctionBureau[] = ["president", "tresorier", "secretaire"];
 
 const ROLES: RoleName[] = [
   "adherent",
@@ -43,6 +53,23 @@ export function ValiderCompteForm({
             <Label htmlFor={`${userId}-${role}`}>{ROLE_LABELS[role]}</Label>
           </div>
         ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${userId}-fonction`}>
+          Fonction bureau (facultatif, purement informatif)
+        </Label>
+        <Select name="fonctionBureau">
+          <SelectTrigger id={`${userId}-fonction`} className="h-12 w-full sm:w-64">
+            <SelectValue placeholder="Aucune" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONCTIONS_BUREAU.map((f) => (
+              <SelectItem key={f} value={f}>
+                {FONCTION_BUREAU_LABELS[f]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending} className="h-12">

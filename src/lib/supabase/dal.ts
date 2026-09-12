@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { RoleName } from "@/lib/roles";
+import type { FonctionBureau } from "@/lib/fonction-bureau";
 
 export type { RoleName } from "@/lib/roles";
 
@@ -11,6 +12,7 @@ export type Profile = {
   id: string;
   full_name: string | null;
   status: "en_attente" | "actif" | "suspendu";
+  fonction_bureau: FonctionBureau | null;
   roles: RoleName[];
 };
 
@@ -36,7 +38,7 @@ export const getCurrentProfile = cache(async (): Promise<Profile> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, status")
+    .select("id, full_name, status, fonction_bureau")
     .eq("id", user.id)
     .single<Omit<Profile, "roles">>();
 

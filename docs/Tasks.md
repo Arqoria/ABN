@@ -313,8 +313,21 @@ montant brut.
   tactile restent disponibles. **Testé en conditions réelles** : 3 points
   cliqués, enregistrement confirmé en base, persistance vérifiée après
   rechargement de page
-- ⬜ Export tableur (.xlsx/.csv)
-- ⬜ Export PDF formaté pour financeurs
+- ✅ Dashboard visuel — /dashboard/rapports enrichi : graphique "Activité par
+  jour" (recharts, barres empilées par type d'action, `shadcn/chart`),
+  graphique "Dépenses par catégorie" (réservé Admin — RLS `tickets_depense`
+  ne donne à un Manager que ses propres tickets, un total agrégé serait
+  trompeur pour lui), heatmap globale filtrable par type (client-side, sans
+  rechargement) pour repérer les zones à couvrir et aider à planifier les
+  circuits. Module partagé `src/lib/type-action.ts` (labels/couleurs/ordre
+  des 4 types, utilisé aussi par la carte par maraude). **Testé en
+  conditions réelles** : graphiques affichés avec les vraies données,
+  filtre heatmap testé (décocher un type retire ses points instantanément)
+- ⬜ Export tableur (.xlsx/.csv) — alimente le template de rendu final
+  (Canva/Gamma, hors périmètre applicatif)
+- 🚫 Export PDF formaté pour financeurs — **hors périmètre** : le rendu
+  final pour les financeurs se fera via un template Canva/Gamma, alimenté
+  par l'export tableur ci-dessus (décision utilisateur, 12/09)
 
 ## Étape 10 — Site vitrine public
 - ⬜ Pages SEO local (accueil, présentation, actions)
