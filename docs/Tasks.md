@@ -42,7 +42,11 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   écriture (saisie initiale) ouverte en plus au bénévole concerné sur sa propre ligne
   — migration `20260912130000_meteo_benevole.sql` appliquée le 12/09 via
   `supabase db push`, vérifiée en base via MCP (lecture seule)
-- ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
+- ✅ Correctif trigger protect_profile_role_status (bloquait le service_role, cf. Étape 7)
+  — migration `20260912140000_fix_protect_profile_role_status_service_role.sql`
+- ➡️ Flow de validation manuelle des comptes par un Admin (server action + UI) : déplacé
+  à l'Étape 7, juste après l'Auth — dépend d'une session utilisateur réelle pour savoir
+  qui est connecté et vérifier que c'est un Admin, impossible à construire avant
 
 ## Étape 5 — Logistique repas
 - ⬜ Table repas (maraude_id, cuisinier_id, quoi, quantité)
@@ -59,6 +63,8 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 
 ## Étape 7 — UI métier principale (connectée à Supabase)
 - ⬜ Auth (connexion, inscription, écran "compte en attente de validation")
+- ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
+  — déplacé depuis l'Étape 4, dépend de l'Auth ci-dessus
 - ⬜ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données factices du styleguide
 - ⬜ Inscription à une maraude + visualisation liste/liste d'attente
 - ⬜ Saisie météo bénévole en fin de maraude
