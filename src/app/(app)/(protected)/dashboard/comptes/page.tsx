@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getCurrentProfile, type RoleName } from "@/lib/supabase/dal";
+import { getCurrentProfile } from "@/lib/supabase/dal";
+import type { RoleName } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ValiderCompteForm } from "./valider-compte-form";

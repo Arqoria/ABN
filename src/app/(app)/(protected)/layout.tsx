@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getCurrentProfile, ROLE_LABELS } from "@/lib/supabase/dal";
+import { getCurrentProfile } from "@/lib/supabase/dal";
+import { ROLE_LABELS } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";

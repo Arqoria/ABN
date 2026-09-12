@@ -3,23 +3,9 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { RoleName } from "@/lib/roles";
 
-export type RoleName =
-  | "admin"
-  | "manager"
-  | "maraudeur"
-  | "cuisinier"
-  | "adherent"
-  | "donateur";
-
-export const ROLE_LABELS: Record<RoleName, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  maraudeur: "Maraudeur",
-  cuisinier: "Cuisinier",
-  adherent: "Adhérent",
-  donateur: "Donateur",
-};
+export type { RoleName } from "@/lib/roles";
 
 export type Profile = {
   id: string;

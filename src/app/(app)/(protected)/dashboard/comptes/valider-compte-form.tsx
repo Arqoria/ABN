@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { validerCompte } from "@/lib/actions/comptes";
-import { ROLE_LABELS, type RoleName } from "@/lib/supabase/dal";
+import { ROLE_LABELS, type RoleName } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
