@@ -24,14 +24,24 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
 - ✅ Connecter Claude Code au projet Supabase via MCP (--read-only + --project-ref) — connecté, vérifié via `claude mcp get` (nécessite une nouvelle session pour être utilisable)
 
 ## Étape 3 — Maraudes & équipes
-- ⬜ Table maraudes (date, statut, manager_id)
-- ⬜ Table inscriptions_maraude (user_id, maraude_id, statut: inscrit/liste_attente)
-- ⬜ Logique liste d'attente automatique (max 6) + promotion auto au désistement
-- ⬜ Policies RLS (lecture large, écriture restreinte)
+- ✅ Table maraudes (date_heure, statut, manager_id — manager_id doit désigner un profil Manager, jamais Admin, rôles strictement séparés)
+- ✅ Table inscriptions_maraude (user_id, maraude_id, statut: inscrit/liste_attente/desiste — une ligne par binôme, désistement = changement de statut, jamais de suppression)
+- ✅ Logique liste d'attente automatique (max 6) + promotion auto au désistement
+  — triggers `set_inscription_statut` (calcul serveur à l'inscription) et `promote_next_in_waitlist`
+  (promotion du plus ancien en attente), migration `20260912120000_maraudes_equipes.sql`
+  appliquée le 12/09 via `supabase db push`, vérifiée en base via MCP (lecture seule)
+- ✅ Policies RLS (lecture large pour tout authentifié, écriture restreinte : Admin accès complet,
+  Manager limité à ses propres maraudes, bénévole limité à sa propre inscription et à un compte `actif`)
 
 ## Étape 4 — Sécurité & suivi bénévoles
-- ⬜ Table meteo_benevole (maraude_id, user_id, valeur, saisi_par, saisi_le)
-- ⬜ Policies RLS strictes (Admin + Manager de la maraude concernée uniquement)
+- ✅ Table meteo_benevole_saisies (maraude_id, user_id, valeur, saisi_par, saisi_le
+  — nommée `_saisies` et non `meteo_benevole` : ce nom est déjà pris par l'enum du
+  même nom créé à l'Étape 2, conflit de type composite implicite sinon)
+- ✅ Policies RLS strictes : lecture réservée Admin + Manager de la maraude concernée
+  (jamais le bénévole concerné lui-même, même règle en écriture pour la correction) ;
+  écriture (saisie initiale) ouverte en plus au bénévole concerné sur sa propre ligne
+  — migration `20260912130000_meteo_benevole.sql` appliquée le 12/09 via
+  `supabase db push`, vérifiée en base via MCP (lecture seule)
 - ⬜ Flow de validation manuelle des comptes par un Admin (server action + UI)
 
 ## Étape 5 — Logistique repas
