@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { TypeAction } from "@/lib/type-action";
 import MaraudeCarte from "./maraude-carte-client";
 
 // Centre par défaut si aucune donnée exploitable (Nice, place Masséna) —
@@ -80,11 +81,7 @@ export default async function CarteMaraudePage({
   const circuitReel = (pointsReel ?? []).map((p) => ({
     lat: p.lat as number,
     lng: p.lng as number,
-    typeAction: p.type_action as
-      | "repas_distribue"
-      | "personne_aidee"
-      | "personne_rencontree"
-      | "orientation_sociale",
+    typeAction: p.type_action as TypeAction,
     horodatage: p.horodatage as string,
   }));
 

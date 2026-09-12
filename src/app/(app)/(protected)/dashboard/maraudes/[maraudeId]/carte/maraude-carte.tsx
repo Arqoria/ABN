@@ -15,14 +15,9 @@ import L from "leaflet";
 import "leaflet.heat";
 import { Button } from "@/components/ui/button";
 import { enregistrerCircuitPlanifie } from "@/lib/actions/circuits";
-import { TYPE_COLORS, TYPE_LABELS_COURT } from "./type-colors";
+import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS_COURT, type TypeAction } from "@/lib/type-action";
 
 type LatLng = { lat: number; lng: number };
-type TypeAction =
-  | "repas_distribue"
-  | "personne_aidee"
-  | "personne_rencontree"
-  | "orientation_sociale";
 type PointReel = LatLng & { typeAction: TypeAction; horodatage: string };
 
 // leaflet.heat n'est pas un composant react-leaflet — on l'ajoute
@@ -176,13 +171,13 @@ export function MaraudeCarte({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        {Object.entries(TYPE_LABELS_COURT).map(([key, label]) => (
-          <span key={key} className="flex items-center gap-1.5">
+        {TYPE_ACTIONS.map((type) => (
+          <span key={type} className="flex items-center gap-1.5">
             <span
               className="inline-block h-3 w-3 rounded-full"
-              style={{ backgroundColor: TYPE_COLORS[key] }}
+              style={{ backgroundColor: TYPE_COLORS[type] }}
             />
-            {label}
+            {TYPE_LABELS_COURT[type]}
           </span>
         ))}
         <span className="flex items-center gap-1.5">
