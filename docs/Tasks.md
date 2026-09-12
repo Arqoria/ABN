@@ -436,3 +436,66 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
 - ⬜ Firebase Cloud Messaging (web push Android)
 - ⬜ Empaquetage Android TWA (.apk)
 - ⬜ iOS via Capacitor + App Store — reporté, pas de budget pour l'instant
+
+## Piste — Module dons financiers via HelloAsso (mis de côté, pour l'Étape 10)
+
+Recherché le 12/09 (voir sources dans la conversation) :
+- **Gratuit pour l'association** : HelloAsso ne prélève aucune commission sur
+  les dons — financé par une contribution volontaire demandée au donateur
+  (modifiable/refusable), donc 1€ donné = 1€ reçu.
+- **Bouton "Financer une maraude"** : faisable via une **cagnotte HelloAsso
+  permanente** ("Financez nos maraudes"), pas une cagnotte par maraude
+  (charge admin récurrente pour peu de bénéfice) — mise à jour périodique
+  (photos, montant collecté).
+- **Intégration "native"** (demande explicite : pas un truc dégueulasse) :
+  HelloAsso Checkout (API, `dev.helloasso.com`) permet de construire NOTRE
+  PROPRE formulaire (montant, cause, coordonnées) intégralement dans notre
+  charte graphique — seule l'étape finale de saisie carte bancaire passe par
+  une page HelloAsso sécurisée (conformité PCI-DSS, non contournable, standard
+  même chez Stripe/PayPal/Apple Pay). Flow : POST `/checkout-intents` côté
+  serveur (clientId/clientSecret à récupérer dans le back-office HelloAsso,
+  jamais en clair dans le chat) → `redirectUrl` reçu → redirection brève pour
+  la carte → retour automatique via `returnUrl` + webhook serveur pour la
+  validation définitive (jamais se fier aux seuls paramètres côté client).
+- **Idée à creuser avec l'association** : filmer les maraudes sur Instagram
+  et lier ça à la page de dons — transparence concrète sur la destination
+  des dons, bon levier de rétention pour une petite association.
+- **Prérequis avant de coder quoi que ce soit** : l'utilisateur doit d'abord
+  créer le compte association sur HelloAsso lui-même (création de compte =
+  hors de portée de l'assistant) et récupérer clientId/clientSecret.
+
+## À trancher — rôles attribués par maraude (retour utilisateur, 12/09, fin de session)
+
+Observation : le modèle actuel (`profile_roles`, voir refactor plus haut) est
+**global et permanent** — un profil "a" le rôle cuisinier jusqu'à ce qu'un
+Admin le retire. Mais dans la réalité du terrain :
+- On n'est "pas cuisinier à vie" — la même personne peut cuisiner un soir et
+  faire la maraude un autre soir, voire les deux la même fois
+- Le Manager désigné d'UNE maraude spécifique est parfois en réalité le
+  Président ou le Trésorier (qui dépannent ponctuellement), pas quelqu'un
+  avec le rôle global "Manager"
+
+**Nuance déjà couverte par l'existant** : comme un profil peut déjà cumuler
+plusieurs rôles globaux (Manager + Cuisinier, Admin + Manager...), donner à
+un Président le rôle global "Manager" en plus suffit déjà à le rendre
+éligible comme `maraudes.manager_id` — pas besoin de refonte pour ce cas
+précis. Le vrai manque : forcer quelqu'un à obtenir un rôle global permanent
+("Cuisinier") juste pour logger UN repas ponctuel, ou l'inverse, se sentir
+"étiqueté" cuisinier alors que ce n'était qu'une fois.
+
+**Direction à valider en tout début de prochaine session** (ne pas trancher
+seul sans en reparler — impacte plusieurs triggers/RLS existants) : séparer
+la **qualification globale** (le rôle `profile_roles` actuel, garde-fou —
+qui est *autorisé* à endosser telle fonction) de l'**affectation par
+maraude** (qui fait *concrètement* quoi CETTE fois — nouvelle notion,
+probablement une colonne `fonction` sur `inscriptions_maraude` ou une
+nouvelle table `affectations_maraude`). Questions ouvertes à trancher avant
+de coder :
+1. Le rôle global reste-t-il un garde-fou obligatoire (seuls les profils
+   qualifiés "cuisinier" peuvent être affectés cuisinier sur une maraude), ou
+   supprime-t-on complètement cette barrière au profit d'une affectation
+   libre par maraude ?
+2. Une personne peut-elle cumuler plusieurs fonctions sur LA MÊME maraude
+   (ex. cuisinier ET maraudeur le même soir) ?
+3. Cette affectation remplace-t-elle `maraudes.manager_id`/
+   `repas.cuisinier_id` (colonnes actuelles), ou coexiste-t-elle en plus ?
