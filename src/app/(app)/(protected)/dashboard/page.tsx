@@ -84,6 +84,23 @@ export default async function DashboardPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {isAdminOrManager && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Rapports &amp; KPIs</CardTitle>
+            <CardDescription>
+              Compteurs agrégés (repas distribués, personnes aidées,
+              orientations sociales).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/dashboard/rapports">Voir les rapports</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

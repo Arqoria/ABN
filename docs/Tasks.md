@@ -278,7 +278,16 @@ montant brut.
   fois par `npm run build` avant de pousser, pas en production
 
 ## Étape 9 — Reporting & KPIs
-- ⬜ Vue agrégée compteurs (repas, personnes aidées, orientations sociales)
+- ✅ Vue agrégée compteurs (repas, personnes aidées, orientations sociales) —
+  /dashboard/rapports (Admin/Manager, RLS scope automatiquement un Manager à
+  ses propres maraudes — aucune logique de scope à écrire côté page), filtre
+  de période (formulaire GET natif, pas de JS). Agrège points_passage (pas
+  la table repas — ce sont deux tables différentes : repas = traçabilité
+  cuisine, points_passage = distribution terrain, c'est ce dernier qui
+  alimente les KPIs par conception depuis l'Étape 6). **Testé en conditions
+  réelles** : compteurs correspondant exactement aux captures test faites à
+  l'Étape 8 (1 repas distribué, 1 personne aidée), filtre de période
+  vérifié (0 sur une période sans données)
 - ⬜ Carte heatmap (Leaflet + leaflet.heat, fond OpenStreetMap)
 - ⬜ Tracé des circuits (points de passage reliés chronologiquement)
 - ⬜ Export tableur (.xlsx/.csv)
