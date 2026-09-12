@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { CreerMaraudeForm } from "./creer-maraude-form";
 import { InscriptionForm } from "./inscription-form";
+import { MeteoForm } from "./meteo-form";
 
 type Inscription = {
   id: string;
@@ -33,7 +36,7 @@ export default async function MaraudesPage() {
 
   const { data: maraudes } = await supabase
     .from("maraudes")
-    .select("id, date_heure, statut, manager:manager_id(full_name)")
+    .select("id, date_heure, statut, manager_id, manager:manager_id(full_name)")
     .order("date_heure", { ascending: true });
 
   const maraudeIds = (maraudes ?? []).map((m) => m.id as string);
@@ -134,12 +137,26 @@ export default async function MaraudesPage() {
                   {" · "}Manager : {manager?.full_name ?? "—"}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-4">
                 <InscriptionForm
                   maraudeId={maraude.id as string}
                   inscriptionId={mine?.id}
                   statut={mine?.statut}
                 />
+                {mine?.statut === "inscrit" && (
+                  <MeteoForm
+                    maraudeId={maraude.id as string}
+                    userId={profile.id}
+                  />
+                )}
+                {(profile.roles.includes("admin") ||
+                  maraude.manager_id === profile.id) && (
+                  <Button asChild variant="outline" size="sm" className="w-fit">
+                    <Link href={`/dashboard/maraudes/${maraude.id}/meteo`}>
+                      Météo équipe
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );

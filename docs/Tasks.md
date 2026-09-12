@@ -190,7 +190,16 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   le refactor) corrigée directement en base via l'API service_role ; le
   refactor complet vérifié ensuite avec le flow création de maraude +
   inscription (voir Étape 7 ci-dessus)
-- ⬜ Saisie météo bénévole en fin de maraude
+- ✅ Saisie météo bénévole en fin de maraude — une seule Server Action
+  (saisirMeteo) pour tout le monde : insert d'abord, fallback update en cas de
+  conflit (déjà saisie) — la vraie barrière de sécurité reste RLS (seul
+  Admin/Manager peut corriger), pas cette fonction. Auto-déclaration inline
+  sur /dashboard/maraudes (bénévole inscrit, jamais d'affichage de la valeur
+  transmise — write-only par design) ; page dédiée
+  /dashboard/maraudes/[id]/meteo pour Admin/Manager de la maraude (seuls à
+  pouvoir lire/corriger). **Testé de bout en bout en conditions réelles** :
+  saisie self-service confirmée ("Météo transmise, merci."), relecture Admin
+  confirmée (valeur correcte affichée et mise en avant), aucune erreur
 - ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
 
 ## Étape 8 — PWA offline-first (synchro réelle)
