@@ -396,6 +396,24 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
 - 🚫 Export PDF formaté pour financeurs — **hors périmètre** : le rendu
   final pour les financeurs se fera via un template Canva/Gamma, alimenté
   par l'export tableur ci-dessus (décision utilisateur, 12/09)
+- ✅ **Besoins signalés** (retour utilisateur, 12/09 : "anticiper les besoins
+  remontés par les bénévoles pour mieux ajuster les achats") — un
+  bénévole/maraudeur peut signaler un manque matériel observé (couvertures,
+  vêtements chauds, hygiène, nourriture spécifique, autre), distinct des
+  points_passage (actions envers des personnes, pas besoins matériels de
+  l'équipe). Migration `20260912260000_besoins_signales.sql` : table
+  `besoins_signales` (categorie, commentaire facultatif), `user_id` forcé
+  côté serveur par trigger, garde-fou d'inscription à la maraude (avec
+  exemption Admin/Manager, plus permissif que le même garde-fou sur
+  points_passage — volontaire, un besoin matériel n'a pas besoin de la même
+  rigueur qu'une action terrain géolocalisée). RLS lecture : Admin, tout
+  Manager (même raisonnement que la heatmap), ou participant inscrit à
+  cette maraude (voir ce qui est déjà signalé, éviter les doublons).
+  Nouvelle page `/dashboard/maraudes/[id]/besoins` (formulaire "un tap = un
+  signalement" + liste), nouveau graphique "Besoins signalés" sur
+  /dashboard/rapports, nouvelle feuille dans l'export .xlsx. **Testé en
+  conditions réelles** : signalement avec et sans commentaire, `user_id`
+  vérifié forcé en base, graphique et export corrects
 
 ## Étape 10 — Site vitrine public
 - ⬜ Pages SEO local (accueil, présentation, actions)

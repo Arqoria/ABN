@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TYPE_ACTIONS, TYPE_LABELS } from "@/lib/type-action";
 import { CATEGORIE_LABELS } from "@/lib/categorie-depense";
 import { ORGANISME_ORIENTATION_LABELS } from "@/lib/organisme-orientation";
+import { CATEGORIE_BESOIN_LABELS } from "@/lib/categorie-besoin";
 import { getRapportsData } from "@/lib/rapports";
 
 // Export .xlsx des mêmes données que /dashboard/rapports (même fonction
@@ -32,10 +33,8 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get("to") ?? undefined;
 
   const supabase = await createClient();
-  const { totals, activiteData, depensesData, orientationsData } = await getRapportsData(
-    supabase,
-    { from, to, isAdmin },
-  );
+  const { totals, activiteData, depensesData, orientationsData, besoinsData } =
+    await getRapportsData(supabase, { from, to, isAdmin });
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Les Anges de la Baie de Nice";
@@ -78,6 +77,16 @@ export async function GET(request: NextRequest) {
     }
     orientations.getColumn(1).width = 26;
     orientations.getColumn(2).width = 12;
+  }
+
+  if (besoinsData.length > 0) {
+    const besoins = workbook.addWorksheet("Besoins signalés");
+    besoins.addRow(["Catégorie", "Total"]).font = { bold: true };
+    for (const b of besoinsData) {
+      besoins.addRow([CATEGORIE_BESOIN_LABELS[b.categorie], b.total]);
+    }
+    besoins.getColumn(1).width = 24;
+    besoins.getColumn(2).width = 12;
   }
 
   if (isAdmin && depensesData.length > 0) {

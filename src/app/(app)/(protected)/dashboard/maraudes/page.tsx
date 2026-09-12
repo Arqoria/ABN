@@ -186,6 +186,15 @@ export default async function MaraudesPage() {
                       </Link>
                     </Button>
                   )}
+                  {(mine?.statut === "inscrit" ||
+                    profile.roles.includes("admin") ||
+                    profile.roles.includes("manager")) && (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/dashboard/maraudes/${maraude.id}/besoins`}>
+                        Besoins
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { TYPE_ACTIONS, type TypeAction } from "@/lib/type-action";
 import type { CategorieDepense } from "@/lib/categorie-depense";
 import type { OrganismeOrientation } from "@/lib/organisme-orientation";
+import type { CategorieBesoin } from "@/lib/categorie-besoin";
 
 // Agrégation partagée entre la page /dashboard/rapports et son export
 // (.xlsx) — un seul endroit pour ne pas faire diverger les deux. RLS sur
@@ -105,7 +106,28 @@ export async function getRapportsData(
     }));
   }
 
-  return { totals, activiteData, heatmapPoints, depensesData, orientationsData };
+  // Besoins signalés (retour utilisateur, 12/09) : aide à anticiper les
+  // achats. Visible à Admin et Manager (RLS besoins_signales_select_...
+  // laisse déjà tout Manager voir tous les besoins, même raisonnement que la
+  // heatmap — la planification d'achats concerne toute l'association).
+  let besoinsQuery = supabase
+    .from("besoins_signales")
+    .select("categorie, created_at");
+
+  if (from) besoinsQuery = besoinsQuery.gte("created_at", from);
+  if (to) besoinsQuery = besoinsQuery.lte("created_at", `${to}T23:59:59`);
+
+  const { data: besoins } = await besoinsQuery;
+  const parCategorieBesoin = new Map<CategorieBesoin, number>();
+  for (const b of besoins ?? []) {
+    const cat = b.categorie as CategorieBesoin;
+    parCategorieBesoin.set(cat, (parCategorieBesoin.get(cat) ?? 0) + 1);
+  }
+  const besoinsData = [...parCategorieBesoin.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .map(([categorie, total]) => ({ categorie, total }));
+
+  return { totals, activiteData, heatmapPoints, depensesData, orientationsData, besoinsData };
 }
 
 export { TYPE_ACTIONS };

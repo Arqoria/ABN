@@ -18,6 +18,7 @@ import HeatmapFiltree from "./heatmap-filtree-client";
 import { ActiviteChart } from "./activite-chart";
 import { DepensesChart } from "./depenses-chart";
 import { OrientationsChart } from "./orientations-chart";
+import { BesoinsChart } from "./besoins-chart";
 
 // Réservée à Admin/Manager (docs/Specs.md : "compteurs détaillés réservés à
 // Admin/Manager"). Un Manager voit désormais l'historique complet, toutes
@@ -51,7 +52,7 @@ export default async function RapportsPage({
   const { from, to } = await searchParams;
 
   const supabase = await createClient();
-  const { totals, activiteData, heatmapPoints, depensesData, orientationsData } =
+  const { totals, activiteData, heatmapPoints, depensesData, orientationsData, besoinsData } =
     await getRapportsData(supabase, { from, to, isAdmin });
 
   const exportParams = new URLSearchParams({
@@ -165,6 +166,19 @@ export default async function RapportsPage({
         </CardHeader>
         <CardContent>
           <OrientationsChart data={orientationsData} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Besoins signalés</CardTitle>
+          <CardDescription>
+            Manques matériels remontés par les bénévoles — aide à ajuster les
+            prochains achats.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BesoinsChart data={besoinsData} />
         </CardContent>
       </Card>
 
