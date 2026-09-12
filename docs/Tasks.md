@@ -149,7 +149,16 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   page /dashboard affiche un contenu différent Admin/Manager vs Maraudeur/Cuisinier, sans
   données inventées (les fonctionnalités métier réelles arrivent aux points suivants).
   Testé en local avec le vrai compte de test : header affiché, déconnexion fonctionnelle
-- ⬜ Inscription à une maraude + visualisation liste/liste d'attente
+- ✅ Inscription à une maraude + visualisation liste/liste d'attente — page
+  /dashboard/maraudes : liste les maraudes (compteur inscrits/liste d'attente,
+  manager), bouton S'inscrire/Se désister par bénévole (toute la logique de
+  capacité reste en base, cette UI ne fait qu'insérer/mettre à jour un statut).
+  Admin/Manager peuvent en plus créer une maraude (nécessite un Manager actif
+  existant — sinon message explicite plutôt qu'un formulaire cassé). Testé en
+  local : page fonctionnelle, aucune erreur ; le flow complet création +
+  inscription + liste d'attente n'a pas pu être testé de bout en bout faute
+  d'un second compte de test (Manager) — à faire : inscrire un 2ᵉ compte,
+  le valider en Manager via /dashboard/comptes, puis tester
 - ⬜ Saisie météo bénévole en fin de maraude
 - ⬜ UI upload photo + saisie repas (mobile-first) — déplacé depuis l'Étape 5, dépend de l'Auth ci-dessus
 

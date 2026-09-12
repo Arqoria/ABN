@@ -66,24 +66,23 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {isAdminOrManager ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Gestion des maraudes</CardTitle>
-            <CardDescription>À venir.</CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Mes maraudes</CardTitle>
-            <CardDescription>
-              L&apos;inscription aux maraudes et la saisie terrain arrivent
-              prochainement.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {isAdminOrManager ? "Gestion des maraudes" : "Mes maraudes"}
+          </CardTitle>
+          <CardDescription>
+            {isAdminOrManager
+              ? "Créer une maraude, suivre les inscriptions."
+              : "S'inscrire à une maraude, voir la liste d'attente."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link href="/dashboard/maraudes">Voir les maraudes</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
