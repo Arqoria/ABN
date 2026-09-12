@@ -277,6 +277,29 @@ montant brut.
   l'erreur de build server-only déjà rencontrée plus haut — capturé cette
   fois par `npm run build` avant de pousser, pas en production
 
+## Ajout — fonction bureau (Président/Trésorier/Secrétaire)
+
+Question posée en testant l'Étape 9 : faut-il créer 3 rôles à permissions
+distinctes pour refléter le bureau de l'association ? **Décision : non.**
+Aucune règle métier ne les différencie aujourd'hui (le "Trésorier gère les
+tickets" est une habitude organisationnelle, pas une règle système à faire
+respecter — n'importe quel Admin doit pouvoir suppléer). Créer 3 rôles RLS
+pour zéro bénéfice fonctionnel aurait juste multiplié les policies à
+maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
+
+- ✅ Migration `20260912230000_fonction_bureau.sql` : enum `fonction_bureau`
+  (president/tresorier/secretaire), colonne nullable sur `profiles` —
+  purement informatif, ne conditionne aucune policy RLS ni permission (le
+  rôle `admin`, accès plein, reste inchangé). Protégée en self-service par
+  le trigger existant `protect_profile_role_status` (même garde-fou que
+  pour `status`)
+- ✅ Assignable à la validation d'un compte (`ValiderCompteForm`) et
+  modifiable ensuite pour un Admin déjà actif (nouvelle section "Bureau" sur
+  `/dashboard/comptes`, `BureauForm`) ; affiché en badge dans le header
+- Si une vraie règle apparaît un jour (ex. "seul le Trésorier valide un
+  remboursement > 200€"), on introduira un vrai rôle à ce moment-là — pas
+  avant
+
 ## Étape 9 — Reporting & KPIs
 - ✅ Vue agrégée compteurs (repas, personnes aidées, orientations sociales) —
   /dashboard/rapports (Admin/Manager, RLS scope automatiquement un Manager à
