@@ -24,7 +24,11 @@ export type PendingPointPassage = {
   id?: number;
   maraudeId: string;
   userId: string;
-  typeAction: "repas_distribue" | "personne_aidee" | "orientation_sociale";
+  typeAction:
+    | "repas_distribue"
+    | "personne_aidee"
+    | "personne_rencontree"
+    | "orientation_sociale";
   lat: number;
   lng: number;
   createdAt: number;

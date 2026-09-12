@@ -8,6 +8,7 @@ export type ActionState = { error: string } | undefined;
 const TYPES_ACTION = [
   "repas_distribue",
   "personne_aidee",
+  "personne_rencontree",
   "orientation_sociale",
 ] as const;
 type TypeAction = (typeof TYPES_ACTION)[number];

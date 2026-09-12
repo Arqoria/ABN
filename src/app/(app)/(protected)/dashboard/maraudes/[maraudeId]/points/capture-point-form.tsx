@@ -5,10 +5,15 @@ import { capturerPointPassage } from "@/lib/actions/points-passage";
 import { offlineDb } from "@/lib/offline/db";
 import { Button } from "@/components/ui/button";
 
-type TypeAction = "repas_distribue" | "personne_aidee" | "orientation_sociale";
+type TypeAction =
+  | "repas_distribue"
+  | "personne_aidee"
+  | "personne_rencontree"
+  | "orientation_sociale";
 
 const OPTIONS: { value: TypeAction; label: string }[] = [
   { value: "repas_distribue", label: "🍲 Repas distribué" },
+  { value: "personne_rencontree", label: "👋 Personne rencontrée" },
   { value: "personne_aidee", label: "🤝 Personne aidée" },
   { value: "orientation_sociale", label: "🧭 Orientation sociale" },
 ];

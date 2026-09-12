@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 
 const TYPE_LABELS: Record<string, string> = {
   repas_distribue: "Repas distribués",
+  personne_rencontree: "Personnes rencontrées",
   personne_aidee: "Personnes aidées",
   orientation_sociale: "Orientations sociales",
 };
@@ -56,6 +57,7 @@ export default async function RapportsPage({
 
   const totals: Record<string, number> = {
     repas_distribue: 0,
+    personne_rencontree: 0,
     personne_aidee: 0,
     orientation_sociale: 0,
   };
@@ -112,7 +114,7 @@ export default async function RapportsPage({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {Object.entries(TYPE_LABELS).map(([key, label]) => (
           <Card key={key}>
             <CardHeader>

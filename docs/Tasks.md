@@ -288,8 +288,31 @@ montant brut.
   réelles** : compteurs correspondant exactement aux captures test faites à
   l'Étape 8 (1 repas distribué, 1 personne aidée), filtre de période
   vérifié (0 sur une période sans données)
-- ⬜ Carte heatmap (Leaflet + leaflet.heat, fond OpenStreetMap)
-- ⬜ Tracé des circuits (points de passage reliés chronologiquement)
+- ✅ Compteur "personnes rencontrées" — 4e valeur d'enum `type_action_terrain`
+  (migration séparée de son usage, obligatoire pour un ajout de valeur enum
+  Postgres), 4e bouton de capture terrain, 4e carte KPI sur /dashboard/rapports.
+  **Testé** : capture réelle (géoloc mockée), compteur agrégé correct
+- ✅ Carte heatmap (Leaflet + leaflet.heat, fond OpenStreetMap) + tracé du
+  circuit réel — /dashboard/maraudes/\[maraudeId\]/carte (Admin/Manager pour
+  les données détaillées, tout participant inscrit voit la carte). Vue SQL
+  `points_passage_geo` (security_invoker, ST_Y/ST_X) pour exposer lat/lng en
+  float — PostgREST ne sérialise pas geography en JSON exploitable
+  nativement. Heatmap = historique visible par l'appelant (scope RLS déjà en
+  place), circuit réel = points_passage de la maraude reliés
+  chronologiquement, couleur par type d'action. **Testé en conditions
+  réelles** : heatmap affichée, points colorés par type, tooltip horodatage
+- ✅ Circuit planifié — le Manager/Admin de la maraude clique une suite de
+  points sur la carte (heatmap en fond d'aide à la décision) pour définir
+  l'itinéraire prévu avant le départ ; enregistré dans la nouvelle table
+  `circuits_planifies` (un circuit par maraude, jsonb ordonné, upsert sur
+  maraude_id). RLS : lecture Admin/Manager/participant inscrit, écriture
+  Admin ou Manager de cette maraude uniquement — `updated_by`/`updated_at`
+  forcés par trigger, même principe que `saisi_par` ailleurs dans le projet.
+  **Bug UX corrigé en test** : le zoom molette de Leaflet capturait le scroll
+  de la page — désactivé (`scrollWheelZoom={false}`), boutons +/- et pincement
+  tactile restent disponibles. **Testé en conditions réelles** : 3 points
+  cliqués, enregistrement confirmé en base, persistance vérifiée après
+  rechargement de page
 - ⬜ Export tableur (.xlsx/.csv)
 - ⬜ Export PDF formaté pour financeurs
 
