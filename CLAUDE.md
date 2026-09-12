@@ -74,9 +74,11 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 
 \- Hébergement : Vercel (plan gratuit)
 
-\- BDD : Supabase, compte personnel d'Aymen pour l'instant (projet portfolio) — à transférer vers un
+\- BDD : Supabase, projet `kjwjkzoepjaepxjkquwr` créé le 10/09 — propriétaire du compte à CONFIRMER
 
-&#x20; compte contrôlé par l'association avant toute mise en prod réelle
+&#x20; (Tasks.md visait le compte Arqoria, jamais vérifié depuis) — dans tous les cas, à transférer vers
+
+&#x20; un compte contrôlé par l'association avant toute mise en prod réelle si ce n'est pas déjà le cas
 
 \- Free tier Supabase : pas de backup automatique → prévoir un `pg\_dump` planifié (GitHub Action) comme
 
@@ -91,6 +93,44 @@ Deux volets : site vitrine public (SEO, dons, recrutement) + WebApp/PWA métier 
 &#x20; (email `arqoria.pro@gmail.com`) — toujours committer avec `git config user.email "arqoria.pro@gmail.com"`
 
 &#x20; sur cette machine, sinon les push passent mais ne déploient jamais en prod
+
+
+
+\## Accès & sécurité
+
+\- Repo GitHub `Arqoria/ABN` : **public** depuis le 09/09 (décision assumée, aucun secret dans
+
+&#x20; l'historique — vérifié sur tout l'historique git avant le passage en public)
+
+\- Vercel Hobby : voir note dans Infrastructure ci-dessous (email d'auteur git = `arqoria.pro@gmail.com`)
+
+\- Supabase : compte propriétaire du projet à confirmer/documenter ici (voir Infrastructure) — ne pas
+
+&#x20; supposer, vérifier avant toute décision d'accès
+
+\- RLS `profiles` : en plus des fonctions `security definer`, un trigger
+
+&#x20; `protect_profile_role_status` (migration `20260910043205_init_profiles.sql`) bloque toute
+
+&#x20; modification de `role`/`status` par l'utilisateur lui-même — seul un Admin (ou `service_role`
+
+&#x20; côté serveur) peut les changer. Reproduire ce principe pour toute future colonne "sensible"
+
+&#x20; en self-service (ex. droits, statuts de validation)
+
+\- MCP Supabase : connexion possible via `claude mcp add supabase --env SUPABASE_ACCESS_TOKEN=<token> --
+
+&#x20; npx -y @supabase/mcp-server-supabase@latest --read-only --project-ref=<ref>`. Le token est un
+
+&#x20; Personal Access Token Supabase — à générer soi-même sur supabase.com/dashboard/account/tokens,
+
+&#x20; jamais à coller dans le chat. Nécessite une nouvelle session Claude Code pour être actif
+
+\- Clés Supabase : seule la clé **Publishable** (ex-`anon`) va dans `NEXT_PUBLIC_*`. La clé **Secret**
+
+&#x20; (ex-`service_role`) ne doit JAMAIS avoir de préfixe `NEXT_PUBLIC_`, ni être partagée en clair —
+
+&#x20; uniquement en variable d'environnement serveur (Vercel), jamais commitée ni collée dans un chat
 
 
 
