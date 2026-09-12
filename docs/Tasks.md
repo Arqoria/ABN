@@ -346,8 +346,22 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   des 4 types, utilisé aussi par la carte par maraude). **Testé en
   conditions réelles** : graphiques affichés avec les vraies données,
   filtre heatmap testé (décocher un type retire ses points instantanément)
-- ⬜ Export tableur (.xlsx/.csv) — alimente le template de rendu final
-  (Canva/Gamma, hors périmètre applicatif)
+- ✅ Export tableur (.xlsx) — bouton "Exporter" sur /dashboard/rapports,
+  route `/dashboard/rapports/export` (Route Handler et non Server Action :
+  seule une Route Handler peut renvoyer un fichier binaire avec ses propres
+  en-têtes HTTP Content-Type/Content-Disposition pour déclencher le
+  téléchargement). Génère un classeur `exceljs` à 2 feuilles (Compteurs,
+  Activité par jour) ou 3 pour un Admin (+ Dépenses par catégorie), même
+  période filtrée que la page, même agrégation (extraite dans
+  `src/lib/rapports.ts`, partagée avec la page — jamais de divergence entre
+  ce qui s'affiche et ce qui s'exporte). Alimente le template de rendu final
+  (Canva/Gamma, hors périmètre applicatif). **Bibliothèque `xlsx` (SheetJS)
+  écartée** : vulnérabilité connue sans correctif (CVE liées au parsing,
+  nettement moins un risque ici puisqu'on ne fait qu'écrire — mais autant
+  éviter le bruit sur un dépôt public) — `exceljs` utilisé à la place.
+  **Testé en conditions réelles** : fichier généré et vérifié (contenu du
+  classeur inspecté), 2 feuilles pour Manager, 3 pour Admin (Dépenses en
+  plus), valeurs correctes
 - 🚫 Export PDF formaté pour financeurs — **hors périmètre** : le rendu
   final pour les financeurs se fera via un template Canva/Gamma, alimenté
   par l'export tableur ci-dessus (décision utilisateur, 12/09)

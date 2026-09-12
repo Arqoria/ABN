@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -11,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS, type TypeAction } from "@/lib/type-action";
-import { CATEGORIE_LABELS, type CategorieDepense } from "@/lib/categorie-depense";
+import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS } from "@/lib/type-action";
+import { getRapportsData } from "@/lib/rapports";
 import HeatmapFiltree from "./heatmap-filtree-client";
 import { ActiviteChart } from "./activite-chart";
 import { DepensesChart } from "./depenses-chart";
@@ -23,7 +24,8 @@ import { DepensesChart } from "./depenses-chart";
 // s'appuyer sur la heatmap globale en planifiant un circuit), aucune
 // logique de scope à gérer côté page. Compteurs agrégés uniquement : aucune
 // donnée individuelle sur les personnes aidées (docs/Specs.md : anonymat
-// strict).
+// strict). Agrégation faite dans src/lib/rapports.ts, partagée avec l'export
+// .xlsx (route /dashboard/rapports/export) pour ne jamais diverger.
 export default async function RapportsPage({
   searchParams,
 }: {
@@ -42,103 +44,30 @@ export default async function RapportsPage({
   const { from, to } = await searchParams;
 
   const supabase = await createClient();
+  const { totals, activiteData, heatmapPoints, depensesData } =
+    await getRapportsData(supabase, { from, to, isAdmin });
 
-  // Plafonné à 5000 lignes, comme la heatmap de la carte par maraude — largement
-  // suffisant pour le volume d'une petite association, évite une requête non
-  // bornée si l'historique grossit beaucoup.
-  let pointsQuery = supabase
-    .from("points_passage_geo")
-    .select("type_action, compteur, horodatage, lat, lng")
-    .limit(5000);
-
-  if (from) {
-    pointsQuery = pointsQuery.gte("horodatage", from);
-  }
-  if (to) {
-    pointsQuery = pointsQuery.lte("horodatage", `${to}T23:59:59`);
-  }
-
-  const { data: points } = await pointsQuery;
-
-  const totals: Record<TypeAction, number> = {
-    repas_distribue: 0,
-    personne_rencontree: 0,
-    personne_aidee: 0,
-    orientation_sociale: 0,
-  };
-
-  // date ISO (tri chronologique) -> libellé court affiché -> totaux par type
-  const dailyMap = new Map<string, { label: string; totaux: Record<TypeAction, number> }>();
-
-  for (const p of points ?? []) {
-    const type = p.type_action as TypeAction;
-    const compteur = p.compteur as number;
-    totals[type] = (totals[type] ?? 0) + compteur;
-
-    const d = new Date(p.horodatage as string);
-    const iso = d.toISOString().slice(0, 10);
-    if (!dailyMap.has(iso)) {
-      dailyMap.set(iso, {
-        label: d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
-        totaux: {
-          repas_distribue: 0,
-          personne_rencontree: 0,
-          personne_aidee: 0,
-          orientation_sociale: 0,
-        },
-      });
-    }
-    dailyMap.get(iso)!.totaux[type] += compteur;
-  }
-
-  const activiteData = [...dailyMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, { label, totaux }]) => ({ date: label, ...totaux }));
-
-  const heatmapPoints = (points ?? []).map((p) => ({
-    lat: p.lat as number,
-    lng: p.lng as number,
-    typeAction: p.type_action as TypeAction,
-  }));
-
-  // Dépenses : réservé Admin — voir commentaire dans depenses-chart.tsx (RLS
-  // ne donne à un Manager que ses propres tickets, un total par catégorie
-  // serait trompeur pour lui).
-  let depensesData: { categorie: CategorieDepense; total: number }[] = [];
-  if (isAdmin) {
-    let ticketsQuery = supabase
-      .from("tickets_depense")
-      .select("categorie, montant, created_at");
-
-    if (from) {
-      ticketsQuery = ticketsQuery.gte("created_at", from);
-    }
-    if (to) {
-      ticketsQuery = ticketsQuery.lte("created_at", `${to}T23:59:59`);
-    }
-
-    const { data: tickets } = await ticketsQuery;
-    const parCategorie = new Map<CategorieDepense, number>();
-    for (const t of tickets ?? []) {
-      const cat = t.categorie as CategorieDepense;
-      parCategorie.set(cat, (parCategorie.get(cat) ?? 0) + (t.montant as number));
-    }
-    depensesData = [...parCategorie.entries()].map(([categorie, total]) => ({
-      categorie,
-      total,
-    }));
-  }
+  const exportParams = new URLSearchParams({
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+  }).toString();
+  const exportHref = `/dashboard/rapports/export${exportParams ? `?${exportParams}` : ""}`;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Rapports &amp; KPIs
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Compteurs agrégés — jamais de données individuelles sur les
-          personnes aidées.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">
+            Rapports &amp; KPIs
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Compteurs agrégés — jamais de données individuelles sur les
+            personnes aidées.
+          </p>
+        </div>
+        <Button asChild variant="outline" className="h-12">
+          <Link href={exportHref}>Exporter (.xlsx)</Link>
+        </Button>
       </div>
 
       <Card>
