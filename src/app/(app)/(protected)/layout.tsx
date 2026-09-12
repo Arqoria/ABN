@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { OfflineSync } from "@/components/offline-sync";
 
 // Layout partagé par toutes les routes protégées (/dashboard,
 // /compte-en-attente, ...) — PAS par /login ni /signup, qui restent en
@@ -33,6 +34,7 @@ export default async function ProtectedLayout({
 
   return (
     <div className="flex min-h-full flex-col">
+      <OfflineSync />
       <header className="flex flex-wrap items-center justify-between gap-3 bg-brand-navy px-4 py-3 text-white sm:px-6">
         <Link
           href="/dashboard"

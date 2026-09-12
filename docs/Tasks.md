@@ -212,9 +212,24 @@ Un seul champ `profiles.role` ne pouvait pas représenter ça.
   correctement, 969×1097px), aucune erreur — Étape 7 entièrement terminée
 
 ## Étape 8 — PWA offline-first (synchro réelle)
-- ⬜ IndexedDB (Dexie.js) comme file d'attente locale
-- ⬜ Background Sync : synchro auto au retour réseau
-- ⬜ Intégration avec saisies terrain (repas, points de passage, météo)
+- ✅ IndexedDB (Dexie.js) comme file d'attente locale — src/lib/offline/db.ts,
+  un magasin dédié par type de saisie (pendingRepas pour l'instant)
+- 🟨 Synchro auto au retour réseau — **choix d'architecture** : synchro sur
+  l'évènement navigateur `online` (src/components/offline-sync.tsx, monté une
+  fois dans le layout protégé) plutôt que l'API Background Sync — support
+  navigateur de Background Sync trop limité (absent sur iOS Safari, cohérent
+  avec la limite iOS déjà notée dans CLAUDE.md), et l'appli reste ouverte
+  pendant la maraude donc l'évènement `online` suffit en pratique. Pas de
+  synchro en tâche de fond quand l'app est fermée — limite assumée, à
+  reconsidérer si le besoin réel apparaît
+- 🟨 Intégration avec les saisies terrain : **repas fait et testé** (pilote du
+  pattern) — RepasForm bascule en file locale si hors ligne ou si l'appel
+  réseau échoue, message explicite, resynchronise automatiquement. Testé en
+  conditions réelles (navigator.onLine forcé à false, IndexedDB vérifiée,
+  puis évènement 'online' déclenché, IndexedDB vidée et donnée confirmée en
+  base). **Météo, tickets de dépense et points de passage restent à faire**
+  (même pattern à répliquer — points_passage n'a même pas encore d'UI de
+  capture, prévue ici à l'origine)
 
 ## Étape 9 — Reporting & KPIs
 - ⬜ Vue agrégée compteurs (repas, personnes aidées, orientations sociales)
