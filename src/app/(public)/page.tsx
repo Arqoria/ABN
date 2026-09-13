@@ -53,7 +53,7 @@ export default async function AccueilPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero */}
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-16 text-center">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-16 text-center sm:px-6 lg:max-w-4xl lg:py-24 xl:max-w-5xl 2xl:max-w-6xl">
         <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
           Les Anges de la Baie de Nice
         </h1>
@@ -64,8 +64,8 @@ export default async function AccueilPage() {
       </div>
 
       {/* A. Bandeau d'impact — compteurs réels et live */}
-      <div className="border-y border-border bg-brand-pastel/40 px-4 py-8 sm:px-6">
-        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
+      <div className="border-y border-border bg-brand-pastel/40 px-4 py-8 sm:px-6 lg:py-10">
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 text-center sm:grid-cols-3 lg:max-w-4xl lg:gap-10 xl:max-w-5xl 2xl:max-w-6xl">
           <div className="flex flex-col items-center gap-1">
             <Users className="size-6 text-primary" aria-hidden="true" />
             <span className="text-2xl font-semibold text-foreground">{benevolesActifs}</span>
@@ -91,11 +91,11 @@ export default async function AccueilPage() {
       </div>
 
       {/* B. Nos actions sur le terrain */}
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-16 sm:px-6">
-        <h2 className="text-center text-2xl font-semibold text-foreground">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-16 sm:px-6 lg:max-w-5xl lg:py-24 xl:max-w-6xl 2xl:max-w-7xl">
+        <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
           Nos actions sur le terrain
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
           <Card>
             <CardHeader>
               <UtensilsCrossed className="size-6 text-primary" aria-hidden="true" />
@@ -129,12 +129,12 @@ export default async function AccueilPage() {
       </div>
 
       {/* C. Comment se passe une maraude ? */}
-      <div className="border-t border-border bg-muted/30 px-4 py-16 sm:px-6">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-          <h2 className="text-center text-2xl font-semibold text-foreground">
+      <div className="border-t border-border bg-muted/30 px-4 py-16 sm:px-6 lg:py-24">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
+          <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
             Comment se passe une maraude ?
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
             <Card>
               <CardHeader>
                 <ClipboardList className="size-6 text-primary" aria-hidden="true" />
@@ -172,8 +172,8 @@ export default async function AccueilPage() {
       </div>
 
       {/* D. Besoins matériels & dons */}
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-16 sm:px-6">
-        <h2 className="text-center text-2xl font-semibold text-foreground">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-16 sm:px-6 lg:max-w-3xl lg:py-24">
+        <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
           Faire un don
         </h2>
         <p className="text-center text-sm text-muted-foreground">
@@ -217,7 +217,7 @@ export default async function AccueilPage() {
       </div>
 
       {/* Déjà bénévole ? */}
-      <div className="mx-auto w-full max-w-2xl px-4 pb-16 sm:px-6">
+      <div className="mx-auto w-full max-w-2xl px-4 pb-16 sm:px-6 lg:max-w-3xl lg:pb-24">
         <Card>
           <CardHeader>
             <CardTitle>Déjà bénévole ?</CardTitle>

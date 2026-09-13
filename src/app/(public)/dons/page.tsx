@@ -23,7 +23,7 @@ export default async function DonsPage() {
     .order("total", { ascending: false });
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16 sm:px-6 lg:max-w-3xl lg:py-24">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">
           Faire un don
