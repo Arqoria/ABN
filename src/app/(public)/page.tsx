@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
-import { CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
+import { CATEGORIE_BESOIN_EXEMPLES, CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
 
 // Page d'accueil du site vitrine — Étape 10. '/' servait un redirect vers
 // /login jusqu'ici, voir git blame de src/app/page.tsx (supprimé).
@@ -173,54 +173,61 @@ export default async function AccueilPage() {
       </div>
 
       {/* D. Besoins matériels & dons */}
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-16 sm:px-6 lg:max-w-3xl lg:py-24">
-        <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
-          Faire un don
-        </h2>
-        <p className="text-center text-sm text-muted-foreground">
-          Financier ou matériel — chaque don a un usage concret sur le
-          terrain.
-        </p>
+      <div className="border-t border-border bg-brand-pastel/20 px-4 py-16 sm:px-6 lg:py-24">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 lg:max-w-4xl xl:max-w-5xl">
+          <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
+            Faire un don
+          </h2>
+          <p className="text-center text-sm text-muted-foreground">
+            Financier ou matériel — chaque don a un usage concret sur le
+            terrain.
+          </p>
 
-        {besoins && besoins.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="text-center">
-              <h3 className="font-semibold text-foreground">Besoins matériels du moment</h3>
-              <p className="text-sm text-muted-foreground">
-                Signalés par les bénévoles ces 30 derniers jours.
-              </p>
+          {besoins && besoins.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <div className="text-center">
+                <h3 className="font-semibold text-foreground">Besoins matériels du moment</h3>
+                <p className="text-sm text-muted-foreground">
+                  Signalés par les bénévoles ces 30 derniers jours.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {besoins.map((b) => {
+                  const categorie = b.categorie as CategorieBesoin;
+                  const Icone = CATEGORIE_BESOIN_ICONS[categorie];
+                  return (
+                    <Card key={categorie}>
+                      <CardContent className="flex flex-col items-center gap-1.5 py-4 text-center">
+                        <Icone className="size-6 text-primary" aria-hidden="true" />
+                        <span className="text-sm font-medium text-foreground">
+                          {CATEGORIE_BESOIN_LABELS[categorie] ?? categorie}
+                        </span>
+                        {CATEGORIE_BESOIN_EXEMPLES[categorie] && (
+                          <span className="text-xs text-muted-foreground">
+                            {CATEGORIE_BESOIN_EXEMPLES[categorie]}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {b.total as number} signalement{(b.total as number) > 1 ? "s" : ""}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {besoins.map((b) => {
-                const categorie = b.categorie as CategorieBesoin;
-                const Icone = CATEGORIE_BESOIN_ICONS[categorie];
-                return (
-                  <Card key={categorie}>
-                    <CardContent className="flex flex-col items-center gap-1.5 py-4 text-center">
-                      <Icone className="size-6 text-primary" aria-hidden="true" />
-                      <span className="text-sm font-medium text-foreground">
-                        {CATEGORIE_BESOIN_LABELS[categorie] ?? categorie}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {b.total as number} signalement{(b.total as number) > 1 ? "s" : ""}
-                      </span>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+          )}
+
+          <div className="flex justify-center">
+            <Button asChild variant="outline" className="h-12">
+              <Link href="/dons">Voir comment aider</Link>
+            </Button>
           </div>
-        )}
-
-        <div className="flex justify-center">
-          <Button asChild variant="outline" className="h-12">
-            <Link href="/dons">Voir comment aider</Link>
-          </Button>
         </div>
       </div>
 
       {/* Déjà bénévole ? */}
-      <div className="mx-auto w-full max-w-2xl px-4 pb-16 sm:px-6 lg:max-w-3xl lg:pb-24">
+      <div className="mx-auto w-full max-w-2xl px-4 py-16 sm:px-6 lg:max-w-3xl lg:py-24">
         <Card>
           <CardHeader>
             <CardTitle>Déjà bénévole ?</CardTitle>

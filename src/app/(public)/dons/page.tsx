@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
-import { CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
+import { CATEGORIE_BESOIN_EXEMPLES, CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
 
 const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 
@@ -80,6 +80,11 @@ export default async function DonsPage() {
                       <span className="text-sm font-medium text-foreground">
                         {CATEGORIE_BESOIN_LABELS[categorie] ?? categorie}
                       </span>
+                      {CATEGORIE_BESOIN_EXEMPLES[categorie] && (
+                        <span className="text-xs text-muted-foreground">
+                          {CATEGORIE_BESOIN_EXEMPLES[categorie]}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {b.total as number} signalement{(b.total as number) > 1 ? "s" : ""}
                       </span>
