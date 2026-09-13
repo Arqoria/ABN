@@ -416,21 +416,32 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   vérifié forcé en base, graphique et export corrects
 
 ## Étape 10 — Site vitrine public
-- ⬜ Pages SEO local (accueil, présentation, actions)
-- ⬜ Formulaire recrutement bénévoles
-- ⬜ Module dons financiers
-- ⬜ Module dons matériels — **passerelle déjà préparée** (retour
-  utilisateur, 12/09 : "anticiper le lien dans l'espace de dons") : la vue
-  SQL `public.besoins_publics` (migration `20260912270000_besoins_publics.sql`)
-  agrège déjà les besoins signalés (Étape 9) des 30 derniers jours par
-  catégorie, lisible SANS authentification (`anon`). La page de dons pourra
-  simplement l'interroger pour afficher les besoins réels et actuels
-  ("actuellement, on manque de couvertures") plutôt qu'une liste générique.
-  **Première surface de données publique (anon) du projet** — vue
-  volontairement restreinte à categorie+total (jamais de commentaire, de
-  maraude, ni de qui a signalé) ; `besoins_signales` reste, elle,
-  strictement protégée par RLS. **Vérifié** : lecture anon de la vue OK,
-  lecture anon directe de la table refusée ("permission denied")
+- 🟨 Pages SEO local (accueil, présentation, actions) — **accueil minimale
+  livrée** (13/09) : `/` sert enfin la vraie page publique (route group
+  `(public)`, layout avec nav réelle) au lieu de rediriger vers `/login`.
+  Contenu strictement factuel (nom, activité réelle) — **pas de contenu SEO
+  détaillé/optimisé, pas de "Présentation"/"Actions" dédiées** : ça attend
+  les vrais textes/photos de l'association (décision explicite : jamais de
+  contenu inventé à la place du référent)
+- ✅ Formulaire recrutement bénévoles — `/recrutement`, table
+  `candidatures_benevolat` (RLS : insert ouvert à `anon`, select/update/
+  delete réservés Admin), honeypot anti-bot (champ invisible, silencieux si
+  rempli). Vue Admin `/dashboard/candidatures` pour traiter les
+  candidatures (sinon coincées en base sans aucune UI de lecture) + badge
+  de comptage dans le header, même pattern que "Comptes en attente".
+  **Testé en conditions réelles** : candidature soumise en anon confirmée
+  en base, lecture anon de la table bien refusée (RLS), toggle "traitée"
+  fonctionnel
+- ⬜ Module dons financiers — bloqué : le Trésorier doit créer le compte
+  HelloAsso lui-même (voir la piste technique notée plus haut). Page `/dons`
+  déjà prête à accueillir le module, actuellement un simple mailto de
+  patience
+- ✅ Module dons matériels — `/dons` interroge la vue publique
+  `public.besoins_publics` (migration `20260912270000_besoins_publics.sql`,
+  agrège les besoins signalés des 30 derniers jours par catégorie, lisible
+  sans authentification) : affiche les besoins réels et actuels plutôt
+  qu'une liste générique, exactement comme anticipé. **Testé en conditions
+  réelles** : lecture anon de la vue confirmée OK
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)
