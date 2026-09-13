@@ -464,38 +464,63 @@ Recherché le 12/09 (voir sources dans la conversation) :
   créer le compte association sur HelloAsso lui-même (création de compte =
   hors de portée de l'assistant) et récupérer clientId/clientSecret.
 
-## À trancher — rôles attribués par maraude (retour utilisateur, 12/09, fin de session)
+## Ajout — affectations par maraude (retour utilisateur, 12-13/09)
 
-Observation : le modèle actuel (`profile_roles`, voir refactor plus haut) est
-**global et permanent** — un profil "a" le rôle cuisinier jusqu'à ce qu'un
-Admin le retire. Mais dans la réalité du terrain :
-- On n'est "pas cuisinier à vie" — la même personne peut cuisiner un soir et
-  faire la maraude un autre soir, voire les deux la même fois
-- Le Manager désigné d'UNE maraude spécifique est parfois en réalité le
-  Président ou le Trésorier (qui dépannent ponctuellement), pas quelqu'un
-  avec le rôle global "Manager"
+Observation de départ : le modèle `profile_roles` (voir refactor plus haut)
+est global et permanent — un profil "a" le rôle cuisinier jusqu'à ce qu'un
+Admin le retire, alors que dans la réalité du terrain on n'est "pas
+cuisinier à vie" (la même personne cuisine un soir, fait la maraude un
+autre soir, parfois les deux le même soir).
 
-**Nuance déjà couverte par l'existant** : comme un profil peut déjà cumuler
-plusieurs rôles globaux (Manager + Cuisinier, Admin + Manager...), donner à
-un Président le rôle global "Manager" en plus suffit déjà à le rendre
-éligible comme `maraudes.manager_id` — pas besoin de refonte pour ce cas
-précis. Le vrai manque : forcer quelqu'un à obtenir un rôle global permanent
-("Cuisinier") juste pour logger UN repas ponctuel, ou l'inverse, se sentir
-"étiqueté" cuisinier alors que ce n'était qu'une fois.
+**Décisions tranchées le 13/09** (3 questions posées en fin de session
+précédente) :
+1. Le rôle global reste un **garde-fou obligatoire** — seul un profil qui
+   détient déjà le rôle global correspondant peut être affecté à une
+   fonction sur une maraude. Comment on obtient ce rôle global reste hors
+   scope ici (aujourd'hui : attribution manuelle par un Admin via
+   `/dashboard/comptes` ; l'idée d'un déblocage par mini-formation/quiz est
+   notée séparément ci-dessous, pas construite)
+2. **Cumul possible** — une personne peut être affectée à plusieurs
+   fonctions sur la même maraude (ex. cuisinier ET maraudeur)
+3. **Coexiste avec l'existant** — `maraudes.manager_id` et
+   `repas.cuisinier_id` restent inchangés (aucune régression) ; la nouvelle
+   table sert uniquement de planning/roster ("qui fait quoi ce soir")
+4. "CA" (Conseil d'Administration) écarté de `fonction_bureau` pour
+   l'instant — l'utilisateur n'est pas certain que l'association ait un CA
+   élargi, à reconfirmer avant d'ajouter quoi que ce soit
 
-**Direction à valider en tout début de prochaine session** (ne pas trancher
-seul sans en reparler — impacte plusieurs triggers/RLS existants) : séparer
-la **qualification globale** (le rôle `profile_roles` actuel, garde-fou —
-qui est *autorisé* à endosser telle fonction) de l'**affectation par
-maraude** (qui fait *concrètement* quoi CETTE fois — nouvelle notion,
-probablement une colonne `fonction` sur `inscriptions_maraude` ou une
-nouvelle table `affectations_maraude`). Questions ouvertes à trancher avant
-de coder :
-1. Le rôle global reste-t-il un garde-fou obligatoire (seuls les profils
-   qualifiés "cuisinier" peuvent être affectés cuisinier sur une maraude), ou
-   supprime-t-on complètement cette barrière au profit d'une affectation
-   libre par maraude ?
-2. Une personne peut-elle cumuler plusieurs fonctions sur LA MÊME maraude
-   (ex. cuisinier ET maraudeur le même soir) ?
-3. Cette affectation remplace-t-elle `maraudes.manager_id`/
-   `repas.cuisinier_id` (colonnes actuelles), ou coexiste-t-elle en plus ?
+**Implémenté** :
+- Migration `20260913040000_affectations_maraude.sql` : enum
+  `fonction_maraude` (cuisinier/maraudeur), table `affectations_maraude`
+  (maraude_id, user_id, fonction, `assigned_by` forcé par trigger, unique
+  sur les 3 premiers). Trigger `check_affectation_maraude_qualification` :
+  vérifie TOUJOURS (même pour Admin/Manager) que `user_id` détient le rôle
+  global correspondant (cast `fonction::text::user_role`, les libellés
+  cuisinier/maraudeur sont identiques dans les deux enums) + vérifie
+  l'inscription à la maraude (avec exemption Admin/Manager-de-la-maraude,
+  même principe que `besoins_signales`)
+- RLS lecture : Admin, Manager de CETTE maraude (pas tout Manager comme pour
+  la heatmap — un roster d'équipe est propre à cette maraude, pas une donnée
+  de planification globale), ou participant inscrit. Écriture (insert/
+  delete) : soi-même, Admin, ou Manager de cette maraude
+- Nouvelle page `/dashboard/maraudes/[id]/equipe` : liste les participants
+  inscrits, badge/bouton par fonction qualifiée (auto-affectation en un
+  clic pour soi-même, gestion des autres pour Admin/Manager de la maraude) —
+  aucun bouton affiché pour une fonction non qualifiée (le garde-fou se
+  reflète directement dans l'UI, pas juste côté serveur)
+- **Testé en conditions réelles** : auto-affectation cuisinier confirmée en
+  base (`assigned_by` correctement forcé au bon profil), retrait confirmé
+  (ligne supprimée), badge non affiché pour la fonction maraudeur (non
+  qualifié pour ce profil de test)
+
+## Chantier à part — parcours de qualification (mini-formation/quiz)
+
+Idée exprimée le 13/09 en discutant des affectations : débloquer
+l'obtention d'un rôle global (ex. Cuisinier) via une mini-formation (quiz,
+vidéos) plutôt que uniquement une attribution manuelle par un Admin. Reprend
+et précise le "parcours d'onboarding" déjà noté comme hors scope lors du
+refactor `profile_roles` (vidéo débloquée, entretien de motivation).
+**Ne bloque pas** les affectations par maraude ci-dessus : celles-ci ne
+vérifient que la possession du rôle, peu importe comment il a été obtenu.
+Sujet à cadrer entièrement à part (contenu de formation, moteur de quiz,
+suivi de progression) — pas commencé.
