@@ -524,3 +524,38 @@ refactor `profile_roles` (vidéo débloquée, entretien de motivation).
 vérifient que la possession du rôle, peu importe comment il a été obtenu.
 Sujet à cadrer entièrement à part (contenu de formation, moteur de quiz,
 suivi de progression) — pas commencé.
+
+## Reporté — activation OAuth (bien plus lourd que prévu, 13/09)
+
+Code déjà prêt et testé depuis l'Étape 7 (`loginWithOAuth`, boutons Google/
+Microsoft/Facebook, callback) — ce qui reste est de la **configuration
+externe**, pas du code, mais chaque fournisseur a son propre obstacle
+opérationnel découvert en essayant réellement ce matin :
+
+- **Gmail dédié à l'association** créé (`lesangesdelabaiedenice@gmail.com`)
+  — ✅ fait, réutilisable pour tout le reste
+- **Google Cloud Console** : bloqué en **Testing** (impossible de passer en
+  "In production") tant qu'on n'a pas un **nom de domaine possédé et
+  vérifiable via Search Console** — `*.vercel.app` est un domaine partagé,
+  non vérifiable par nature. Publier en Production demande aussi
+  potentiellement une politique de confidentialité publique (donc le site
+  vitrine, Étape 10). **Solution qui marche déjà, non testée** : rester en
+  Testing et ajouter les bénévoles comme "utilisateurs test" (jusqu'à 100,
+  ajout par lot possible) — s'intègre à la validation manuelle des comptes
+  déjà en place, mais pas essayé concrètement
+- **Microsoft Entra ID** : le provisionnement d'un tenant personnel (via
+  Azure, nécessaire après une erreur AADSTS50020 rencontrée en allant
+  directement sur entra.microsoft.com avec un compte tout neuf) demande le
+  **nom et l'adresse de l'entité légale** — informations que l'utilisateur
+  n'est pas autorisé à fournir sans l'accord formel de l'association.
+  Reporté explicitement pour cette raison, pas un problème technique
+- **Meta (Facebook)** : pas encore essayé du tout
+
+**Prérequis réels avant de reprendre** (à préparer en amont, pas le jour
+même) :
+1. Nom de domaine acheté (débloque Google Production + est de toute façon
+   nécessaire pour l'Étape 10)
+2. Accord formel de l'association pour fournir nom/adresse légale (pour
+   Microsoft) — à obtenir avant la session, pas pendant
+3. Éventuellement une carte (perso ou virtuelle N26/Revolut à plafond bas)
+   si la vérification anti-fraude Google/Microsoft revient
