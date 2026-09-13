@@ -4,10 +4,9 @@ import { getCurrentProfile } from "@/lib/supabase/dal";
 import { ROLE_LABELS } from "@/lib/roles";
 import { FONCTION_BUREAU_LABELS } from "@/lib/fonction-bureau";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/lib/actions/auth";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { OfflineSync } from "@/components/offline-sync";
+import { AccountMenu } from "@/components/account-menu";
 
 // Layout partagé par toutes les routes protégées (/dashboard,
 // /compte-en-attente, ...) — PAS par /login ni /signup, qui restent en
@@ -65,19 +64,7 @@ export default async function ProtectedLayout({
               {ROLE_LABELS[role]}
             </Badge>
           ))}
-          <span className="hidden text-sm text-white/80 sm:inline">
-            {profile.full_name ?? "Bénévole"}
-          </span>
-          <form action={logout}>
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
-            >
-              Se déconnecter
-            </Button>
-          </form>
+          <AccountMenu nom={profile.full_name ?? "Bénévole"} />
         </nav>
       </header>
       <main className="flex flex-1 flex-col">{children}</main>

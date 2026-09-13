@@ -5,6 +5,12 @@
 // initiale. Lu par src/lib/supabase/server.ts et src/lib/supabase/proxy.ts.
 export const REMEMBER_ME_COOKIE = "abn-remember-me";
 
+// Clé localStorage (pas un cookie — purement un confort d'UI côté
+// navigateur, jamais lu côté serveur) pour préremplir l'email au prochain
+// login quand "Se souvenir de moi" est coché. Distinct du cookie ci-dessus,
+// qui ne contrôle que la durée de la session, jamais l'email affiché.
+export const REMEMBERED_EMAIL_KEY = "abn-remembered-email";
+
 // Aligné sur le maxAge par défaut de @supabase/ssr (~400 jours, le maximum
 // autorisé par Chrome pour un cookie — voir
 // https://developer.chrome.com/blog/cookie-max-age-expires).

@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { login } from "@/lib/actions/auth";
+import { REMEMBERED_EMAIL_KEY } from "@/lib/supabase/remember-me";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButtons } from "@/components/oauth-buttons";
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   Card,
   CardContent,
@@ -18,16 +20,49 @@ import {
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
+  const [email, setEmail] = useState("");
+  const [remember, setRemember] = useState(true);
+
+  // Préremplit l'email si "Se souvenir de moi" avait été coché la dernière
+  // fois — bug remonté par l'utilisateur : le cookie abn-remember-me ne
+  // contrôle que la durée de la session, jamais l'email affiché au retour.
+  // useEffect (pas de valeur initiale directe) pour éviter un mismatch
+  // d'hydratation SSR : le serveur ne connaît jamais le localStorage.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+      if (saved) setEmail(saved);
+    } catch {
+      // Navigation privée ou stockage bloqué — tant pis, champ vide comme
+      // avant ce correctif.
+    }
+  }, []);
+
+  function handleSubmit() {
+    try {
+      if (remember && email) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
+    } catch {
+      // Sans conséquence : juste un confort, la connexion continue quand
+      // même via l'action du formulaire.
+    }
+  }
 
   return (
     <div className="relative flex flex-1 items-center justify-center px-4 py-16">
+      <div className="absolute top-4 right-4">
+        <ModeToggle />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Connexion</CardTitle>
           <CardDescription>Accédez à votre espace bénévole.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={action} className="flex flex-col gap-4">
+          <form action={action} onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -37,6 +72,8 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 className="h-12"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -51,7 +88,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox id="remember" name="remember" defaultChecked />
+              <Checkbox
+                id="remember"
+                name="remember"
+                checked={remember}
+                onCheckedChange={(checked) => setRemember(checked === true)}
+              />
               <Label htmlFor="remember" className="font-normal">
                 Se souvenir de moi
               </Label>
