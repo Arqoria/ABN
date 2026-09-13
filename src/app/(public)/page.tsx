@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
+import { CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
 
 // Page d'accueil du site vitrine — Étape 10. '/' servait un redirect vers
 // /login jusqu'ici, voir git blame de src/app/page.tsx (supprimé).
@@ -182,31 +183,33 @@ export default async function AccueilPage() {
         </p>
 
         {besoins && besoins.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Besoins matériels du moment</CardTitle>
-              <CardDescription>Signalés par les bénévoles ces 30 derniers jours.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-2">
-                {besoins.map((b) => (
-                  <li
-                    key={b.categorie as string}
-                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-                  >
-                    <span>
-                      {CATEGORIE_BESOIN_LABELS[b.categorie as CategorieBesoin] ??
-                        (b.categorie as string)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {b.total as number} signalement
-                      {(b.total as number) > 1 ? "s" : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-3">
+            <div className="text-center">
+              <h3 className="font-semibold text-foreground">Besoins matériels du moment</h3>
+              <p className="text-sm text-muted-foreground">
+                Signalés par les bénévoles ces 30 derniers jours.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {besoins.map((b) => {
+                const categorie = b.categorie as CategorieBesoin;
+                const Icone = CATEGORIE_BESOIN_ICONS[categorie];
+                return (
+                  <Card key={categorie}>
+                    <CardContent className="flex flex-col items-center gap-1.5 py-4 text-center">
+                      <Icone className="size-6 text-primary" aria-hidden="true" />
+                      <span className="text-sm font-medium text-foreground">
+                        {CATEGORIE_BESOIN_LABELS[categorie] ?? categorie}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {b.total as number} signalement{(b.total as number) > 1 ? "s" : ""}
+                      </span>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <div className="flex justify-center">

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
+import { CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
 
 const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 
@@ -68,23 +69,25 @@ export default async function DonsPage() {
               reste toujours utile, contactez-nous pour en discuter.
             </p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {besoins.map((b) => (
-                <li
-                  key={b.categorie as string}
-                  className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-                >
-                  <span>
-                    {CATEGORIE_BESOIN_LABELS[b.categorie as CategorieBesoin] ??
-                      (b.categorie as string)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {b.total as number} signalement
-                    {(b.total as number) > 1 ? "s" : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {besoins.map((b) => {
+                const categorie = b.categorie as CategorieBesoin;
+                const Icone = CATEGORIE_BESOIN_ICONS[categorie];
+                return (
+                  <Card key={categorie}>
+                    <CardContent className="flex flex-col items-center gap-1.5 py-4 text-center">
+                      <Icone className="size-6 text-primary" aria-hidden="true" />
+                      <span className="text-sm font-medium text-foreground">
+                        {CATEGORIE_BESOIN_LABELS[categorie] ?? categorie}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {b.total as number} signalement{(b.total as number) > 1 ? "s" : ""}
+                      </span>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           )}
           <Button asChild className="h-12">
             <a href={`mailto:${CONTACT_EMAIL}`}>Proposer un don matériel</a>
