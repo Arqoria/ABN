@@ -23,6 +23,7 @@ export default async function ProtectedLayout({
   const profile = await getCurrentProfile();
 
   let comptesEnAttenteCount = 0;
+  let candidaturesEnAttenteCount = 0;
   if (profile.roles.includes("admin")) {
     const supabase = await createClient();
     const { count } = await supabase
@@ -30,6 +31,12 @@ export default async function ProtectedLayout({
       .select("id", { count: "exact", head: true })
       .eq("status", "en_attente");
     comptesEnAttenteCount = count ?? 0;
+
+    const { count: candidaturesCount } = await supabase
+      .from("candidatures_benevolat")
+      .select("id", { count: "exact", head: true })
+      .eq("traitee", false);
+    candidaturesEnAttenteCount = candidaturesCount ?? 0;
   }
 
   return (
@@ -51,6 +58,17 @@ export default async function ProtectedLayout({
               Comptes en attente
               {comptesEnAttenteCount > 0 && (
                 <Badge variant="destructive">{comptesEnAttenteCount}</Badge>
+              )}
+            </Link>
+          )}
+          {profile.roles.includes("admin") && (
+            <Link
+              href="/dashboard/candidatures"
+              className="flex items-center gap-1.5 text-sm text-white/90 hover:text-white"
+            >
+              Candidatures
+              {candidaturesEnAttenteCount > 0 && (
+                <Badge variant="destructive">{candidaturesEnAttenteCount}</Badge>
               )}
             </Link>
           )}
