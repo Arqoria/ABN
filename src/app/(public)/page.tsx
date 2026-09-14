@@ -24,12 +24,9 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 // src/app/page.tsx (supprimé).
 //
 // Règle inchangée depuis la v1 : aucun chiffre ni témoignage inventé.
-// - Bandeau chiffres clés : bénévoles actifs + repas distribués = compteurs
-//   RÉELS et LIVE (impact_public, migration 20260913060000). "Maraudes
-//   hebdomadaires" = fait réel mais STATIQUE, sourcé depuis docs/Specs.md
-//   ("Récurrence : tous les vendredis, 20h30") — pas une donnée de la vue,
-//   pas un chiffre inventé pour autant, juste pas "live" par nature (un
-//   rythme hebdomadaire ne se calcule pas en comptant des lignes).
+// - Bandeau chiffres clés : bénévoles actifs + maraudes réalisées + repas
+//   distribués = compteurs RÉELS et LIVE (impact_public, migration
+//   20260913060000).
 // - Besoins matériels (besoins_publics, migration 20260912270000) : mêmes
 //   données réelles que /dons.
 // - Témoignage bénévole, présentation détaillée, réseaux sociaux, mentions
@@ -43,11 +40,12 @@ export default async function AccueilPage() {
   const supabase = await createClient();
 
   const [{ data: impact }, { data: besoins }] = await Promise.all([
-    supabase.from("impact_public").select("benevoles_actifs, repas_distribues").single(),
+    supabase.from("impact_public").select("benevoles_actifs, maraudes_realisees, repas_distribues").single(),
     supabase.from("besoins_publics").select("categorie, total").order("total", { ascending: false }).limit(4),
   ]);
 
   const benevolesActifs = (impact?.benevoles_actifs as number | undefined) ?? 0;
+  const maraudesRealisees = (impact?.maraudes_realisees as number | undefined) ?? 0;
   const repasDistribues = (impact?.repas_distribues as number | undefined) ?? 0;
 
   return (
@@ -108,8 +106,10 @@ export default async function AccueilPage() {
           </div>
           <div className="flex flex-col items-center gap-1">
             <CalendarDays className="size-7 text-brand-coral" aria-hidden="true" />
-            <span className="text-3xl font-semibold">1×/semaine</span>
-            <span className="text-sm text-white/70">Maraude (vendredi soir)</span>
+            <span className="text-3xl font-semibold">{maraudesRealisees}</span>
+            <span className="text-sm text-white/70">
+              {maraudesRealisees === 1 ? "maraude réalisée" : "maraudes réalisées"}
+            </span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <UtensilsCrossed className="size-7 text-brand-coral" aria-hidden="true" />
