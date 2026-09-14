@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# photos brutes en attente de tri/retouche — jamais commitées telles
+# quelles (souvent lourdes, metadata Instagram) ; seules les versions
+# finales retouchées vont dans public/images/
+/photos-instagram/
