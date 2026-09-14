@@ -62,11 +62,19 @@ export default async function AccueilPage() {
             Solidarité à Nice
           </Badge>
           <h1 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
-            Les Anges de la Baie de Nice
+            Aller à la rencontre. Créer du lien. Agir.
           </h1>
           <p className="text-lg text-muted-foreground">
-            Association de solidarité à Nice — maraudes auprès des personnes
-            sans-abri : repas, écoute, orientation sociale.
+            Depuis 2014, Les Anges de la Baie de Nice vont à la rencontre des
+            personnes en situation d&apos;errance et de précarité à travers
+            des maraudes hebdomadaires dans le centre de Nice.
+          </p>
+          <p className="text-muted-foreground">
+            Parce qu&apos;un échange, une présence ou un soutien peuvent être
+            le premier pas vers une nouvelle dynamique.
+          </p>
+          <p className="font-medium text-foreground">
+            Chaque semaine, nous sommes sur le terrain.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="h-12">
