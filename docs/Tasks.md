@@ -481,12 +481,27 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le
-  client a déjà le plus de contenu réel (pressenti : "Action humanitaire"
-  ou "Comment se passe une maraude") plutôt que les 4 en même temps —
+  client a déjà le plus de contenu réel plutôt que les 4 en même temps —
   risque de contenu creux si on se précipite sur les 4, voir échange du
   15/09. Objectif SEO (pages ciblables individuellement) + crédibilité
   auprès des financeurs. Même règle que le reste du site : contenu réel
-  fourni par le client, jamais inventé
+  fourni par le client, jamais inventé. Matière déjà donnée par le client
+  (15/09) :
+  - **Distribution alimentaire** : finalement prévu directement sur la
+    landing page (pas de page dédiée) — préciser que ce sont les
+    bénévoles eux-mêmes qui, grâce aux dons reçus, préparent les repas
+    chaque vendredi
+  - **Action humanitaire** : deux actions réelles à documenter — un
+    voyage/action pour des migrants à Vintimille, et un puits construit
+    au Sénégal (correspond aux photos écartées lors du tri initial,
+    voir plus haut — elles redeviennent utilisables pour CETTE page,
+    dans leur vrai contexte)
+  - **Orientation sociale** : pas encore de chiffres, mais le client peut
+    déjà nommer les structures/acteurs vers qui l'association oriente le
+    plus souvent — à demander au moment de rédiger cette page
+  - **Lien social et écoute** : client encore en train de se renseigner
+    en interne sur les projets/contenu à mettre — pas de matière pour
+    l'instant, attendre son retour avant d'attaquer cette page
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)
