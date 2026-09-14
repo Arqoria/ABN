@@ -203,7 +203,7 @@ export default async function AccueilPage() {
             <div className="relative aspect-video w-full">
               <Image
                 src="/images/repas-chaud.jpg"
-                alt="Préparation de repas chauds pour une maraude"
+                alt="Denrées alimentaires (lait, huile, pain) préparées pour la distribution"
                 fill
                 sizes="(min-width: 640px) 33vw, 90vw"
                 className="object-cover"
