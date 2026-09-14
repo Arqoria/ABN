@@ -473,6 +473,21 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   qu'une liste générique, exactement comme anticipé. **Testé en conditions
   réelles** : lecture anon de la vue confirmée OK
 
+## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
+- ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
+  mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
+  besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
+  nouvelle fonctionnalité, du réagencement/design
+- ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
+  vitrine) — une page dédiée par action (distribution, lien social,
+  orientation sociale, action humanitaire), à commencer par celle où le
+  client a déjà le plus de contenu réel (pressenti : "Action humanitaire"
+  ou "Comment se passe une maraude") plutôt que les 4 en même temps —
+  risque de contenu creux si on se précipite sur les 4, voir échange du
+  15/09. Objectif SEO (pages ciblables individuellement) + crédibilité
+  auprès des financeurs. Même règle que le reste du site : contenu réel
+  fourni par le client, jamais inventé
+
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)
 - ⬜ Empaquetage Android TWA (.apk)
