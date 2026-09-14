@@ -158,7 +158,7 @@ export default async function AccueilPage() {
 
       {/* Bandeau chiffres clés — fond photo de la Promenade des Anglais
           (réponse au nom "Baie des Anges", ancrage visuel Nice réel) */}
-      <div className="relative overflow-hidden px-4 py-10 text-white sm:px-6 lg:py-14">
+      <div className="relative overflow-hidden px-4 py-14 text-white sm:px-6 lg:py-20">
         <Image
           src="/images/promenade.jpg"
           alt=""
@@ -168,24 +168,24 @@ export default async function AccueilPage() {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-brand-navy/85" />
-        <div className="relative mx-auto grid w-full max-w-3xl grid-cols-1 gap-8 text-center sm:grid-cols-3 lg:max-w-4xl">
-          <div className="flex flex-col items-center gap-1">
-            <Users className="size-7 text-brand-coral" aria-hidden="true" />
-            <span className="text-3xl font-semibold">{benevolesActifs}</span>
+        <div className="relative mx-auto grid w-full max-w-3xl grid-cols-1 gap-10 text-center sm:grid-cols-3 lg:max-w-5xl">
+          <div className="flex flex-col items-center gap-2">
+            <Users className="size-9 text-brand-coral lg:size-10" aria-hidden="true" />
+            <span className="text-4xl font-semibold lg:text-5xl">{benevolesActifs}</span>
             <span className="text-sm text-white/70">
               {benevolesActifs === 1 ? "bénévole actif" : "bénévoles actifs"}
             </span>
           </div>
-          <div className="flex flex-col items-center gap-1">
-            <CalendarDays className="size-7 text-brand-coral" aria-hidden="true" />
-            <span className="text-3xl font-semibold">{maraudesRealisees}</span>
+          <div className="flex flex-col items-center gap-2">
+            <CalendarDays className="size-9 text-brand-coral lg:size-10" aria-hidden="true" />
+            <span className="text-4xl font-semibold lg:text-5xl">{maraudesRealisees}</span>
             <span className="text-sm text-white/70">
               {maraudesRealisees === 1 ? "maraude réalisée" : "maraudes réalisées"}
             </span>
           </div>
-          <div className="flex flex-col items-center gap-1">
-            <UtensilsCrossed className="size-7 text-brand-coral" aria-hidden="true" />
-            <span className="text-3xl font-semibold">{repasDistribues}</span>
+          <div className="flex flex-col items-center gap-2">
+            <UtensilsCrossed className="size-9 text-brand-coral lg:size-10" aria-hidden="true" />
+            <span className="text-4xl font-semibold lg:text-5xl">{repasDistribues}</span>
             <span className="text-sm text-white/70">
               {repasDistribues === 1 ? "repas distribué" : "repas distribués"}
             </span>
