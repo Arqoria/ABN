@@ -101,29 +101,29 @@ export default async function AccueilPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* JSON-LD : un seul <h1> par page (bonne pratique SEO/accessibilité) —
-          ici le nom de l'association, discret visuellement (déjà dans le
-          logo/nav) ; le slogan qui capte l'œil est un <h2>. Les paragraphes
-          ci-dessous restent des <p>, avec la taille de police voulue par le
-          client appliquée en classes — jamais un vrai titre H3/H4 sur du
-          texte de paragraphe (casse la navigation par titres des lecteurs
-          d'écran). */}
+          ici le nom de l'association, le plus visible (retour client :
+          doit dominer visuellement) ; le slogan en dessous est un <h2>,
+          en sous-titre plus discret. Les paragraphes suivants restent des
+          <p>, avec la taille de police voulue par le client appliquée en
+          classes — jamais un vrai titre H3/H4 sur du texte de paragraphe
+          (casse la navigation par titres des lecteurs d'écran). */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
       />
-      {/* Hero */}
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center lg:py-24">
-        <div className="flex flex-col gap-5">
+      {/* Hero — compact (retour client : version précédente trop haute) */}
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.2fr_1fr] md:items-center lg:py-14">
+        <div className="flex flex-col gap-4">
           <Badge variant="secondary" className="w-fit">
             Solidarité à Nice
           </Badge>
-          <h1 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
             Les Anges de la Baie de Nice
           </h1>
-          <h2 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="text-xl font-medium text-muted-foreground sm:text-2xl">
             Aller à la rencontre. Créer du lien. Agir.
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-muted-foreground">
             Depuis 2014, Les Anges de la Baie de Nice vont à la rencontre des
             personnes en situation d&apos;errance et de précarité à travers
             des maraudes hebdomadaires dans le centre de Nice.
@@ -144,13 +144,13 @@ export default async function AccueilPage() {
             </Button>
           </div>
         </div>
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg sm:aspect-[4/3] md:aspect-[4/5]">
+        <div className="relative aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl shadow-lg md:mx-auto md:max-w-none">
           <Image
             src="/images/hero-nuit.jpg"
             alt="Équipe de bénévoles des Anges de la Baie de Nice avec des kits d'hygiène"
             fill
             priority
-            sizes="(min-width: 768px) 40vw, 90vw"
+            sizes="(min-width: 768px) 35vw, 90vw"
             className="object-cover"
           />
         </div>
