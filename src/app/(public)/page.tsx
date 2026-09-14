@@ -36,6 +36,11 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 //   son propre Instagram, triées ensemble), hébergées en local
 //   (public/images/) — jamais de photo de bénéficiaire reconnaissable
 //   (anonymat strict, voir CLAUDE.md).
+//   Exception : orientation-sociale.jpg est une image générée par IA
+//   (aucune photo trouvée du 115 qui soit à la fois pertinente et non
+//   problématique — voir discussion en session) — volontairement une
+//   scène objet/téléphone sans personne, pour ne pas se faire passer pour
+//   un moment réel documenté de l'association.
 export default async function AccueilPage() {
   const supabase = await createClient();
 
@@ -171,7 +176,17 @@ export default async function AccueilPage() {
             </CardContent>
           </Card>
           <Card className="shadow-md">
-            <CardContent className="flex flex-col items-center gap-2 pt-6 text-center">
+            <div className="relative aspect-video w-full">
+              <Image
+                src="/images/orientation-sociale.jpg"
+                alt=""
+                aria-hidden="true"
+                fill
+                sizes="(min-width: 640px) 33vw, 90vw"
+                className="object-cover"
+              />
+            </div>
+            <CardContent className="flex flex-col items-center gap-2 pt-4 text-center">
               <span className="flex size-11 items-center justify-center rounded-full bg-primary/10">
                 <Compass className="size-5 text-primary" aria-hidden="true" />
               </span>
