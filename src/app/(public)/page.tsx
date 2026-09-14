@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ClipboardList,
   Compass,
+  Globe,
   HeartHandshake,
   MessageCircle,
   UtensilsCrossed,
@@ -34,9 +35,10 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 // - Témoignage bénévole, présentation détaillée, réseaux sociaux, mentions
 //   légales : volontairement absents, en attente de vrai contenu fourni par
 //   l'association — jamais de contenu inventé à leur place.
-// - Photos : 3 images Unsplash (libres de droits, fournies par le client),
-//   hébergées en local (public/images/) plutôt qu'en hotlink vers
-//   images.unsplash.com — pas de dépendance externe à chaque visite.
+// - Photos : vraies photos de l'association (récupérées par le client depuis
+//   son propre Instagram, triées ensemble), hébergées en local
+//   (public/images/) — jamais de photo de bénéficiaire reconnaissable
+//   (anonymat strict, voir CLAUDE.md).
 export default async function AccueilPage() {
   const supabase = await createClient();
 
@@ -75,7 +77,7 @@ export default async function AccueilPage() {
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg sm:aspect-[4/3] md:aspect-[4/5]">
           <Image
             src="/images/hero-nuit.jpg"
-            alt="Bénévole tenant une boisson chaude lors d'une maraude de nuit"
+            alt="Équipe de bénévoles des Anges de la Baie de Nice avec des kits d'hygiène"
             fill
             priority
             sizes="(min-width: 768px) 40vw, 90vw"
@@ -114,7 +116,7 @@ export default async function AccueilPage() {
         <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
           Nos actions sur le terrain
         </h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="shadow-md">
             <div className="relative aspect-video w-full">
               <Image
@@ -158,6 +160,27 @@ export default async function AccueilPage() {
               <p className="text-sm text-muted-foreground">
                 Aiguillage vers les accueils de jour, le 115 et les structures
                 partenaires niçoises.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-md">
+            <div className="relative aspect-video w-full">
+              <Image
+                src="/images/action-humanitaire.jpg"
+                alt="Chantier solidaire mené par l'association dans le cadre d'une mission humanitaire à l'international"
+                fill
+                sizes="(min-width: 640px) 33vw, 90vw"
+                className="object-cover"
+              />
+            </div>
+            <CardContent className="flex flex-col items-center gap-2 pt-4 text-center">
+              <span className="flex size-11 items-center justify-center rounded-full bg-primary/10">
+                <Globe className="size-5 text-primary" aria-hidden="true" />
+              </span>
+              <h3 className="font-medium text-foreground">Action humanitaire</h3>
+              <p className="text-sm text-muted-foreground">
+                Interventions solidaires à l&apos;international, au-delà des
+                maraudes niçoises.
               </p>
             </CardContent>
           </Card>
