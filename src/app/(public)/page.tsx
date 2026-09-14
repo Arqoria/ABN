@@ -203,7 +203,7 @@ export default async function AccueilPage() {
             <div className="relative aspect-video w-full">
               <Image
                 src="/images/repas-chaud.jpg"
-                alt="Bénévoles distribuant des boissons et de quoi manger lors d'une maraude (visage de la personne aidée hors cadre)"
+                alt="Préparation de repas chauds en barquettes avant une maraude"
                 fill
                 sizes="(min-width: 640px) 33vw, 90vw"
                 className="object-cover"
