@@ -416,13 +416,43 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   vérifié forcé en base, graphique et export corrects
 
 ## Étape 10 — Site vitrine public
-- 🟨 Pages SEO local (accueil, présentation, actions) — **accueil minimale
-  livrée** (13/09) : `/` sert enfin la vraie page publique (route group
-  `(public)`, layout avec nav réelle) au lieu de rediriger vers `/login`.
-  Contenu strictement factuel (nom, activité réelle) — **pas de contenu SEO
-  détaillé/optimisé, pas de "Présentation"/"Actions" dédiées** : ça attend
-  les vrais textes/photos de l'association (décision explicite : jamais de
-  contenu inventé à la place du référent)
+- 🟨 Pages SEO local (accueil, présentation, actions) — **accueil v1 minimale
+  livrée** (13/09), **refonte v3 livrée** (14-15/09, branche
+  `feat/accueil-v3` — **PAS ENCORE mergée sur `main`**, à valider/merger en
+  prochaine session) :
+  - Hero 2 colonnes avec vraie photo d'équipe (récupérée par le client sur
+    l'Instagram de l'asso, `@labnice06`, triée à la main — ~30 photos
+    passées en revue, la plupart écartées : hors-sujet, visage de
+    bénéficiaire identifiable, ou visuel promo avec texte incrusté)
+  - Texte du hero fourni par le client : slogan "Aller à la rencontre.
+    Créer du lien. Agir." + texte "Depuis 2014..." — non vérifié
+    indépendamment par nous (date de création, cadence)
+  - Bandeau chiffres clés (fond photo Promenade des Anglais) : bénévoles
+    actifs + maraudes réalisées + repas distribués = compteurs RÉELS et
+    LIVE (vue `impact_public`, migration `20260913060000`) — actuellement
+    3 / 0 / 60 (données de test, pas encore de vraie activité)
+  - 4 cartes "Nos actions" avec photos (distribution, lien social — visage
+    flouté au flou ovale doux, orientation sociale — image générée par IA
+    en dernier recours, aucune photo 115 convenable trouvée, action
+    humanitaire à l'international)
+  - Structure de titres corrigée (H1 = nom asso, H2 = slogan, jamais de
+    paragraphe en H3/H4 — accessibilité/SEO)
+  - Premiers pas SEO : metadata dédiée (title/description/OG/Twitter),
+    JSON-LD Organization (données réelles uniquement), `robots.ts` +
+    `sitemap.ts` (rien n'existait avant), `metadataBase` sur l'URL Vercel
+    de prod (pas de nom de domaine propre encore)
+  - **Connu, pas corrigé** : navbar sans menu hamburger mobile — prend
+    ~15% de la hauteur d'écran sur petit mobile, en permanence (sticky).
+    À traiter avant de considérer la vitrine vraiment finie
+  - **Reste factuel/pas de contenu inventé** : pas de "Présentation"/
+    "Actions" dédiées, pas de témoignage, pas de réseaux sociaux, pas de
+    mentions légales — attend du vrai contenu de l'association
+  - Photo "Musée Masséna" (groupe + prix/médaille) reçue du client,
+    mise de côté — provenance/signification pas claire même pour le
+    client, prévue pour une future section "À propos"
+  - Dossier `photos-instagram/` (gitignore) : zone de dépôt/tri des photos
+    brutes récupérées par le client, workflow à réutiliser si besoin de
+    nouvelles photos
 - ✅ Formulaire recrutement bénévoles — `/recrutement`, table
   `candidatures_benevolat` (RLS : insert ouvert à `anon`, select/update/
   delete réservés Admin), honeypot anti-bot (champ invisible, silencieux si
