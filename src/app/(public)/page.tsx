@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -41,6 +42,50 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 //   problématique — voir discussion en session) — volontairement une
 //   scène objet/téléphone sans personne, pour ne pas se faire passer pour
 //   un moment réel documenté de l'association.
+//
+// SEO : metadata dédiée à cette page (remplace la description générique
+// "app métier" du layout racine, pas adaptée à une page publique) +
+// JSON-LD Organization (données réelles uniquement — pas de sameAs
+// réseaux sociaux tant qu'on n'a pas de liens confirmés, voir
+// docs/Tasks.md).
+export const metadata: Metadata = {
+  title: "Les Anges de la Baie de Nice — Maraudes solidaires à Nice",
+  description:
+    "Association de solidarité à Nice depuis 2014 : maraudes hebdomadaires auprès des personnes en situation d'errance et de précarité. Devenez bénévole ou faites un don.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Les Anges de la Baie de Nice",
+    description:
+      "Maraudes solidaires hebdomadaires à Nice depuis 2014 — repas, écoute, orientation sociale.",
+    url: "/",
+    siteName: "Les Anges de la Baie de Nice",
+    locale: "fr_FR",
+    type: "website",
+    images: ["/images/hero-nuit.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Les Anges de la Baie de Nice",
+    description:
+      "Maraudes solidaires hebdomadaires à Nice depuis 2014 — repas, écoute, orientation sociale.",
+    images: ["/images/hero-nuit.jpg"],
+  },
+};
+
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "NGO",
+  name: "Les Anges de la Baie de Nice",
+  description:
+    "Association de solidarité à Nice — maraudes hebdomadaires auprès des personnes en situation d'errance et de précarité : repas, écoute, orientation sociale.",
+  foundingDate: "2014",
+  areaServed: {
+    "@type": "City",
+    name: "Nice",
+  },
+  email: CONTACT_EMAIL,
+};
+
 export default async function AccueilPage() {
   const supabase = await createClient();
 
@@ -55,15 +100,29 @@ export default async function AccueilPage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      {/* JSON-LD : un seul <h1> par page (bonne pratique SEO/accessibilité) —
+          ici le nom de l'association, discret visuellement (déjà dans le
+          logo/nav) ; le slogan qui capte l'œil est un <h2>. Les paragraphes
+          ci-dessous restent des <p>, avec la taille de police voulue par le
+          client appliquée en classes — jamais un vrai titre H3/H4 sur du
+          texte de paragraphe (casse la navigation par titres des lecteurs
+          d'écran). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
       {/* Hero */}
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center lg:py-24">
         <div className="flex flex-col gap-5">
           <Badge variant="secondary" className="w-fit">
             Solidarité à Nice
           </Badge>
-          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
-            Aller à la rencontre. Créer du lien. Agir.
+          <h1 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Les Anges de la Baie de Nice
           </h1>
+          <h2 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
+            Aller à la rencontre. Créer du lien. Agir.
+          </h2>
           <p className="text-lg text-muted-foreground">
             Depuis 2014, Les Anges de la Baie de Nice vont à la rencontre des
             personnes en situation d&apos;errance et de précarité à travers
