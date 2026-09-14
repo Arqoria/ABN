@@ -2,15 +2,20 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-// Layout du site vitrine public — Étape 10. Header léger avec navigation +
-// lien vers l'espace bénévole (connexion), footer minimal. Le contenu
-// éditorial complet (présentation détaillée, historique, équipe...) attend
-// les vrais textes/photos de l'association — voir docs/Tasks.md, jamais de
-// contenu inventé à sa place.
+const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
+
+// Layout du site vitrine public — Étape 10. Header sticky (reste visible au
+// scroll, via `sticky` plutôt que `fixed` — même effet visuel sans avoir à
+// compenser un padding-top ailleurs) + footer bleu marine.
+//
+// Footer volontairement partiel : pas de liens réseaux sociaux ni de
+// mentions légales/transparence tant qu'on n'a pas les vraies infos de
+// l'association (décision explicite du client, voir docs/Tasks.md) — jamais
+// de lien ou de texte inventé à leur place.
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-navy px-4 py-3 text-white sm:px-6">
+      <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-brand-navy px-4 py-3 text-white sm:px-6">
         <Link href="/" className="text-sm font-semibold tracking-wide sm:text-base">
           Les Anges de la Baie
         </Link>
@@ -34,8 +39,21 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-border px-4 py-4 text-xs text-muted-foreground sm:px-6">
-        © {new Date().getFullYear()} Les Anges de la Baie de Nice
+      <footer className="bg-brand-navy px-4 py-10 text-white sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 sm:flex-row sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold tracking-wide">Les Anges de la Baie de Nice</p>
+            <p className="mt-1 text-sm text-white/70">Maraudes solidaires à Nice</p>
+          </div>
+          <div className="text-sm text-white/70">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-white">
+              {CONTACT_EMAIL}
+            </a>
+          </div>
+        </div>
+        <div className="mx-auto mt-8 w-full max-w-6xl border-t border-white/10 pt-4 text-xs text-white/50">
+          © {new Date().getFullYear()} Les Anges de la Baie de Nice
+        </div>
       </footer>
     </div>
   );
