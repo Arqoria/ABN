@@ -145,7 +145,16 @@ export default async function AccueilPage() {
             </CardContent>
           </Card>
           <Card className="shadow-md">
-            <CardContent className="flex flex-col items-center gap-2 pt-6 text-center">
+            <div className="relative aspect-video w-full">
+              <Image
+                src="/images/lien-social.jpg"
+                alt="Bénévole en conversation avec une personne rencontrée en maraude (visage flouté)"
+                fill
+                sizes="(min-width: 640px) 33vw, 90vw"
+                className="object-cover"
+              />
+            </div>
+            <CardContent className="flex flex-col items-center gap-2 pt-4 text-center">
               <span className="flex size-11 items-center justify-center rounded-full bg-primary/10">
                 <HeartHandshake className="size-5 text-primary" aria-hidden="true" />
               </span>
