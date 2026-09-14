@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
 import { CATEGORIE_BESOIN_ICONS } from "@/lib/categorie-besoin-icons";
+import { NiceSkyline } from "@/components/nice-skyline";
 
 const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 
@@ -53,36 +54,39 @@ export default async function AccueilPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero */}
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center lg:py-24">
-        <div className="flex flex-col gap-5">
-          <Badge variant="secondary" className="w-fit">
-            Solidarité à Nice
-          </Badge>
-          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
-            Les Anges de la Baie de Nice
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Association de solidarité à Nice — maraudes auprès des personnes
-            sans-abri : repas, écoute, orientation sociale.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="h-12">
-              <Link href="/recrutement">Je me porte volontaire</Link>
-            </Button>
-            <Button asChild variant="secondary" className="h-12">
-              <Link href="/dons">Faire un don</Link>
-            </Button>
+      <div className="relative overflow-hidden">
+        <NiceSkyline className="pointer-events-none absolute inset-x-0 bottom-0 h-32 w-full -scale-x-100 text-foreground/[0.06] sm:h-44 lg:h-56" />
+        <div className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center lg:py-24">
+          <div className="flex flex-col gap-5">
+            <Badge variant="secondary" className="w-fit">
+              Solidarité à Nice
+            </Badge>
+            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl">
+              Les Anges de la Baie de Nice
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Association de solidarité à Nice — maraudes auprès des personnes
+              sans-abri : repas, écoute, orientation sociale.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="h-12">
+                <Link href="/recrutement">Je me porte volontaire</Link>
+              </Button>
+              <Button asChild variant="secondary" className="h-12">
+                <Link href="/dons">Faire un don</Link>
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg sm:aspect-[4/3] md:aspect-[4/5]">
-          <Image
-            src="/images/hero-nuit.jpg"
-            alt="Équipe de bénévoles des Anges de la Baie de Nice avec des kits d'hygiène"
-            fill
-            priority
-            sizes="(min-width: 768px) 40vw, 90vw"
-            className="object-cover"
-          />
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg sm:aspect-[4/3] md:aspect-[4/5]">
+            <Image
+              src="/images/hero-nuit.jpg"
+              alt="Équipe de bénévoles des Anges de la Baie de Nice avec des kits d'hygiène"
+              fill
+              priority
+              sizes="(min-width: 768px) 40vw, 90vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
 
