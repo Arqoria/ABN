@@ -561,6 +561,47 @@ Alternative plus rapide mais avec coût récurrent : palier de calcul dédié
 Supabase (~40$/mois, voir ci-dessus) — les deux pistes ne s'excluent pas,
 mais à ne pas mener en parallèle sans clarifier la priorité avec le client.
 
+**✅ Preuve de concept testée en vraie production (15/09)** — cache local
+en lecture (IndexedDB/Dexie, stale-while-revalidate) implémenté sur une
+seule page (`/dashboard/maraudes` uniquement) : `src/lib/offline/db.ts`
+(store `pageCache`), `src/app/api/maraudes/route.ts` (Route Handler qui
+réexpose la même logique/RLS que l'ancienne page 100% serveur),
+`src/app/(app)/(protected)/dashboard/maraudes/maraudes-client.tsx`
+(Client Component : affiche le cache local instantanément si présent, va
+chercher les données fraîches en fond, remet à jour le cache). Mergé sur
+`main` et testé avec un compte de test temporaire (créé puis supprimé
+après coup, même méthode que les diagnostics précédents). Mesures réelles
+(`performance.getEntriesByType('navigation')`) :
+- **Premier chargement de la page (pas encore de cache)** : coquille de
+  page (vérification de session) ~2,2s de TTFB, page "chargée" à ~2,5s,
+  PUIS l'appel `/api/maraudes` démarre seulement à ce moment-là (séquentiel,
+  après le montage du composant client) et prend encore ~1,5s de plus →
+  **~3,9s avant de voir les vraies données**. C'est légèrement PIRE qu'avant
+  (un seul aller-retour serveur), car on a maintenant deux allers-retours
+  l'un après l'autre au lieu d'un seul.
+- **Deuxième visite (cache déjà présent depuis la 1ère visite)** : coquille
+  de page toujours ~1,6s de TTFB (inchangé — c'est `getCurrentProfile()`
+  côté serveur, la vérification de session, qui ne peut pas être mise en
+  cache côté client), mais la liste des maraudes s'affiche quasi
+  immédiatement au montage (depuis IndexedDB, avant même que l'appel réseau
+  de rafraîchissement ne parte) au lieu d'attendre l'appel réseau
+  supplémentaire → **les données visibles ~1,8s au lieu de ~3,9s, soit un
+  vrai gain perçu d'environ 2 secondes, mais uniquement à partir de la 2e
+  visite sur cette page précise**.
+- **Conclusion honnête** : le cache local apporte un vrai bénéfice perçu,
+  mais seulement en répétition (2e clic et suivants sur la même page), pas
+  au premier chargement (légèrement plus lent). Il ne corrige PAS la cause
+  racine déjà identifiée (la coquille de page / vérification de session
+  reste ~1,6-2,2s quoi qu'il arrive, car elle doit rester côté serveur pour
+  la sécurité) — il masque seulement une partie du symptôme sur les pages
+  où on revient souvent. Généraliser ce pattern à tout le dashboard
+  demanderait de dupliquer cette logique (Route Handler + Client Component +
+  gestion cache) sur chaque page protégée, avec une vraie stratégie de
+  fraîcheur pour les données sensibles au temps réel (inscriptions, météo
+  bénévole) — décision à prendre avec le client : le jeu en vaut-il la
+  chandelle comparé au palier Supabase payant (~40$/mois, résultat
+  immédiat, aucun code supplémentaire à maintenir) ?
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
