@@ -51,11 +51,25 @@ export type PendingTicket = {
   createdAt: number;
 };
 
+// EXPÉRIMENTAL (15/09) — preuve de concept "cache local en lecture" sur une
+// seule page (/dashboard/maraudes), pour valider l'hypothèse avant
+// d'investir dans le chantier complet (voir docs/Tasks.md). Magasin
+// générique clé/valeur : `key` identifie la page/requête mise en cache,
+// `data` est le JSON de la réponse, `updatedAt` sert à afficher "mis à jour
+// il y a...". Pas de résolution de conflit/expiration fine à ce stade —
+// juste stale-while-revalidate basique pour mesurer l'effet perçu.
+export type CachedPage = {
+  key: string;
+  data: string;
+  updatedAt: number;
+};
+
 class OfflineDB extends Dexie {
   pendingRepas!: Table<PendingRepas, number>;
   pendingMeteo!: Table<PendingMeteo, number>;
   pendingPointsPassage!: Table<PendingPointPassage, number>;
   pendingTickets!: Table<PendingTicket, number>;
+  pageCache!: Table<CachedPage, string>;
 
   constructor() {
     super("abn-offline");
@@ -80,6 +94,13 @@ class OfflineDB extends Dexie {
       pendingMeteo: "++id, maraudeId, createdAt",
       pendingPointsPassage: "++id, maraudeId, createdAt",
       pendingTickets: "++id, maraudeId, createdAt",
+    });
+    this.version(5).stores({
+      pendingRepas: "++id, maraudeId, createdAt",
+      pendingMeteo: "++id, maraudeId, createdAt",
+      pendingPointsPassage: "++id, maraudeId, createdAt",
+      pendingTickets: "++id, maraudeId, createdAt",
+      pageCache: "key",
     });
   }
 }
