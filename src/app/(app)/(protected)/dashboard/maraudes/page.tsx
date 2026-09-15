@@ -36,50 +36,41 @@ export default async function MaraudesPage() {
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
 
-  // Perf (15/09, retour client "c'est lent partout") : la liste des
-  // managers (admin/manager uniquement) ne dépend pas des maraudes/
-  // inscriptions — en parallèle plutôt qu'après, via une fonction async
-  // dédiée pour garder sa propre chaîne interne lisible.
+  // Perf (15/09, retour client "toujours lent" même après le 1er passage de
+  // parallélisation) : mesuré en conditions réelles sur cette page précise —
+  // 1,2 à 1,6s de TTFB, la pire de tout le dashboard. Chaque branche
+  // ci-dessous faisait encore 2 requêtes séquentielles ; fusionnées en 1 via
+  // l'embed PostgREST (testé en direct avant de committer, comme pour
+  // dal.ts). Managers : `!inner` pour filtrer sur profiles.status au passage
+  // (sinon on récupère aussi les comptes Manager désactivés).
   async function chargerManagers() {
     if (!isAdminOrManager) return [] as { id: string; full_name: string | null }[];
 
-    const { data: managerRoleRows } = await supabase
-      .from("profile_roles")
-      .select("profile_id")
-      .eq("role", "manager");
-
-    const managerIds = (managerRoleRows ?? []).map((r) => r.profile_id as string);
-    if (!managerIds.length) return [];
-
     const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", managerIds)
-      .eq("status", "actif");
+      .from("profile_roles")
+      .select("profiles!profile_roles_profile_id_fkey!inner(id, full_name, status)")
+      .eq("role", "manager")
+      .eq("profiles.status", "actif");
+
+    return (data ?? []).map((r) => {
+      const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+      return p as { id: string; full_name: string | null };
+    });
+  }
+
+  async function chargerMaraudesAvecInscriptions() {
+    const { data } = await supabase
+      .from("maraudes")
+      .select(
+        "id, date_heure, statut, manager_id, manager:manager_id(full_name), inscriptions_maraude(id, maraude_id, user_id, statut)",
+      )
+      .order("date_heure", { ascending: true });
     return data ?? [];
   }
 
-  async function chargerMaraudesEtInscriptions() {
-    const { data: maraudes } = await supabase
-      .from("maraudes")
-      .select("id, date_heure, statut, manager_id, manager:manager_id(full_name)")
-      .order("date_heure", { ascending: true });
-
-    const maraudeIds = (maraudes ?? []).map((m) => m.id as string);
-
-    const { data: inscriptions } = maraudeIds.length
-      ? await supabase
-          .from("inscriptions_maraude")
-          .select("id, maraude_id, user_id, statut")
-          .in("maraude_id", maraudeIds)
-      : { data: [] as Inscription[] };
-
-    return { maraudes, inscriptions };
-  }
-
-  const [managers, { maraudes, inscriptions }] = await Promise.all([
+  const [managers, maraudes] = await Promise.all([
     chargerManagers(),
-    chargerMaraudesEtInscriptions(),
+    chargerMaraudesAvecInscriptions(),
   ]);
 
   return (
@@ -111,16 +102,17 @@ export default async function MaraudesPage() {
         </Card>
       ) : (
         maraudes.map((maraude) => {
-          const mesInscriptions = (inscriptions ?? []) as Inscription[];
+          // inscriptions_maraude arrive déjà filtré sur CETTE maraude via
+          // l'embed PostgREST — plus besoin de filtrer côté client par
+          // maraude_id comme avant.
+          const mesInscriptions = (maraude.inscriptions_maraude ?? []) as Inscription[];
           const inscritsCount = mesInscriptions.filter(
-            (i) => i.maraude_id === maraude.id && i.statut === "inscrit",
+            (i) => i.statut === "inscrit",
           ).length;
           const listeAttenteCount = mesInscriptions.filter(
-            (i) => i.maraude_id === maraude.id && i.statut === "liste_attente",
+            (i) => i.statut === "liste_attente",
           ).length;
-          const mine = mesInscriptions.find(
-            (i) => i.maraude_id === maraude.id && i.user_id === profile.id,
-          );
+          const mine = mesInscriptions.find((i) => i.user_id === profile.id);
           const managerRow = Array.isArray(maraude.manager)
             ? maraude.manager[0]
             : maraude.manager;
