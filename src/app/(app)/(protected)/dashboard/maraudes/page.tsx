@@ -33,42 +33,54 @@ export default async function MaraudesPage() {
   }
 
   const supabase = await createClient();
-
-  const { data: maraudes } = await supabase
-    .from("maraudes")
-    .select("id, date_heure, statut, manager_id, manager:manager_id(full_name)")
-    .order("date_heure", { ascending: true });
-
-  const maraudeIds = (maraudes ?? []).map((m) => m.id as string);
-
-  const { data: inscriptions } = maraudeIds.length
-    ? await supabase
-        .from("inscriptions_maraude")
-        .select("id, maraude_id, user_id, statut")
-        .in("maraude_id", maraudeIds)
-    : { data: [] as Inscription[] };
-
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
 
-  let managers: { id: string; full_name: string | null }[] = [];
-  if (isAdminOrManager) {
+  // Perf (15/09, retour client "c'est lent partout") : la liste des
+  // managers (admin/manager uniquement) ne dépend pas des maraudes/
+  // inscriptions — en parallèle plutôt qu'après, via une fonction async
+  // dédiée pour garder sa propre chaîne interne lisible.
+  async function chargerManagers() {
+    if (!isAdminOrManager) return [] as { id: string; full_name: string | null }[];
+
     const { data: managerRoleRows } = await supabase
       .from("profile_roles")
       .select("profile_id")
       .eq("role", "manager");
 
     const managerIds = (managerRoleRows ?? []).map((r) => r.profile_id as string);
+    if (!managerIds.length) return [];
 
-    if (managerIds.length) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", managerIds)
-        .eq("status", "actif");
-      managers = data ?? [];
-    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", managerIds)
+      .eq("status", "actif");
+    return data ?? [];
   }
+
+  async function chargerMaraudesEtInscriptions() {
+    const { data: maraudes } = await supabase
+      .from("maraudes")
+      .select("id, date_heure, statut, manager_id, manager:manager_id(full_name)")
+      .order("date_heure", { ascending: true });
+
+    const maraudeIds = (maraudes ?? []).map((m) => m.id as string);
+
+    const { data: inscriptions } = maraudeIds.length
+      ? await supabase
+          .from("inscriptions_maraude")
+          .select("id, maraude_id, user_id, statut")
+          .in("maraude_id", maraudeIds)
+      : { data: [] as Inscription[] };
+
+    return { maraudes, inscriptions };
+  }
+
+  const [managers, { maraudes, inscriptions }] = await Promise.all([
+    chargerManagers(),
+    chargerMaraudesEtInscriptions(),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

@@ -14,7 +14,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// metadataBase : nécessaire pour que les URLs relatives (canonical,
+// openGraph.images...) des metadata par page se résolvent correctement
+// (sinon Next retombe sur localhost). Pas encore de nom de domaine propre
+// (voir docs/Tasks.md, OAuth reporté pour la même raison) — URL Vercel de
+// prod en attendant.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://abn-theta-murex.vercel.app"),
   title: "Les Anges de la Baie de Nice",
   description:
     "Application métier des Anges de la Baie de Nice — coordination des maraudes et de l'aide aux personnes sans-abri.",

@@ -26,16 +26,20 @@ export default async function ProtectedLayout({
   let candidaturesEnAttenteCount = 0;
   if (profile.roles.includes("admin")) {
     const supabase = await createClient();
-    const { count } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "en_attente");
+    // Perf (15/09) : en parallèle plutôt que l'un après l'autre — ce layout
+    // s'exécute sur chaque page protégée pour un Admin, chaque round-trip
+    // Supabase évité (ou ici, chevauché) compte.
+    const [{ count }, { count: candidaturesCount }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "en_attente"),
+      supabase
+        .from("candidatures_benevolat")
+        .select("id", { count: "exact", head: true })
+        .eq("traitee", false),
+    ]);
     comptesEnAttenteCount = count ?? 0;
-
-    const { count: candidaturesCount } = await supabase
-      .from("candidatures_benevolat")
-      .select("id", { count: "exact", head: true })
-      .eq("traitee", false);
     candidaturesEnAttenteCount = candidaturesCount ?? 0;
   }
 

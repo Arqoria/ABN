@@ -416,13 +416,43 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   vérifié forcé en base, graphique et export corrects
 
 ## Étape 10 — Site vitrine public
-- 🟨 Pages SEO local (accueil, présentation, actions) — **accueil minimale
-  livrée** (13/09) : `/` sert enfin la vraie page publique (route group
-  `(public)`, layout avec nav réelle) au lieu de rediriger vers `/login`.
-  Contenu strictement factuel (nom, activité réelle) — **pas de contenu SEO
-  détaillé/optimisé, pas de "Présentation"/"Actions" dédiées** : ça attend
-  les vrais textes/photos de l'association (décision explicite : jamais de
-  contenu inventé à la place du référent)
+- 🟨 Pages SEO local (accueil, présentation, actions) — **accueil v1 minimale
+  livrée** (13/09), **refonte v3 livrée** (14-15/09, branche
+  `feat/accueil-v3` — **PAS ENCORE mergée sur `main`**, à valider/merger en
+  prochaine session) :
+  - Hero 2 colonnes avec vraie photo d'équipe (récupérée par le client sur
+    l'Instagram de l'asso, `@labnice06`, triée à la main — ~30 photos
+    passées en revue, la plupart écartées : hors-sujet, visage de
+    bénéficiaire identifiable, ou visuel promo avec texte incrusté)
+  - Texte du hero fourni par le client : slogan "Aller à la rencontre.
+    Créer du lien. Agir." + texte "Depuis 2014..." — non vérifié
+    indépendamment par nous (date de création, cadence)
+  - Bandeau chiffres clés (fond photo Promenade des Anglais) : bénévoles
+    actifs + maraudes réalisées + repas distribués = compteurs RÉELS et
+    LIVE (vue `impact_public`, migration `20260913060000`) — actuellement
+    3 / 0 / 60 (données de test, pas encore de vraie activité)
+  - 4 cartes "Nos actions" avec photos (distribution, lien social — visage
+    flouté au flou ovale doux, orientation sociale — image générée par IA
+    en dernier recours, aucune photo 115 convenable trouvée, action
+    humanitaire à l'international)
+  - Structure de titres corrigée (H1 = nom asso, H2 = slogan, jamais de
+    paragraphe en H3/H4 — accessibilité/SEO)
+  - Premiers pas SEO : metadata dédiée (title/description/OG/Twitter),
+    JSON-LD Organization (données réelles uniquement), `robots.ts` +
+    `sitemap.ts` (rien n'existait avant), `metadataBase` sur l'URL Vercel
+    de prod (pas de nom de domaine propre encore)
+  - **Connu, pas corrigé** : navbar sans menu hamburger mobile — prend
+    ~15% de la hauteur d'écran sur petit mobile, en permanence (sticky).
+    À traiter avant de considérer la vitrine vraiment finie
+  - **Reste factuel/pas de contenu inventé** : pas de "Présentation"/
+    "Actions" dédiées, pas de témoignage, pas de réseaux sociaux, pas de
+    mentions légales — attend du vrai contenu de l'association
+  - Photo "Musée Masséna" (groupe + prix/médaille) reçue du client,
+    mise de côté — provenance/signification pas claire même pour le
+    client, prévue pour une future section "À propos"
+  - Dossier `photos-instagram/` (gitignore) : zone de dépôt/tri des photos
+    brutes récupérées par le client, workflow à réutiliser si besoin de
+    nouvelles photos
 - ✅ Formulaire recrutement bénévoles — `/recrutement`, table
   `candidatures_benevolat` (RLS : insert ouvert à `anon`, select/update/
   delete réservés Admin), honeypot anti-bot (champ invisible, silencieux si
@@ -442,6 +472,36 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   sans authentification) : affiche les besoins réels et actuels plutôt
   qu'une liste générique, exactement comme anticipé. **Testé en conditions
   réelles** : lecture anon de la vue confirmée OK
+
+## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
+- ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
+  mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
+  besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
+  nouvelle fonctionnalité, du réagencement/design
+- ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
+  vitrine) — une page dédiée par action (distribution, lien social,
+  orientation sociale, action humanitaire), à commencer par celle où le
+  client a déjà le plus de contenu réel plutôt que les 4 en même temps —
+  risque de contenu creux si on se précipite sur les 4, voir échange du
+  15/09. Objectif SEO (pages ciblables individuellement) + crédibilité
+  auprès des financeurs. Même règle que le reste du site : contenu réel
+  fourni par le client, jamais inventé. Matière déjà donnée par le client
+  (15/09) :
+  - **Distribution alimentaire** : finalement prévu directement sur la
+    landing page (pas de page dédiée) — préciser que ce sont les
+    bénévoles eux-mêmes qui, grâce aux dons reçus, préparent les repas
+    chaque vendredi
+  - **Action humanitaire** : deux actions réelles à documenter — un
+    voyage/action pour des migrants à Vintimille, et un puits construit
+    au Sénégal (correspond aux photos écartées lors du tri initial,
+    voir plus haut — elles redeviennent utilisables pour CETTE page,
+    dans leur vrai contexte)
+  - **Orientation sociale** : pas encore de chiffres, mais le client peut
+    déjà nommer les structures/acteurs vers qui l'association oriente le
+    plus souvent — à demander au moment de rédiger cette page
+  - **Lien social et écoute** : client encore en train de se renseigner
+    en interne sur les projets/contenu à mettre — pas de matière pour
+    l'instant, attendre son retour avant d'attaquer cette page
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)

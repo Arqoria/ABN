@@ -18,8 +18,12 @@ export default async function EquipeMaraudePage({
 }: {
   params: Promise<{ maraudeId: string }>;
 }) {
-  const { maraudeId } = await params;
-  const profile = await getCurrentProfile();
+  // Perf (15/09, retour client "c'est lent partout") : les requêtes qui ne
+  // dépendent pas les unes des autres partent en parallèle plutôt qu'en
+  // chaîne — params/profil d'abord, puis maraude/inscriptions/affectations
+  // (aucune des 3 ne dépend des 2 autres), seul roleRows doit attendre
+  // inscriptions (a besoin des participantIds).
+  const [{ maraudeId }, profile] = await Promise.all([params, getCurrentProfile()]);
 
   if (profile.status !== "actif") {
     redirect("/compte-en-attente");
@@ -27,11 +31,16 @@ export default async function EquipeMaraudePage({
 
   const supabase = await createClient();
 
-  const { data: maraude } = await supabase
-    .from("maraudes")
-    .select("id, manager_id")
-    .eq("id", maraudeId)
-    .single();
+  const [{ data: maraude }, { data: inscriptions }, { data: affectations }] =
+    await Promise.all([
+      supabase.from("maraudes").select("id, manager_id").eq("id", maraudeId).single(),
+      supabase
+        .from("inscriptions_maraude")
+        .select("user_id, profil:user_id(full_name)")
+        .eq("maraude_id", maraudeId)
+        .eq("statut", "inscrit"),
+      supabase.from("affectations_maraude").select("user_id, fonction").eq("maraude_id", maraudeId),
+    ]);
 
   if (!maraude) {
     redirect("/dashboard/maraudes");
@@ -40,12 +49,6 @@ export default async function EquipeMaraudePage({
   const isAdmin = profile.roles.includes("admin");
   const isOwnManager = maraude.manager_id === profile.id;
   const canManageOthers = isAdmin || isOwnManager;
-
-  const { data: inscriptions } = await supabase
-    .from("inscriptions_maraude")
-    .select("user_id, profil:user_id(full_name)")
-    .eq("maraude_id", maraudeId)
-    .eq("statut", "inscrit");
 
   const estInscrit = (inscriptions ?? []).some((i) => i.user_id === profile.id);
   if (!canManageOthers && !estInscrit) {
@@ -60,11 +63,6 @@ export default async function EquipeMaraudePage({
         .select("profile_id, role")
         .in("profile_id", participantIds)
     : { data: [] as { profile_id: string; role: RoleName }[] };
-
-  const { data: affectations } = await supabase
-    .from("affectations_maraude")
-    .select("user_id, fonction")
-    .eq("maraude_id", maraudeId);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

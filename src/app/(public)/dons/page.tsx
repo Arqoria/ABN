@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
@@ -16,8 +16,13 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 // créer lui-même, voir docs/Tasks.md) — la page reste prête à accueillir
 // le module une fois les clés API disponibles, pas de contenu inventé
 // entre-temps.
+//
+// Perf (15/09) : createPublicClient() + revalidate — même correctif que
+// l'accueil, voir son commentaire d'en-tête et docs/Tasks.md.
+export const revalidate = 60;
+
 export default async function DonsPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data: besoins } = await supabase
     .from("besoins_publics")
     .select("categorie, total")

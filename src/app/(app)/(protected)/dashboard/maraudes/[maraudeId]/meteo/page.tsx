@@ -21,8 +21,9 @@ export default async function MeteoMaraudePage({
 }: {
   params: Promise<{ maraudeId: string }>;
 }) {
-  const { maraudeId } = await params;
-  const profile = await getCurrentProfile();
+  // Perf (15/09, retour client "c'est lent partout") : requêtes
+  // indépendantes en parallèle plutôt qu'en chaîne.
+  const [{ maraudeId }, profile] = await Promise.all([params, getCurrentProfile()]);
 
   if (profile.status !== "actif") {
     redirect("/compte-en-attente");
@@ -46,16 +47,14 @@ export default async function MeteoMaraudePage({
     redirect("/dashboard/maraudes");
   }
 
-  const { data: inscriptions } = await supabase
-    .from("inscriptions_maraude")
-    .select("user_id, profil:user_id(full_name)")
-    .eq("maraude_id", maraudeId)
-    .eq("statut", "inscrit");
-
-  const { data: meteos } = await supabase
-    .from("meteo_benevole_saisies")
-    .select("user_id, valeur")
-    .eq("maraude_id", maraudeId);
+  const [{ data: inscriptions }, { data: meteos }] = await Promise.all([
+    supabase
+      .from("inscriptions_maraude")
+      .select("user_id, profil:user_id(full_name)")
+      .eq("maraude_id", maraudeId)
+      .eq("statut", "inscrit"),
+    supabase.from("meteo_benevole_saisies").select("user_id, valeur").eq("maraude_id", maraudeId),
+  ]);
 
   const meteoMap = new Map(
     (meteos ?? []).map((m) => [m.user_id as string, m.valeur as Valeur]),

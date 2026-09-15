@@ -23,35 +23,54 @@ export default async function ComptesPage() {
   }
 
   const supabase = await createClient();
-  const { data: comptesEnAttente } = await supabase
-    .from("profiles")
-    .select("id, full_name, created_at")
-    .eq("status", "en_attente")
-    .order("created_at", { ascending: true });
 
-  const compteIds = (comptesEnAttente ?? []).map((c) => c.id as string);
-  const { data: roleRows } = compteIds.length
-    ? await supabase
-        .from("profile_roles")
-        .select("profile_id, role")
-        .in("profile_id", compteIds)
-    : { data: [] as { profile_id: string; role: RoleName }[] };
+  // Perf (15/09, retour client "c'est lent partout") : les comptes en
+  // attente et la liste des Admins (section "Bureau") sont deux chaînes de
+  // requêtes totalement indépendantes — en parallèle plutôt que l'une après
+  // l'autre.
+  async function chargerComptesEnAttente() {
+    const { data: comptesEnAttente } = await supabase
+      .from("profiles")
+      .select("id, full_name, created_at")
+      .eq("status", "en_attente")
+      .order("created_at", { ascending: true });
+
+    const compteIds = (comptesEnAttente ?? []).map((c) => c.id as string);
+    const { data: roleRows } = compteIds.length
+      ? await supabase
+          .from("profile_roles")
+          .select("profile_id, role")
+          .in("profile_id", compteIds)
+      : { data: [] as { profile_id: string; role: RoleName }[] };
+
+    return { comptesEnAttente, roleRows };
+  }
 
   // Liste des Admins actifs, pour la section "Bureau" ci-dessous (fonction
   // purement informative — voir bureau-form.tsx).
-  const { data: adminRoleRows } = await supabase
-    .from("profile_roles")
-    .select("profile_id")
-    .eq("role", "admin");
-  const adminIds = (adminRoleRows ?? []).map((r) => r.profile_id as string);
-  const { data: admins } = adminIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, full_name, fonction_bureau")
-        .in("id", adminIds)
-        .eq("status", "actif")
-        .order("full_name", { ascending: true })
-    : { data: [] as { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[] };
+  async function chargerAdmins() {
+    const { data: adminRoleRows } = await supabase
+      .from("profile_roles")
+      .select("profile_id")
+      .eq("role", "admin");
+    const adminIds = (adminRoleRows ?? []).map((r) => r.profile_id as string);
+    if (!adminIds.length) {
+      return [] as { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[];
+    }
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, fonction_bureau")
+      .in("id", adminIds)
+      .eq("status", "actif")
+      .order("full_name", { ascending: true });
+    return data ?? [];
+  }
+
+  const [{ comptesEnAttente, roleRows }, admins] = await Promise.all([
+    chargerComptesEnAttente(),
+    chargerAdmins(),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

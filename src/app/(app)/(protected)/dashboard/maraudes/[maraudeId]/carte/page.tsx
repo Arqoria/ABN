@@ -22,8 +22,9 @@ export default async function CarteMaraudePage({
 }: {
   params: Promise<{ maraudeId: string }>;
 }) {
-  const { maraudeId } = await params;
-  const profile = await getCurrentProfile();
+  // Perf (15/09, retour client "c'est lent partout") : params et profil sont
+  // indépendants, lancés en parallèle plutôt que l'un après l'autre.
+  const [{ maraudeId }, profile] = await Promise.all([params, getCurrentProfile()]);
 
   if (profile.status !== "actif") {
     redirect("/compte-en-attente");
@@ -58,28 +59,30 @@ export default async function CarteMaraudePage({
     }
   }
 
-  // Circuit réellement effectué pour CETTE maraude, chaîné chronologiquement.
-  const { data: pointsReel } = await supabase
-    .from("points_passage_geo")
-    .select("lat, lng, type_action, horodatage, orientation_vers, orientation_vers_autre")
-    .eq("maraude_id", maraudeId)
-    .order("horodatage", { ascending: true });
-
-  // Heatmap : historique complet, toutes maraudes confondues (RLS Admin ET
-  // Manager depuis la migration 20260912240000 — un Manager doit voir
-  // l'activité de toute l'association pour bien planifier un circuit, pas
-  // seulement ses propres maraudes) — sert de fond de carte pour aider à
-  // définir le circuit planifié.
-  const { data: pointsHeat } = await supabase
-    .from("points_passage_geo")
-    .select("lat, lng")
-    .limit(5000);
-
-  const { data: circuitPlanifie } = await supabase
-    .from("circuits_planifies")
-    .select("points")
-    .eq("maraude_id", maraudeId)
-    .maybeSingle();
+  // Ces 3 requêtes sont indépendantes entre elles (aucune ne dépend du
+  // résultat d'une autre) — en parallèle plutôt que 3 allers-retours
+  // séquentiels, gain le plus net de cette page (la heatmap à elle seule
+  // charge jusqu'à 5000 points).
+  const [{ data: pointsReel }, { data: pointsHeat }, { data: circuitPlanifie }] =
+    await Promise.all([
+      // Circuit réellement effectué pour CETTE maraude, chaîné chronologiquement.
+      supabase
+        .from("points_passage_geo")
+        .select("lat, lng, type_action, horodatage, orientation_vers, orientation_vers_autre")
+        .eq("maraude_id", maraudeId)
+        .order("horodatage", { ascending: true }),
+      // Heatmap : historique complet, toutes maraudes confondues (RLS Admin ET
+      // Manager depuis la migration 20260912240000 — un Manager doit voir
+      // l'activité de toute l'association pour bien planifier un circuit, pas
+      // seulement ses propres maraudes) — sert de fond de carte pour aider à
+      // définir le circuit planifié.
+      supabase.from("points_passage_geo").select("lat, lng").limit(5000),
+      supabase
+        .from("circuits_planifies")
+        .select("points")
+        .eq("maraude_id", maraudeId)
+        .maybeSingle(),
+    ]);
 
   const circuitReel = (pointsReel ?? []).map((p) => ({
     lat: p.lat as number,
