@@ -602,6 +602,14 @@ après coup, même méthode que les diagnostics précédents). Mesures réelles
   chandelle comparé au palier Supabase payant (~40$/mois, résultat
   immédiat, aucun code supplémentaire à maintenir) ?
 
+**Décision du client (15/09)** : revenu en arrière (`git revert`,
+commit `2ddeee5`) — `/dashboard/maraudes` est repassée en 100% serveur,
+gain jugé trop partiel (seulement dès la 2e visite) pour justifier
+d'étendre ce pattern à tout le dashboard dans l'immédiat. Piste conservée
+ici pour référence si le sujet est repris plus tard ; alternative palier
+Supabase dédié toujours ouverte, à trancher avec le client le moment
+venu.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
