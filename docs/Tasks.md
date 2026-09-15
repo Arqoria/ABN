@@ -473,6 +473,40 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
   qu'une liste générique, exactement comme anticipé. **Testé en conditions
   réelles** : lecture anon de la vue confirmée OK
 
+## Diagnostic perf webapp (15/09) — cause racine identifiée : compute Supabase partagé
+
+Retour client "c'est lent partout dans l'espace bénévole", persistant même
+après plusieurs passes d'optimisation (fusion de requêtes, parallélisation
+— voir commits du 15/09 sur dal.ts, layout protégé, et 5 pages dashboard).
+
+**Investigation menée** (compte de test temporaire créé puis supprimé,
+connexion réelle sur `abn-theta-murex.vercel.app` en prod) :
+- `curl` détaillé sur `/dashboard/maraudes` authentifiée : DNS+connexion+TLS
+  < 100ms cumulés, mais TTFB ~1,4 à 2s — donc pas un souci réseau/navigateur,
+  le serveur lui-même met ce temps à répondre.
+- Région Vercel (header `x-vercel-id`) : `cdg1` (Paris). Région Supabase
+  (`npx supabase projects list`) : `eu-west-3` (Paris aussi). **Écarte
+  l'hypothèse de distance géographique** — les deux sont dans la même ville.
+- Logs Supabase en direct (`query_logs`, source `edge_logs`) sur un
+  chargement de page réel : chaque appel individuel (auth.getUser, requête
+  profil, requête maraudes...) prend **250 à 650ms**, alors qu'ils
+  s'enchaînent à quelques ms d'écart les uns des autres — anormalement lent
+  pour un aller-retour intra-ville (attendu : 10-30ms).
+
+**Conclusion** : le compute **partagé** du plan gratuit Supabase sature sous
+charge légère (cohérent avec la doc Supabase elle-même sur les paliers
+"Micro" partagés). Ce n'est PAS un problème Vercel (déjà écarté par les
+tests précédents — bytecode caching actif en prod, TTFB rapide sur le site
+public). Réduire le nombre de requêtes par page (déjà fait, cf. commits
+15/09) limite l'impact mais ne peut pas compenser une latence de ~300-600ms
+*par appel* imposée par le compute partagé.
+
+**Recommandation pour la suite** : si la réactivité de l'espace bénévole
+doit s'améliorer nettement, le levier ciblé est un **palier de calcul dédié
+Supabase** (pas Vercel Pro — écarté, ne résoudrait rien ici), typiquement le
+palier "Small" (~15$/mois en plus du Pro à 25$/mois). Décision commerciale
+à prendre par le client, pas engagée pour l'instant.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
