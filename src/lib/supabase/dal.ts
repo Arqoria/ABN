@@ -36,11 +36,23 @@ export const getCurrentProfile = cache(async (): Promise<Profile> => {
     redirect("/login");
   }
 
+  // Perf (15/09, retour client "c'est lent partout dans l'appli") : profil
+  // + rôles en UNE requête (embed PostgREST) au lieu de deux appels
+  // séquentiels — cette fonction s'exécute sur CHAQUE page protégée, chaque
+  // round-trip Supabase évité compte. Contrainte explicite obligatoire
+  // (`!profile_roles_profile_id_fkey`) : profile_roles a DEUX FK vers
+  // profiles (profile_id ET granted_by), PostgREST refuse d'embarquer sans
+  // préciser laquelle (testé en direct avant de committer, PGRST201 sinon).
+  // Le middleware (proxy.ts) fait sa propre vérification auth.getUser()
+  // séparée — volontaire, pattern recommandé par Next.js (optimiste en
+  // périphérie, autoritaire ici), pas touché.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, status, fonction_bureau")
+    .select(
+      "id, full_name, status, fonction_bureau, profile_roles!profile_roles_profile_id_fkey(role)",
+    )
     .eq("id", user.id)
-    .single<Omit<Profile, "roles">>();
+    .single<Omit<Profile, "roles"> & { profile_roles: { role: RoleName }[] }>();
 
   if (!profile) {
     // Ne devrait jamais arriver : le trigger handle_new_user crée toujours
@@ -48,12 +60,8 @@ export const getCurrentProfile = cache(async (): Promise<Profile> => {
     redirect("/login");
   }
 
-  const { data: roleRows } = await supabase
-    .from("profile_roles")
-    .select("role")
-    .eq("profile_id", user.id);
+  const { profile_roles, ...rest } = profile;
+  const roles = (profile_roles ?? []).map((r) => r.role);
 
-  const roles = (roleRows ?? []).map((r) => r.role as RoleName);
-
-  return { ...profile, roles };
+  return { ...rest, roles };
 });
