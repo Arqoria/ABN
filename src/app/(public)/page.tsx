@@ -11,7 +11,7 @@ import {
   UtensilsCrossed,
   Users,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,18 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 // JSON-LD Organization (données réelles uniquement — pas de sameAs
 // réseaux sociaux tant qu'on n'a pas de liens confirmés, voir
 // docs/Tasks.md).
+//
+// Perf (15/09, retour client "c'est lent au clic") : cette page utilisait
+// le client Supabase "cookies" (src/lib/supabase/server.ts), qui force
+// Next.js en rendu 100% dynamique (aucun cache possible) même si les
+// requêtes ci-dessous sont anonymes/publiques — chaque clic déclenchait
+// un aller-retour Supabase à froid (~2s mesurés, voir docs/Tasks.md).
+// createPublicClient() (pas de cookies) + `revalidate` ci-dessous
+// permettent enfin l'ISR : la page est régénérée en fond toutes les 60s
+// max, servie depuis le cache sinon — plus de round-trip Supabase à
+// chaque navigation. Contrepartie assumée : les compteurs peuvent avoir
+// jusqu'à 60s de retard, largement acceptable pour ce type de chiffre.
+export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Les Anges de la Baie de Nice — Maraudes solidaires à Nice",
   description:
@@ -87,7 +99,7 @@ const ORGANIZATION_JSON_LD = {
 };
 
 export default async function AccueilPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [{ data: impact }, { data: besoins }] = await Promise.all([
     supabase.from("impact_public").select("benevoles_actifs, maraudes_realisees, repas_distribues").single(),
