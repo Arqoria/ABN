@@ -528,6 +528,38 @@ douter, donc contre-vérifié plus loin avant de conclure :
   élimination que le compute partagé reste la cause dominante actuelle.
 - Région Vercel (`cdg1`, Paris) et région Supabase (`eu-west-3`, Paris)
   confirmées identiques — écarte aussi la distance géographique.
+- **Affiné encore (15/09, contre-exemple du client — projet "Probalia",
+  même compte Supabase, "semblait rapide")** : 18 appels PostgREST bruts
+  chronométrés directement (sans passer par Vercel) — 17 rapides
+  (89-257ms), 1 seul pic à 2,4s. Donc pas "le compute partagé est toujours
+  lent" mais des **pics de contention occasionnels et imprévisibles**
+  (~1 appel sur 15-20). Chaque page protégée enchaînant 3-4 appels
+  Supabase d'affilée (identité + profil + données), la probabilité de
+  toucher au moins un pic à chaque clic reste élevée même après avoir
+  réduit le nombre d'appels — d'où la lenteur ressentie systématiquement
+  alors qu'un appel isolé est presque toujours rapide.
+
+**Piste alternative identifiée (15/09, fin de session)** — le client
+précise que Probalia charge les données sur l'appareil puis synchronise en
+arrière-plan (pattern local-first), pas un simple aller-retour serveur à
+chaque navigation comme ABN actuellement. Vérifié : l'infra offline déjà
+présente dans ABN (`src/components/offline-sync.tsx`,
+`src/lib/offline/sync.ts`, IndexedDB via Dexie) ne couvre QUE le sens
+écriture (file d'attente des saisies terrain hors-ligne : repas, météo,
+points de passage, tickets) — **rien côté lecture**, chaque page du
+dashboard va chercher ses données fraîches à chaque clic, aucun cache
+local.
+
+⬜ **Chantier à scoper sérieusement en prochaine session** (pas engagé
+maintenant, trop gros pour une fin de session) : cache local en lecture
+pour les pages dashboard (chargement instantané depuis l'appareil,
+synchronisation en fond) — cohérent avec la philosophie offline-first déjà
+actée du projet, mais touche quasiment toutes les pages protégées et
+demande une vraie stratégie de fraîcheur/invalidation (particulièrement
+pour les données sensibles au temps réel : inscriptions, météo bénévole).
+Alternative plus rapide mais avec coût récurrent : palier de calcul dédié
+Supabase (~40$/mois, voir ci-dessus) — les deux pistes ne s'excluent pas,
+mais à ne pas mener en parallèle sans clarifier la priorité avec le client.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
