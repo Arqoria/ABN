@@ -507,6 +507,28 @@ Supabase** (pas Vercel Pro — écarté, ne résoudrait rien ici), typiquement l
 palier "Small" (~15$/mois en plus du Pro à 25$/mois). Décision commerciale
 à prendre par le client, pas engagée pour l'instant.
 
+**Vérification complémentaire (15/09, suite)** — le client a raison de
+douter, donc contre-vérifié plus loin avant de conclure :
+- `mcp__supabase__get_advisors` (jamais utilisé avant, aurait dû l'être plus
+  tôt) a remonté un vrai défaut de code SQL : 24 policies RLS qui appellent
+  `auth.uid()`/`current_user_has_role()`/`current_user_status()` SANS les
+  envelopper dans `(select ...)` — Postgres réévalue sinon l'appel à CHAQUE
+  ligne scannée au lieu d'une fois par requête (piège très documenté par
+  Supabase). Corrigé migration `20260915190000_fix_rls_auth_initplan.sql`
+  (`alter policy` sur les 24 + 15 autres policies utilisant les mêmes
+  fonctions mais non détectées par le linter textuel) — réécriture
+  mécanique par substitution sur le texte exact de `pg_policies`, logique
+  strictement inchangée, testé sans erreur.
+- **Résultat mesuré après correctif** : quasi nul sur ce projet (`/dashboard
+  /maraudes` toujours ~1,4-1,9s de TTFB). Attendu : avec seulement 2-3
+  lignes dans les tables de test, il n'y a presque rien à gagner à éviter
+  une réévaluation par ligne — ce correctif ne rapporte qu'à partir de
+  centaines/milliers de lignes. **Reste une vraie amélioration à garder**
+  (utile dès que l'association aura une vraie activité), mais confirme par
+  élimination que le compute partagé reste la cause dominante actuelle.
+- Région Vercel (`cdg1`, Paris) et région Supabase (`eu-west-3`, Paris)
+  confirmées identiques — écarte aussi la distance géographique.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
