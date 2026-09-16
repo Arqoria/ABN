@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -14,10 +15,17 @@ import { RepasForm } from "./repas-form";
 
 type Repas = { id: string; quoi: string; quantite: number; created_at: string };
 
-async function fetchRepas(maraudeId: string): Promise<{ repas: Repas[] }> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/repas`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — lecture large (RLS
+// repas_select_authenticated). Voir docs/Tasks.md, "Chantier lancé, suite
+// (16/09)".
+async function fetchRepas(maraudeId: string): Promise<Repas[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("repas")
+    .select("id, quoi, quantite, created_at")
+    .eq("maraude_id", maraudeId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
@@ -25,30 +33,14 @@ export function RepasClient() {
   const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data: repas, isLoading, isError } = useQuery({
     queryKey: ["repas", maraudeId],
     queryFn: () => fetchRepas(maraudeId),
   });
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
+  if (isLoading || isError || !repas) {
+    return null;
   }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les repas pour l&apos;instant.
-        </p>
-      </div>
-    );
-  }
-
-  const { repas } = data;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FONCTIONS_MARAUDE, type FonctionMaraude } from "@/lib/fonction-maraude";
 import type { RoleName } from "@/lib/roles";
@@ -18,13 +19,52 @@ type Payload = {
   inscriptions: Inscription[];
   affectations: Affectation[];
   roleRows: { profile_id: string; role: RoleName }[];
-  managerId: string;
+  managerId: string | null;
+  refuse: boolean;
 };
 
-async function fetchEquipe(maraudeId: string): Promise<Payload> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/equipe`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — RLS fait la restriction
+// réelle. Voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
+async function fetchEquipe(maraudeId: string, profileId: string, isAdmin: boolean): Promise<Payload> {
+  const supabase = createClient();
+
+  const [{ data: maraude }, { data: inscriptions }, { data: affectations }] =
+    await Promise.all([
+      supabase.from("maraudes").select("id, manager_id").eq("id", maraudeId).single(),
+      supabase
+        .from("inscriptions_maraude")
+        .select("user_id, profil:user_id(full_name)")
+        .eq("maraude_id", maraudeId)
+        .eq("statut", "inscrit"),
+      supabase.from("affectations_maraude").select("user_id, fonction").eq("maraude_id", maraudeId),
+    ]);
+
+  if (!maraude) {
+    return { inscriptions: [], affectations: [], roleRows: [], managerId: null, refuse: true };
+  }
+
+  const isOwnManager = maraude.manager_id === profileId;
+  const canManageOthers = isAdmin || isOwnManager;
+  const estInscrit = (inscriptions ?? []).some((i) => i.user_id === profileId);
+  if (!canManageOthers && !estInscrit) {
+    return { inscriptions: [], affectations: [], roleRows: [], managerId: null, refuse: true };
+  }
+
+  const participantIds = (inscriptions ?? []).map((i) => i.user_id as string);
+  const { data: roleRows } = participantIds.length
+    ? await supabase
+        .from("profile_roles")
+        .select("profile_id, role")
+        .in("profile_id", participantIds)
+    : { data: [] as { profile_id: string; role: RoleName }[] };
+
+  return {
+    inscriptions: inscriptions ?? [],
+    affectations: affectations ?? [],
+    roleRows: roleRows ?? [],
+    managerId: maraude.manager_id,
+    refuse: false,
+  };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
@@ -32,38 +72,25 @@ export function EquipeClient() {
   const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
+  const isAdmin = profile.roles.includes("admin");
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["equipe", maraudeId],
-    queryFn: () => fetchEquipe(maraudeId),
+    queryFn: () => fetchEquipe(maraudeId, profile.id, isAdmin),
   });
 
   useEffect(() => {
-    if (error instanceof Error && (error.message === "403" || error.message === "404")) {
+    if (data?.refuse) {
       router.replace("/dashboard/maraudes");
     }
-  }, [error, router]);
+  }, [data?.refuse, router]);
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger l&apos;équipe pour l&apos;instant.
-        </p>
-      </div>
-    );
+  if (isLoading || isError || !data || data.refuse) {
+    return null;
   }
 
   const { inscriptions, affectations, roleRows, managerId } = data;
-  const canManageOthers = profile.roles.includes("admin") || managerId === profile.id;
+  const canManageOthers = isAdmin || managerId === profile.id;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

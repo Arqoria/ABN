@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,10 +13,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-async function fetchSummary(): Promise<{ comptesEnAttenteCount: number }> {
-  const res = await fetch("/api/dashboard-summary");
-  if (!res.ok) throw new Error("Échec du chargement du résumé");
-  return res.json();
+// Lecture directe Supabase depuis le navigateur (RLS comme seule barrière,
+// comme pour tout le reste de cette page) — pas de Route Handler
+// intermédiaire pour une simple lecture, voir docs/Tasks.md, "Chantier
+// lancé, suite (16/09)".
+async function fetchComptesEnAttenteCount(): Promise<number> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "en_attente");
+  return count ?? 0;
 }
 
 // Page d'accueil du dashboard — voir docs/Tasks.md, "Chantier lancé".
@@ -28,10 +36,10 @@ export function DashboardHomeClient() {
 
   const { data } = useQuery({
     queryKey: ["dashboard-summary"],
-    queryFn: fetchSummary,
+    queryFn: fetchComptesEnAttenteCount,
     enabled: profile.roles.includes("admin"),
   });
-  const comptesEnAttenteCount = data?.comptesEnAttenteCount ?? 0;
+  const comptesEnAttenteCount = data ?? 0;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

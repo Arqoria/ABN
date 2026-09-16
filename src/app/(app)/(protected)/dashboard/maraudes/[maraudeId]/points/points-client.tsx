@@ -4,43 +4,50 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { CapturePointForm } from "./capture-point-form";
 
-async function fetchAcces(maraudeId: string): Promise<{ allowed: true }> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/acces`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — juste une vérification
+// d'accès légère (pas de liste à afficher). La vraie barrière reste le
+// trigger côté base à l'insertion. Voir docs/Tasks.md, "Chantier lancé,
+// suite (16/09)".
+async function checkAcces(
+  maraudeId: string,
+  profileId: string,
+  isAdminOrManager: boolean,
+): Promise<boolean> {
+  if (isAdminOrManager) return true;
+  const supabase = createClient();
+  const { data: inscription } = await supabase
+    .from("inscriptions_maraude")
+    .select("statut")
+    .eq("maraude_id", maraudeId)
+    .eq("user_id", profileId)
+    .maybeSingle();
+  return inscription?.statut === "inscrit";
 }
 
-// Voir docs/Tasks.md, "Chantier lancé". Pas de liste à afficher (écriture
-// seule) — juste une vérification d'accès légère avant de montrer le
-// formulaire. La vraie barrière reste le trigger côté base à l'insertion.
+// Voir docs/Tasks.md, "Chantier lancé".
 export function PointsClient() {
   const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
+  const isAdminOrManager =
+    profile.roles.includes("admin") || profile.roles.includes("manager");
 
-  const { isLoading, isError, error } = useQuery({
+  const { data: allowed, isLoading, isError } = useQuery({
     queryKey: ["acces", maraudeId],
-    queryFn: () => fetchAcces(maraudeId),
+    queryFn: () => checkAcces(maraudeId, profile.id, isAdminOrManager),
   });
 
   useEffect(() => {
-    if (error instanceof Error && error.message === "403") {
+    if (allowed === false) {
       router.replace("/dashboard/maraudes");
     }
-  }, [error, router]);
+  }, [allowed, router]);
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError) {
+  if (isLoading || isError || !allowed) {
     return null;
   }
 

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -23,10 +24,15 @@ type Candidature = {
   created_at: string;
 };
 
-async function fetchCandidatures(): Promise<{ candidatures: Candidature[] }> {
-  const res = await fetch("/api/candidatures");
-  if (!res.ok) throw new Error("Échec du chargement des candidatures");
-  return res.json();
+// Lecture directe Supabase depuis le navigateur (RLS comme seule
+// barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
+async function fetchCandidatures(): Promise<Candidature[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("candidatures_benevolat")
+    .select("id, nom_complet, email, telephone, message, traitee, created_at")
+    .order("created_at", { ascending: false });
+  return data ?? [];
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
@@ -41,7 +47,7 @@ export function CandidaturesClient() {
     }
   }, [isAdmin, router]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data: candidatures, isLoading, isError } = useQuery({
     queryKey: ["candidatures"],
     queryFn: fetchCandidatures,
     enabled: isAdmin,
@@ -51,25 +57,9 @@ export function CandidaturesClient() {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
+  if (isLoading || isError || !candidatures) {
+    return null;
   }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les candidatures pour l&apos;instant.
-        </p>
-      </div>
-    );
-  }
-
-  const { candidatures } = data;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">

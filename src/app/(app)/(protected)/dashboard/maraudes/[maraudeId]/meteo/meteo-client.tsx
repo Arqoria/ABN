@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -21,47 +22,62 @@ type Inscription = {
 type Payload = {
   inscriptions: Inscription[];
   meteos: { user_id: string; valeur: Valeur }[];
+  refuse: boolean;
 };
 
-async function fetchMeteo(maraudeId: string): Promise<Payload> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/meteo`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — réservé à Admin +
+// Manager DE CETTE maraude (RLS l'impose de toute façon). Voir
+// docs/Tasks.md, "Chantier lancé, suite (16/09)".
+async function fetchMeteo(maraudeId: string, profileId: string, isAdmin: boolean): Promise<Payload> {
+  const supabase = createClient();
+
+  const { data: maraude } = await supabase
+    .from("maraudes")
+    .select("id, date_heure, manager_id")
+    .eq("id", maraudeId)
+    .single();
+
+  if (!maraude) {
+    return { inscriptions: [], meteos: [], refuse: true };
+  }
+
+  const isOwnManager = maraude.manager_id === profileId;
+  if (!isAdmin && !isOwnManager) {
+    return { inscriptions: [], meteos: [], refuse: true };
+  }
+
+  const [{ data: inscriptions }, { data: meteos }] = await Promise.all([
+    supabase
+      .from("inscriptions_maraude")
+      .select("user_id, profil:user_id(full_name)")
+      .eq("maraude_id", maraudeId)
+      .eq("statut", "inscrit"),
+    supabase.from("meteo_benevole_saisies").select("user_id, valeur").eq("maraude_id", maraudeId),
+  ]);
+
+  return { inscriptions: inscriptions ?? [], meteos: meteos ?? [], refuse: false };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
 export function MeteoClient() {
-  useSession();
+  const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
+  const isAdmin = profile.roles.includes("admin");
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["meteo", maraudeId],
-    queryFn: () => fetchMeteo(maraudeId),
+    queryFn: () => fetchMeteo(maraudeId, profile.id, isAdmin),
   });
 
   useEffect(() => {
-    if (error instanceof Error && (error.message === "403" || error.message === "404")) {
+    if (data?.refuse) {
       router.replace("/dashboard/maraudes");
     }
-  }, [error, router]);
+  }, [data?.refuse, router]);
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger la météo pour l&apos;instant.
-        </p>
-      </div>
-    );
+  if (isLoading || isError || !data || data.refuse) {
+    return null;
   }
 
   const { inscriptions, meteos } = data;

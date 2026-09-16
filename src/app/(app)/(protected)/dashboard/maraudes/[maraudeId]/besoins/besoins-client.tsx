@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -22,46 +23,59 @@ type Besoin = {
   profil: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
-async function fetchBesoins(maraudeId: string): Promise<{ besoins: Besoin[] }> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/besoins`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — RLS
+// (besoins_signales_select_admin_manager_ou_participant) fait toute la
+// restriction réelle. Voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
+async function fetchBesoins(
+  maraudeId: string,
+  isAdminOrManager: boolean,
+  profileId: string,
+): Promise<{ besoins: Besoin[]; refuse: boolean }> {
+  const supabase = createClient();
+
+  if (!isAdminOrManager) {
+    const { data: inscription } = await supabase
+      .from("inscriptions_maraude")
+      .select("statut")
+      .eq("maraude_id", maraudeId)
+      .eq("user_id", profileId)
+      .maybeSingle();
+
+    if (inscription?.statut !== "inscrit") {
+      return { besoins: [], refuse: true };
+    }
+  }
+
+  const { data: besoins } = await supabase
+    .from("besoins_signales")
+    .select("id, categorie, commentaire, created_at, profil:user_id(full_name)")
+    .eq("maraude_id", maraudeId)
+    .order("created_at", { ascending: false });
+
+  return { besoins: besoins ?? [], refuse: false };
 }
 
-// Voir docs/Tasks.md, "Chantier lancé". RLS fait la vraie restriction
-// d'accès — le redirect ici n'est qu'une redirection propre, comme avant.
+// Voir docs/Tasks.md, "Chantier lancé".
 export function BesoinsClient() {
-  useSession(); // s'assure d'être sous le SessionProvider (garde-fou dev)
+  const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
+  const isAdminOrManager =
+    profile.roles.includes("admin") || profile.roles.includes("manager");
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["besoins", maraudeId],
-    queryFn: () => fetchBesoins(maraudeId),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["besoins", maraudeId, isAdminOrManager],
+    queryFn: () => fetchBesoins(maraudeId, isAdminOrManager, profile.id),
   });
 
   useEffect(() => {
-    if (error instanceof Error && error.message === "403") {
+    if (data?.refuse) {
       router.replace("/dashboard/maraudes");
     }
-  }, [error, router]);
+  }, [data?.refuse, router]);
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les besoins pour l&apos;instant.
-        </p>
-      </div>
-    );
+  if (isLoading || isError || !data || data.refuse) {
+    return null;
   }
 
   const { besoins } = data;

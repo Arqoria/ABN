@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import type { RoleName } from "@/lib/roles";
 import type { FonctionBureau } from "@/lib/fonction-bureau";
 import {
@@ -22,16 +23,59 @@ type Payload = {
   admins: { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[];
 };
 
+// Lecture directe Supabase depuis le navigateur (RLS comme seule
+// barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
 async function fetchComptes(): Promise<Payload> {
-  const res = await fetch("/api/comptes");
-  if (!res.ok) throw new Error("Échec du chargement des comptes");
-  return res.json();
+  const supabase = createClient();
+
+  async function chargerComptesEnAttente() {
+    const { data: comptesEnAttente } = await supabase
+      .from("profiles")
+      .select("id, full_name, created_at")
+      .eq("status", "en_attente")
+      .order("created_at", { ascending: true });
+
+    const compteIds = (comptesEnAttente ?? []).map((c) => c.id as string);
+    const { data: roleRows } = compteIds.length
+      ? await supabase
+          .from("profile_roles")
+          .select("profile_id, role")
+          .in("profile_id", compteIds)
+      : { data: [] as { profile_id: string; role: RoleName }[] };
+
+    return { comptesEnAttente: comptesEnAttente ?? [], roleRows: roleRows ?? [] };
+  }
+
+  async function chargerAdmins() {
+    const { data: adminRoleRows } = await supabase
+      .from("profile_roles")
+      .select("profile_id")
+      .eq("role", "admin");
+    const adminIds = (adminRoleRows ?? []).map((r) => r.profile_id as string);
+    if (!adminIds.length) {
+      return [] as { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[];
+    }
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, fonction_bureau")
+      .in("id", adminIds)
+      .eq("status", "actif")
+      .order("full_name", { ascending: true });
+    return data ?? [];
+  }
+
+  const [{ comptesEnAttente, roleRows }, admins] = await Promise.all([
+    chargerComptesEnAttente(),
+    chargerAdmins(),
+  ]);
+
+  return { comptesEnAttente, roleRows, admins };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé". Réservée aux Admins : la
-// vérification de rôle est faite ici côté client (redirect si pas admin) —
-// spécifique à cette page, pas partagée comme le statut (dashboard/layout.tsx).
-// La vraie barrière reste le 403 côté serveur dans /api/comptes.
+// vérification de rôle est faite ici côté client (redirect si pas admin).
+// La vraie barrière reste RLS sur chaque table interrogée ci-dessus.
 export function ComptesClient() {
   const profile = useSession();
   const router = useRouter();
@@ -53,22 +97,11 @@ export function ComptesClient() {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les comptes pour l&apos;instant.
-        </p>
-      </div>
-    );
+  // Pas d'état "Chargement…" séparé (test, voir docs/Tasks.md) — rien ne
+  // s'affiche tant que les données ne sont pas là, comme se comportait
+  // l'ancienne version 100% serveur.
+  if (isLoading || isError || !data) {
+    return null;
   }
 
   const { comptesEnAttente, roleRows, admins } = data;

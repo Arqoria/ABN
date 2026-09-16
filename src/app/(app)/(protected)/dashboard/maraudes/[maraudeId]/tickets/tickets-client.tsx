@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -29,10 +30,29 @@ type Ticket = {
 };
 type Payload = { tickets: Ticket[]; urlByPath: Record<string, string> };
 
+// Lecture directe Supabase depuis le navigateur — RLS (chacun ne voit que
+// ses propres tickets, Admin voit tout). Voir docs/Tasks.md, "Chantier
+// lancé, suite (16/09)".
 async function fetchTickets(maraudeId: string): Promise<Payload> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/tickets`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+  const supabase = createClient();
+  const { data: tickets } = await supabase
+    .from("tickets_depense")
+    .select("id, montant, categorie, photo_path, statut_remboursement, created_at")
+    .eq("maraude_id", maraudeId)
+    .order("created_at", { ascending: false });
+
+  const paths = (tickets ?? []).map((t) => t.photo_path as string);
+  const { data: signedUrls } = paths.length
+    ? await supabase.storage.from("tickets-depense").createSignedUrls(paths, 60 * 5)
+    : { data: [] as { path: string | null; signedUrl: string }[] };
+
+  const urlByPath = Object.fromEntries(
+    (signedUrls ?? [])
+      .filter((s): s is { path: string; signedUrl: string } => !!s.path && !!s.signedUrl)
+      .map((s) => [s.path, s.signedUrl]),
+  );
+
+  return { tickets: tickets ?? [], urlByPath };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
@@ -45,22 +65,8 @@ export function TicketsClient() {
     queryFn: () => fetchTickets(maraudeId),
   });
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les tickets pour l&apos;instant.
-        </p>
-      </div>
-    );
+  if (isLoading || isError || !data) {
+    return null;
   }
 
   const { tickets, urlByPath } = data;

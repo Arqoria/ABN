@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TypeAction } from "@/lib/type-action";
 import type { OrganismeOrientation } from "@/lib/organisme-orientation";
@@ -26,49 +27,113 @@ type Payload = {
   heatPoints: { lat: number; lng: number }[];
   circuitPlanifieInitial: { lat: number; lng: number }[];
   canEdit: boolean;
+  refuse: boolean;
 };
 
-async function fetchCarte(maraudeId: string): Promise<Payload> {
-  const res = await fetch(`/api/maraudes/${maraudeId}/carte`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
+// Lecture directe Supabase depuis le navigateur — page la plus lourde du
+// dashboard (heatmap jusqu'à 5000 points), celle qui profite le plus de
+// sortir du rendu serveur bloquant. Voir docs/Tasks.md, "Chantier lancé,
+// suite (16/09)".
+async function fetchCarte(
+  maraudeId: string,
+  profileId: string,
+  isAdmin: boolean,
+): Promise<Payload> {
+  const supabase = createClient();
+
+  const { data: maraude } = await supabase
+    .from("maraudes")
+    .select("id, date_heure, manager_id")
+    .eq("id", maraudeId)
+    .single();
+
+  if (!maraude) {
+    return {
+      circuitReel: [],
+      heatPoints: [],
+      circuitPlanifieInitial: [],
+      canEdit: false,
+      refuse: true,
+    };
+  }
+
+  const isOwnManager = maraude.manager_id === profileId;
+  const canEdit = isAdmin || isOwnManager;
+
+  if (!canEdit) {
+    const { data: inscription } = await supabase
+      .from("inscriptions_maraude")
+      .select("statut")
+      .eq("maraude_id", maraudeId)
+      .eq("user_id", profileId)
+      .maybeSingle();
+
+    if (inscription?.statut !== "inscrit") {
+      return {
+        circuitReel: [],
+        heatPoints: [],
+        circuitPlanifieInitial: [],
+        canEdit: false,
+        refuse: true,
+      };
+    }
+  }
+
+  const [{ data: pointsReel }, { data: pointsHeat }, { data: circuitPlanifie }] =
+    await Promise.all([
+      supabase
+        .from("points_passage_geo")
+        .select("lat, lng, type_action, horodatage, orientation_vers, orientation_vers_autre")
+        .eq("maraude_id", maraudeId)
+        .order("horodatage", { ascending: true }),
+      supabase.from("points_passage_geo").select("lat, lng").limit(5000),
+      supabase
+        .from("circuits_planifies")
+        .select("points")
+        .eq("maraude_id", maraudeId)
+        .maybeSingle(),
+    ]);
+
+  const circuitReel = (pointsReel ?? []).map((p) => ({
+    lat: p.lat as number,
+    lng: p.lng as number,
+    typeAction: p.type_action as TypeAction,
+    horodatage: p.horodatage as string,
+    orientationVers: p.orientation_vers as OrganismeOrientation | null,
+    orientationVersAutre: p.orientation_vers_autre as string | null,
+  }));
+
+  const heatPoints = (pointsHeat ?? []).map((p) => ({
+    lat: p.lat as number,
+    lng: p.lng as number,
+  }));
+
+  const circuitPlanifieInitial =
+    (circuitPlanifie?.points as { lat: number; lng: number }[] | null) ?? [];
+
+  return { circuitReel, heatPoints, circuitPlanifieInitial, canEdit, refuse: false };
 }
 
-// Voir docs/Tasks.md, "Chantier lancé" — page la plus lourde du dashboard
-// (heatmap jusqu'à 5000 points), celle qui profite le plus de sortir du
-// rendu serveur bloquant à chaque navigation.
+// Voir docs/Tasks.md, "Chantier lancé".
 export function CarteClient() {
-  useSession();
+  const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
+  const isAdmin = profile.roles.includes("admin");
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["carte", maraudeId],
-    queryFn: () => fetchCarte(maraudeId),
+    queryFn: () => fetchCarte(maraudeId, profile.id, isAdmin),
   });
 
   useEffect(() => {
-    if (error instanceof Error && (error.message === "403" || error.message === "404")) {
+    if (data?.refuse) {
       router.replace("/dashboard/maraudes");
     }
-  }, [error, router]);
+  }, [data?.refuse, router]);
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger la carte pour l&apos;instant.
-        </p>
-      </div>
-    );
+  if (isLoading || isError || !data || data.refuse) {
+    return null;
   }
 
   const { circuitReel, heatPoints, circuitPlanifieInitial, canEdit } = data;

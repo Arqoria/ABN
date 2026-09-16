@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,44 +36,63 @@ type Maraude = {
 
 type Payload = { managers: Manager[]; maraudes: Maraude[] };
 
-async function fetchMaraudes(): Promise<Payload> {
-  const res = await fetch("/api/maraudes");
-  if (!res.ok) throw new Error("Échec du chargement des maraudes");
-  return res.json();
+// Lecture directe Supabase depuis le navigateur (RLS comme seule
+// barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
+async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
+  const supabase = createClient();
+
+  async function chargerManagers() {
+    if (!isAdminOrManager) return [] as Manager[];
+    const { data } = await supabase
+      .from("profile_roles")
+      .select("profiles!profile_roles_profile_id_fkey!inner(id, full_name, status)")
+      .eq("role", "manager")
+      .eq("profiles.status", "actif");
+
+    return (data ?? []).map((r) => {
+      const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+      return p as Manager;
+    });
+  }
+
+  async function chargerMaraudesAvecInscriptions() {
+    const { data } = await supabase
+      .from("maraudes")
+      .select(
+        "id, date_heure, statut, manager_id, manager:manager_id(full_name), inscriptions_maraude(id, maraude_id, user_id, statut)",
+      )
+      .order("date_heure", { ascending: true });
+    return (data ?? []) as unknown as Maraude[];
+  }
+
+  const [managers, maraudes] = await Promise.all([
+    chargerManagers(),
+    chargerMaraudesAvecInscriptions(),
+  ]);
+
+  return { managers, maraudes };
 }
 
 // Page pilote du chantier "rapprocher ABN du pattern Probalia" (voir
 // docs/Tasks.md, Diagnostic perf webapp). Plus de getCurrentProfile()
 // appelé ici : l'identité vient de useSession() (contexte hydraté une fois
-// par le layout serveur, voir session-provider.tsx), les données viennent
-// de React Query + /api/maraudes plutôt que de bloquer le rendu de la page.
+// par le layout serveur, voir session-provider.tsx).
 //
 // Vérification de statut : centralisée dans dashboard/layout.tsx (redirect
 // serveur si pas "actif") — plus besoin de la refaire ici.
 export function MaraudesClient() {
   const profile = useSession();
+  const isAdminOrManagerForQuery =
+    profile.roles.includes("admin") || profile.roles.includes("manager");
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["maraudes"],
-    queryFn: fetchMaraudes,
+    queryKey: ["maraudes", isAdminOrManagerForQuery],
+    queryFn: () => fetchMaraudes(isAdminOrManagerForQuery),
   });
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les maraudes pour l&apos;instant.
-        </p>
-      </div>
-    );
+  // Pas d'état "Chargement…" séparé (test, voir docs/Tasks.md).
+  if (isLoading || isError || !data) {
+    return null;
   }
 
   const { managers, maraudes } = data;
