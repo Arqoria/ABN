@@ -24,7 +24,31 @@ export async function getRapportsData(
   if (from) pointsQuery = pointsQuery.gte("horodatage", from);
   if (to) pointsQuery = pointsQuery.lte("horodatage", `${to}T23:59:59`);
 
-  const { data: points } = await pointsQuery;
+  let ticketsQuery = supabase
+    .from("tickets_depense")
+    .select("categorie, montant, created_at");
+
+  if (from) ticketsQuery = ticketsQuery.gte("created_at", from);
+  if (to) ticketsQuery = ticketsQuery.lte("created_at", `${to}T23:59:59`);
+
+  let besoinsQuery = supabase
+    .from("besoins_signales")
+    .select("categorie, created_at");
+
+  if (from) besoinsQuery = besoinsQuery.gte("created_at", from);
+  if (to) besoinsQuery = besoinsQuery.lte("created_at", `${to}T23:59:59`);
+
+  // Perf (16/09, retour client "premier chargement des rapports vraiment
+  // long") : ces 3 requêtes sont indépendantes (aucune ne dépend du
+  // résultat d'une autre) — en parallèle plutôt qu'enchaînées en série,
+  // même défaut déjà corrigé partout ailleurs cette session mais jamais
+  // appliqué ici. La requête tickets n'est lancée que si Admin (comme
+  // avant), résolue à vide sinon pour garder un seul Promise.all propre.
+  const [{ data: points }, { data: tickets }, { data: besoins }] = await Promise.all([
+    pointsQuery,
+    isAdmin ? ticketsQuery : Promise.resolve({ data: [] as { categorie: CategorieDepense; montant: number; created_at: string }[] }),
+    besoinsQuery,
+  ]);
 
   const totals: Record<TypeAction, number> = {
     repas_distribue: 0,
@@ -87,14 +111,6 @@ export async function getRapportsData(
 
   let depensesData: { categorie: CategorieDepense; total: number }[] = [];
   if (isAdmin) {
-    let ticketsQuery = supabase
-      .from("tickets_depense")
-      .select("categorie, montant, created_at");
-
-    if (from) ticketsQuery = ticketsQuery.gte("created_at", from);
-    if (to) ticketsQuery = ticketsQuery.lte("created_at", `${to}T23:59:59`);
-
-    const { data: tickets } = await ticketsQuery;
     const parCategorie = new Map<CategorieDepense, number>();
     for (const t of tickets ?? []) {
       const cat = t.categorie as CategorieDepense;
@@ -110,14 +126,6 @@ export async function getRapportsData(
   // achats. Visible à Admin et Manager (RLS besoins_signales_select_...
   // laisse déjà tout Manager voir tous les besoins, même raisonnement que la
   // heatmap — la planification d'achats concerne toute l'association).
-  let besoinsQuery = supabase
-    .from("besoins_signales")
-    .select("categorie, created_at");
-
-  if (from) besoinsQuery = besoinsQuery.gte("created_at", from);
-  if (to) besoinsQuery = besoinsQuery.lte("created_at", `${to}T23:59:59`);
-
-  const { data: besoins } = await besoinsQuery;
   const parCategorieBesoin = new Map<CategorieBesoin, number>();
   for (const b of besoins ?? []) {
     const cat = b.categorie as CategorieBesoin;
