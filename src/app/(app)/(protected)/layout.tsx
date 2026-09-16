@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { OfflineSync } from "@/components/offline-sync";
 import { AccountMenu } from "@/components/account-menu";
+import { QueryProvider } from "@/components/query-provider";
+import { SessionProvider } from "@/components/session-provider";
 
 // Layout partagé par toutes les routes protégées (/dashboard,
 // /compte-en-attente, ...) — PAS par /login ni /signup, qui restent en
@@ -89,7 +91,11 @@ export default async function ProtectedLayout({
           <AccountMenu nom={profile.full_name ?? "Bénévole"} />
         </nav>
       </header>
-      <main className="flex flex-1 flex-col">{children}</main>
+      <main className="flex flex-1 flex-col">
+        <QueryProvider>
+          <SessionProvider profile={profile}>{children}</SessionProvider>
+        </QueryProvider>
+      </main>
     </div>
   );
 }
