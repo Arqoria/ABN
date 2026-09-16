@@ -4,19 +4,18 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Section repliable pour regrouper Rapports & KPIs par catégorie (voir
-// docs/Tasks.md, Étape 10bis) — plus de "tout en vrac" au même niveau
-// visuel. `children` n'est monté QUE si la section est ouverte (pas juste
-// masqué en CSS) : les sections fermées par défaut ne payent le coût de
-// rendu (Leaflet pour Terrain, notamment) qu'à l'ouverture, pas au
-// premier affichage.
+// Section repliable pour regrouper du contenu par catégorie plutôt que
+// "tout en vrac" au même niveau visuel (voir docs/Tasks.md, Étape 10bis).
+// `children` n'est monté QUE si la section est ouverte (pas juste masqué
+// en CSS) : une section fermée par défaut ne paye son coût de rendu
+// qu'à l'ouverture, pas au premier affichage.
 //
 // Toutes fermées par défaut (retour client, 16/09) : sinon on retombe
 // sur le même problème visuel qu'avant ("tout en vrac"), juste avec des
 // intitulés en plus. Le pictogramme sert justement à identifier chaque
 // section même repliée, sans avoir à ouvrir pour savoir ce qu'elle
 // contient.
-export function RapportSection({
+export function CollapsibleSection({
   title,
   description,
   icon: Icon,

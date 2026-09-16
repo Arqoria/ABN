@@ -25,8 +25,8 @@ export function CreerMaraudeForm({
       <p className="text-sm text-muted-foreground">
         Aucun Manager actif disponible — valide d&apos;abord un compte avec le
         rôle Manager (
-        <a href="/dashboard/comptes" className="underline underline-offset-4">
-          Comptes en attente
+        <a href="/dashboard/adherents" className="underline underline-offset-4">
+          Gestion des adhérents
         </a>
         ) avant de pouvoir créer une maraude.
       </p>

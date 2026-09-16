@@ -19,9 +19,9 @@ export function ToggleTraitee({ id, traitee }: { id: string; traitee: boolean })
         startTransition(async () => {
           await marquerCandidatureTraitee(id, !traitee);
           // La donnée vient maintenant de React Query (voir
-          // candidatures-client.tsx) — revalidatePath() côté serveur (dans
+          // adherents-client.tsx) — revalidatePath() côté serveur (dans
           // l'action) ne suffit plus à rafraîchir l'affichage.
-          queryClient.invalidateQueries({ queryKey: ["candidatures"] });
+          queryClient.invalidateQueries({ queryKey: ["adherents"] });
         })
       }
     >

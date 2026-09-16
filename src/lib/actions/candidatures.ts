@@ -52,5 +52,5 @@ export async function soumettreCandidature(
 export async function marquerCandidatureTraitee(id: string, traitee: boolean) {
   const supabase = await createClient();
   await supabase.from("candidatures_benevolat").update({ traitee }).eq("id", id);
-  revalidatePath("/dashboard/candidatures");
+  revalidatePath("/dashboard/adherents");
 }

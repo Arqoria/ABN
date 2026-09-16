@@ -82,7 +82,7 @@ export async function validerCompte(
     return { error: "Échec de l'activation du compte." };
   }
 
-  revalidatePath("/dashboard/comptes");
+  revalidatePath("/dashboard/adherents");
   return undefined;
 }
 
@@ -120,6 +120,6 @@ export async function definirFonctionBureau(
     return { error: "Échec de la mise à jour." };
   }
 
-  revalidatePath("/dashboard/comptes");
+  revalidatePath("/dashboard/adherents");
   return undefined;
 }

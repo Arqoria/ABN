@@ -24,7 +24,7 @@ import { ActiviteChart } from "./activite-chart";
 import { DepensesChart } from "./depenses-chart";
 import { OrientationsChart } from "./orientations-chart";
 import { BesoinsChart } from "./besoins-chart";
-import { RapportSection } from "./rapport-section";
+import { CollapsibleSection } from "@/components/collapsible-section";
 
 type Payload = Awaited<ReturnType<typeof getRapportsData>> & { isAdmin: boolean };
 
@@ -77,7 +77,7 @@ export function RapportsClient() {
         {/* Carte Période */}
         <Skeleton className="h-[150px] w-full" />
         {/* 4 sections repliées par défaut — même hauteur qu'une
-            RapportSection fermée (icône + titre + description sur une
+            CollapsibleSection fermée (icône + titre + description sur une
             ligne), pas les gros blocs de contenu ouvert d'avant. */}
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-[76px] w-full" />
@@ -159,7 +159,7 @@ export function RapportsClient() {
         </CardContent>
       </Card>
 
-      <RapportSection
+      <CollapsibleSection
         title="Vue d'ensemble"
         description="Les chiffres clés de la période."
         icon={Gauge}
@@ -177,7 +177,7 @@ export function RapportsClient() {
             </Card>
           ))}
         </div>
-      </RapportSection>
+      </CollapsibleSection>
 
       {/* De loin la section la plus lourde (heatmap jusqu'à 5000 points) —
           ne paye son coût de rendu (Leaflet, graphiques) qu'à l'ouverture,
@@ -185,7 +185,7 @@ export function RapportsClient() {
           Heatmap ET activité par jour ont chacune leur propre filtre par
           type (deux Set indépendants, purement client) — les orientations
           restent, elles, sur toute la période sans filtre par type. */}
-      <RapportSection
+      <CollapsibleSection
         title="Terrain"
         description="Carte, activité par jour et orientations sociales."
         icon={MapPin}
@@ -223,24 +223,24 @@ export function RapportsClient() {
             <OrientationsChart data={orientationsData} />
           </div>
         </div>
-      </RapportSection>
+      </CollapsibleSection>
 
-      <RapportSection
+      <CollapsibleSection
         title="Besoins matériels"
         description="Manques remontés par les bénévoles — aide à ajuster les prochains achats."
         icon={Package}
       >
         <BesoinsChart data={besoinsData} />
-      </RapportSection>
+      </CollapsibleSection>
 
       {isAdmin && (
-        <RapportSection
+        <CollapsibleSection
           title="Finances"
           description="Tickets de dépense, toutes maraudes."
           icon={Wallet}
         >
           <DepensesChart data={depensesData} />
-        </RapportSection>
+        </CollapsibleSection>
       )}
     </div>
   );

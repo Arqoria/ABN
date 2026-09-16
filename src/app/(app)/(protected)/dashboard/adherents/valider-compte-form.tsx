@@ -38,7 +38,7 @@ export function ValiderCompteForm({
   const queryClient = useQueryClient();
   const isFirstRender = useRef(true);
 
-  // La donnée vient maintenant de React Query (voir comptes-client.tsx) —
+  // La donnée vient maintenant de React Query (voir adherents-client.tsx) —
   // revalidatePath() côté serveur (dans l'action) ne suffit plus à
   // rafraîchir l'affichage, il faut invalider la query explicitement.
   useEffect(() => {
@@ -47,7 +47,7 @@ export function ValiderCompteForm({
       return;
     }
     if (!state?.error) {
-      queryClient.invalidateQueries({ queryKey: ["comptes"] });
+      queryClient.invalidateQueries({ queryKey: ["adherents"] });
     }
   }, [state, queryClient]);
 

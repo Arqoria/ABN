@@ -34,7 +34,7 @@ export function BureauForm({
       return;
     }
     if (!state?.error) {
-      queryClient.invalidateQueries({ queryKey: ["comptes"] });
+      queryClient.invalidateQueries({ queryKey: ["adherents"] });
     }
   }, [state, queryClient]);
 

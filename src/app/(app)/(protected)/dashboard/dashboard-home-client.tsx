@@ -16,14 +16,25 @@ import {
 // Lecture directe Supabase depuis le navigateur (RLS comme seule barrière,
 // comme pour tout le reste de cette page) — pas de Route Handler
 // intermédiaire pour une simple lecture, voir docs/Tasks.md, "Chantier
-// lancé, suite (16/09)".
-async function fetchComptesEnAttenteCount(): Promise<number> {
+// lancé, suite (16/09)". Compteur combiné (comptes en attente +
+// candidatures non traitées) depuis la fusion de ces deux pages sous
+// "Gestion des adhérents" (17/09).
+async function fetchAdherentsSummary(): Promise<{ comptesEnAttente: number; candidaturesNonTraitees: number }> {
   const supabase = createClient();
-  const { count } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "en_attente");
-  return count ?? 0;
+  const [{ count: comptesEnAttente }, { count: candidaturesNonTraitees }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "en_attente"),
+    supabase
+      .from("candidatures_benevolat")
+      .select("id", { count: "exact", head: true })
+      .eq("traitee", false),
+  ]);
+  return {
+    comptesEnAttente: comptesEnAttente ?? 0,
+    candidaturesNonTraitees: candidaturesNonTraitees ?? 0,
+  };
 }
 
 // Page d'accueil du dashboard — voir docs/Tasks.md, "Chantier lancé".
@@ -42,10 +53,10 @@ export function DashboardHomeClient() {
 
   const { data } = useQuery({
     queryKey: ["dashboard-summary"],
-    queryFn: fetchComptesEnAttenteCount,
+    queryFn: fetchAdherentsSummary,
     enabled: profile.roles.includes("admin"),
   });
-  const comptesEnAttenteCount = data ?? 0;
+  const aTraiterCount = (data?.comptesEnAttente ?? 0) + (data?.candidaturesNonTraitees ?? 0);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
@@ -62,16 +73,16 @@ export function DashboardHomeClient() {
       {profile.roles.includes("admin") && (
         <Card>
           <CardHeader>
-            <CardTitle>Comptes en attente de validation</CardTitle>
+            <CardTitle>Gestion des adhérents</CardTitle>
             <CardDescription>
-              {comptesEnAttenteCount === 0
-                ? "Aucun compte en attente."
-                : `${comptesEnAttenteCount} compte${comptesEnAttenteCount > 1 ? "s" : ""} à valider.`}
+              {aTraiterCount === 0
+                ? "Rien à traiter pour l'instant."
+                : `${aTraiterCount} élément${aTraiterCount > 1 ? "s" : ""} à traiter (comptes, candidatures).`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/dashboard/comptes" prefetch={false}>Gérer les comptes</Link>
+              <Link href="/dashboard/adherents" prefetch={false}>Gérer les adhérents</Link>
             </Button>
           </CardContent>
         </Card>
