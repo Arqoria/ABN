@@ -883,13 +883,41 @@ pour la vérification d'identité sur CES données, alors que Probalia
 interroge Supabase directement sans cette étape intermédiaire ; à
 surveiller mais pas bloquant, l'essentiel de l'écart initial est comblé.
 
-**Pas fait d'un coup** — reste à généraliser à ~14 autres pages protégées
-(candidatures, comptes, rapports, et toutes les sous-pages de maraude :
-carte, équipe, météo, points, repas, tickets, besoins), une par une,
-testées à chaque fois, chantier réparti sur plusieurs sessions. Centraliser
-la vérification de statut dans le layout (au lieu de la dupliquer page par
-page comme fait ici pour la pilote) est une amélioration à faire une fois
-2-3 pages migrées, pas avant.
+**✅ Généralisé à tout le dashboard (16/09, commit `7fb8df4`)** — décision
+du client : enchaîner directement plutôt qu'étaler sur plusieurs sessions
+comme envisagé plus haut. Les 11 pages restantes converties au même
+pattern que la pilote (page.tsx minimal + Client Component +
+`useSession()` + React Query + Route Handler JSON réutilisant la même
+logique/RLS que l'ancien Server Component) :
+- `dashboard/page.tsx` (accueil), `comptes`, `candidatures`, `rapports`
+  (+ filtre de période, adapté en `useSearchParams()` côté client)
+- Les 7 sous-pages de maraude : `besoins`, `carte` (la plus lourde —
+  heatmap jusqu'à 5000 points), `equipe`, `meteo`, `points` (écriture
+  seule, pas de liste), `repas`, `tickets`
+
+**Vérification de statut centralisée** dans un nouveau
+`dashboard/layout.tsx` (englobe `/dashboard/*` uniquement, pas
+`/compte-en-attente` — sinon boucle de redirection) — une seule fois par
+session grâce à `cache()` React, au lieu d'une fois par page comme pour
+la pilote initiale.
+
+**Formulaires d'écriture** (valider-compte, bureau, toggle-traitee,
+affectation-toggle, météo-admin, besoin, repas, ticket) : ajout de
+l'invalidation React Query après soumission réussie — `revalidatePath()`
+côté serveur ne rafraîchissait plus rien côté client une fois la donnée
+pilotée par React Query.
+
+**Bug préexistant trouvé et corrigé en testant** : les formulaires repas
+et tickets n'avaient jamais de champ caché `maraudeId` — `ajouterRepas()`
+et `creerTicket()` échouaient donc déjà systématiquement AVANT ce
+chantier ("Maraude introuvable"), sans lien avec la migration. Corrigé au
+passage (`repas-form.tsx`, `ticket-form.tsx`).
+
+**Testé en local** (compte de test créé puis supprimé) : chaque page
+visitée, carte (heatmap Leaflet fonctionnelle), filtre de période testé,
+soumission d'un repas testée avec confirmation visuelle immédiate
+(invalidation React Query). Build + `tsc --noEmit` propres. Déployé en
+production, en attente de la confirmation de déploiement Vercel.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
