@@ -1075,6 +1075,34 @@ redirection immédiate vers `/dashboard` confirmée dans les deux cas.
 Build propre. **Confirmé en production** (compte de test) : navigation
 vers `/login` déjà connecté → redirection immédiate vers `/dashboard`.
 
+### ✅ Correctif (16/09, commit `42e18c9`) — premier chargement de Rapports & KPIs long
+
+Retour client : premier chargement de `/dashboard/rapports` vraiment
+long. Cause trouvée dans `src/lib/rapports.ts` (jamais revu pendant le
+chantier perf — volontairement laissé en Route Handler pour sa logique
+partagée avec l'export .xlsx, mais son contenu interne jamais audité) :
+3 requêtes indépendantes (`points_passage_geo` jusqu'à 5000 lignes,
+`tickets_depense`, `besoins_signales`) s'enchaînaient en **série** au
+lieu d'être lancées en parallèle — même défaut déjà corrigé partout
+ailleurs cette session. Regroupées dans un seul `Promise.all`.
+
+**Vérifié directement dans les logs Supabase** (`query_logs`, pas
+juste supposé) : les 3 requêtes partent maintenant à moins de 10ms
+d'écart les unes des autres (ex. `20:06:05.974/.980/.981`) — contre
+300-650ms d'étalement dans les entrées de logs antérieures au
+déploiement (comportement séquentiel de l'ancien code). Confirme que le
+correctif est bien effectif.
+
+⚠️ **Mesure de temps total non concluante ce jour-là** : le temps agrégé
+côté client mesuré juste après (~700-900ms) semblait plus élevé que
+l'ancienne référence (~410ms) — mais `maraudes` (page déjà optimisée,
+non touchée aujourd'hui) était **elle aussi** plus lente que sa mesure
+de la veille (356ms vs 267ms) au même moment, signe d'une charge
+Supabase ambiante plus élevée ce jour-là, pas d'un échec du correctif.
+Comparer un temps agrégé mesuré à un autre moment n'est pas fiable (déjà
+appris plus haut dans ce document) — la preuve retenue est celle des
+horodatages de requêtes, pas le chiffre total.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
