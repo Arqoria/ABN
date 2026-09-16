@@ -1194,7 +1194,7 @@ horodatages de requêtes, pas le chiffre total.
     semble ne pas se produire, vérifier via le DOM/texte réel avant de
     conclure, pas seulement via une capture d'écran.
 - ✅ **Coquille "Cotisations" ajoutée à Gestion des adhérents (17/09,
-  commit à venir)** — question client : la gestion des cotisations
+  commit `f7bd5ba`)** — question client : la gestion des cotisations
   (HelloAsso) peut-elle être gérée depuis cette page ? Réponse : oui,
   techniquement, via l'API HelloAsso (liste des adhésions d'un
   formulaire, qui a payé/quand/combien). Décision client : "on fabrique
