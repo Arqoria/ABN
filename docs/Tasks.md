@@ -745,13 +745,41 @@ dans le navigateur :
   représentatif de la vitesse réelle en production. Impossible d'en tirer
   un chiffre de vitesse absolu comparable à ABN sur Vercel. Serveur de
   dev arrêté après le test (aucune trace laissée qui tourne).
-- **Bilan honnête** : le **mécanisme** est maintenant confirmé par une
-  mesure réelle (pas juste la lecture du code), mais pas encore de
-  **chiffre** de comparaison post-connexion en conditions de production
-  équivalentes. Pour aller plus loin, il faudrait soit l'URL de
-  production de Probalia (si déployé) + des identifiants de test, soit
-  que le client se connecte lui-même pendant qu'on chronomètre (même
-  méthode que pour ABN avec les comptes de test jetables).
+**✅ Mesure finale faite en vraie production (16/09)** — le client a
+fourni l'URL de production de Probalia
+(`https://probalia-connect-path.lovable.app/`) + un compte de test
+(`test.referent@probalia.fr`, fourni par le client, pas créé par nous —
+pas de suppression nécessaire après coup). Connexion réelle, puis script
+chronométrant 15 allers-retours entre `/dashboard` et
+`/dashboard/participants` (page qui charge de vraies données Supabase à
+chaque visite — table de bénéficiaires), mesuré via
+`performance.now()` autour du clic + attente que les données réelles
+apparaissent dans le DOM (pas juste le changement d'URL) :
+
+| Direction | Moyenne | Min | Max |
+|---|---|---|---|
+| Vers `/dashboard` (contenu structurel, pas de nouvelle donnée à charger) | 22,8ms | 14,4ms | 33,3ms |
+| Vers `/dashboard/participants` (vraies données Supabase à chaque fois) | 166,9ms | 123ms | 264,7ms |
+
+**Comparaison directe avec ABN** (mesures de cette session, même type de
+page — chargement de données réelles à la navigation) : ABN tourne
+systématiquement entre **~1,6s et ~3,9s** par navigation (TTFB coquille
+serveur + éventuelle donnée). **Probalia : 123-265ms pour une page
+équivalente avec vraies données, 14-33ms pour une page sans nouvelle
+donnée.** Écart d'environ **10 à 20x**.
+
+**Conclusion (avec un niveau de preuve maintenant solide, pas juste une
+hypothèse)** : le mécanisme identifié (authentification unique par
+session + navigation client + cache de requêtes, vs revérification
+serveur complète à chaque clic chez ABN) explique quantitativement
+l'écart de vitesse ressenti. Les deux causes concurrentes (palier de
+calcul, latence brute Supabase) avaient déjà été testées et écartées aux
+étapes 1-2. Il reste toujours une réserve honnête : ce test mesure la
+navigation **après connexion réussie**, pas le chargement initial de
+l'appli (téléchargement du bundle JS, plus long qu'une simple page
+Next.js pour la toute première visite) — mais pour l'usage réel d'un
+bénévole qui reste connecté et clique plusieurs fois par maraude, c'est
+la partie qui compte le plus.
 
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
