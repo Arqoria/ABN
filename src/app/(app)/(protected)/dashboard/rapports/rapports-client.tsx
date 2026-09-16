@@ -74,14 +74,14 @@ export function RapportsClient() {
           </div>
           <Skeleton className="h-12 w-36" />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </div>
-        <Skeleton className="h-[300px] w-full" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+        {/* Carte Période */}
+        <Skeleton className="h-[150px] w-full" />
+        {/* 4 sections repliées par défaut — même hauteur qu'une
+            RapportSection fermée (icône + titre + description sur une
+            ligne), pas les gros blocs de contenu ouvert d'avant. */}
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[76px] w-full" />
+        ))}
       </div>
     );
   }
@@ -182,10 +182,9 @@ export function RapportsClient() {
       {/* De loin la section la plus lourde (heatmap jusqu'à 5000 points) —
           ne paye son coût de rendu (Leaflet, graphiques) qu'à l'ouverture,
           pas au premier affichage. Voir docs/Tasks.md, Étape 10bis.
-          Attention : seule la heatmap ci-dessous est filtrable par type —
-          l'activité par jour et les orientations restent sur toute la
-          période sélectionnée, ne pas laisser penser qu'elles suivent le
-          même filtre. */}
+          Heatmap ET activité par jour ont chacune leur propre filtre par
+          type (deux Set indépendants, purement client) — les orientations
+          restent, elles, sur toute la période sans filtre par type. */}
       <RapportSection
         title="Terrain"
         description="Carte, activité par jour et orientations sociales."
@@ -209,8 +208,8 @@ export function RapportsClient() {
             </h3>
             <p className="mb-3 text-sm text-muted-foreground">
               Une courbe par type d&apos;action, pour suivre la tendance sur
-              la période (pas de filtre par type ici, contrairement à la
-              heatmap ci-dessus).
+              la période — décochez un type pour l&apos;isoler si les
+              courbes se superposent trop.
             </p>
             <ActiviteChart data={activiteData} />
           </div>
