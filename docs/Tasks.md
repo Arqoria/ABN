@@ -650,7 +650,7 @@ suivre dans l'ordre :
    inspection réelle du code Probalia (accès lecture au repo GitHub, ou
    juste les fichiers qui chargent les données) pour vérifier
    objectivement s'il y a un vrai mécanisme local-first/offline-sync, au
-   lieu de partir sur une supposition based on la description du client.
+   lieu de partir sur une supposition fondée sur la description du client.
 4. **Si tout ça ne suffit pas** : accès Supabase MCP en lecture seule sur
    le projet Probalia (nouveau Personal Access Token, nouvelle session
    Claude Code — voir note dans CLAUDE.md, section Accès & sécurité) pour
