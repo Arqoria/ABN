@@ -726,6 +726,33 @@ Pas engagé pour l'instant — c'est un vrai changement d'architecture pour
 la partie protégée du site (pas une petite extension), à scoper
 sérieusement si le client choisit l'option 1.
 
+**✅ Vérification en direct tentée (16/09)** — le client a demandé une
+confirmation empirique (pas juste la lecture du code) avant d'engager quoi
+que ce soit. Serveur de dev Probalia lancé en local
+(`C:\Users\a-gas\Documents\Probalia`, `npm run dev`, port 8081) et ouvert
+dans le navigateur :
+- **Confirmé en direct** : après le chargement initial, cliquer dans
+  l'appli (ex. "Accès participant") n'ajoute AUCUNE nouvelle entrée de
+  navigation navigateur (`performance.getEntriesByType('navigation')
+  .length` reste à 1) — preuve mesurée, pas déduite du code, qu'aucune
+  interaction ne déclenche de rechargement de page.
+- **Limite non résolue** : pas d'identifiants Probalia disponibles → pas
+  pu tester la navigation dans le vrai tableau de bord authentifié (la
+  partie la plus comparable à ABN). Testé seulement le comportement
+  public (page de connexion + modale d'accès participant).
+- **Deuxième limite** : le serveur tournait en mode développement Vite
+  (centaines de fichiers non empaquetés servis un par un) — pas
+  représentatif de la vitesse réelle en production. Impossible d'en tirer
+  un chiffre de vitesse absolu comparable à ABN sur Vercel. Serveur de
+  dev arrêté après le test (aucune trace laissée qui tourne).
+- **Bilan honnête** : le **mécanisme** est maintenant confirmé par une
+  mesure réelle (pas juste la lecture du code), mais pas encore de
+  **chiffre** de comparaison post-connexion en conditions de production
+  équivalentes. Pour aller plus loin, il faudrait soit l'URL de
+  production de Probalia (si déployé) + des identifiants de test, soit
+  que le client se connecte lui-même pendant qu'on chronomètre (même
+  méthode que pour ABN avec les comptes de test jetables).
+
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
 
