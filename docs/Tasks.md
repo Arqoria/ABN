@@ -1107,23 +1107,34 @@ horodatages de requêtes, pas le chiffre total.
 
 **🟨 Chantier lancé (16/09)**, on commence par Rapports & KPIs.
 
-- ✅ **Rapports & KPIs** (16/09, commit `5749e1c`) — regroupée en 4
-  sections repliables (`rapport-section.tsx`, pas de nouvelle
-  dépendance) :
-  - **Vue d'ensemble** — les 4 chiffres clés, ouverte par défaut
-  - **Terrain** — carte (heatmap) + activité par jour + orientations
-    par organisme, **fermée par défaut** (la plus lourde — jusqu'à
-    5000 points) : ses composants (Leaflet, graphiques) ne sont montés
-    qu'à l'ouverture, pas au premier affichage
-  - **Besoins matériels** — ouverte par défaut (légère)
-  - **Finances** (Admin seulement) — ouverte par défaut (légère)
+- ✅ **Rapports & KPIs** (16/09, commits `5749e1c` puis `fc44fc5`) —
+  regroupée en 4 sections repliables (`rapport-section.tsx`, pas de
+  nouvelle dépendance) :
+  - **Vue d'ensemble** (icône Gauge) — les 4 chiffres clés
+  - **Terrain** (icône MapPin) — carte (heatmap) + activité par jour +
+    orientations par organisme. De loin la plus lourde (jusqu'à 5000
+    points) : ses composants (Leaflet, graphiques) ne sont montés qu'à
+    l'ouverture, pas au premier affichage. Seule la heatmap est
+    filtrable par type — précisé explicitement dans le texte pour ne
+    pas laisser croire que l'activité par jour et les orientations
+    suivent le même filtre
+  - **Besoins matériels** (icône Package)
+  - **Finances** (icône Wallet, Admin seulement) — passée d'un
+    histogramme à un **camembert** (retour client : varier le style
+    entre sections, pertinent ici car on regarde une répartition d'un
+    tout entre 4 catégories)
+  - **Toutes fermées par défaut** (retour client, après un premier
+    essai avec certaines ouvertes) — sinon on retombe sur le même
+    problème visuel qu'avant. Chaque section reste identifiable même
+    repliée grâce au pictogramme
   - **Portée réelle du gain, à ne pas surestimer** : les 4 catégories
     viennent toujours d'un seul appel `/api/rapports` (pas scindé) — le
     gain porte sur le coût de **rendu** (DOM/JS, Leaflet notamment) au
     premier affichage, pas sur le volume réseau téléchargé
-  - Testé en local (compte de test créé puis supprimé) : les 4
-    sections s'affichent/se replient correctement, Terrain repliée au
-    chargement puis carte+graphiques fonctionnels à l'ouverture
+  - Testé en local (compte de test créé puis supprimé) à chaque étape :
+    les 4 sections fermées au chargement avec pictogrammes visibles,
+    Terrain et Finances ouvertes et vérifiées (camembert + légende,
+    heatmap + graphiques fonctionnels)
   - Piste notée mais **pas engagée** : `totals`, `activiteData` et
     `orientationsData` sont calculés en JS à partir des 5000 lignes
     brutes de `points_passage_geo` — une vraie agrégation côté base
