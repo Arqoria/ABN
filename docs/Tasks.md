@@ -963,6 +963,38 @@ en avaient le plus besoin. `rapports` reste volontairement à ~400ms
 (Route Handler assumé), déjà une nette amélioration par rapport à l'état
 initial du dashboard entier.
 
+### ✅ Correctif (16/09, commit `5dba733`) — déconnexion malgré "Se souvenir de moi"
+
+Signalé par le client : la case "Se souvenir de moi" (400 jours, voir
+`src/lib/supabase/remember-me.ts`) ne suffit pas toujours — redemande le
+mot de passe. Cause identifiée dans la doc officielle Supabase :
+mécanisme de **détection de réutilisation du refresh token** — si deux
+rafraîchissements de session se chevauchent en dehors d'une fenêtre de
+tolérance de 10s, Supabase révoque **toute la session**, cookie de 400
+jours ou pas.
+
+Next.js précharge automatiquement tout `<Link>` visible à l'écran, et
+chaque préchargement vers `/dashboard/*` passe par le middleware
+(`src/proxy.ts`) qui rafraîchit le token. Avec jusqu'à 7 liens d'action
+par carte de maraude affichée + le header toujours monté, plusieurs
+rafraîchissements peuvent se déclencher en parallèle — risque accru si
+l'un tombe sur un pic de latence Supabase (déjà documenté plus haut,
+jusqu'à 2,4s).
+
+**Correctif** : `prefetch={false}` sur tous les liens du dashboard
+protégé (en-tête, accueil, maraudes, export rapports) — double
+bénéfice : réduit le risque de collision, ET nos pages étant devenues
+des coquilles client légères (chantier ci-dessus), le préchargement
+n'apportait de toute façon plus grand-chose. Testé en local (navigation
+vérifiée, aucune régression — `prefetch={false}` ne change que
+l'anticipation, pas le comportement du clic).
+
+⚠️ Correctif qui **réduit la probabilité** du problème sans l'éliminer
+totalement (le mécanisme Supabase reste déclenchable dans d'autres
+circonstances — plusieurs onglets ouverts, coupure réseau pendant un
+rafraîchissement). À surveiller ; repasser dessus si le problème
+persiste après ce correctif.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
