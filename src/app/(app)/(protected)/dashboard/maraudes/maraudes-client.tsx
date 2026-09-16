@@ -80,6 +80,13 @@ async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
 //
 // Vérification de statut : centralisée dans dashboard/layout.tsx (redirect
 // serveur si pas "actif") — plus besoin de la refaire ici.
+//
+// prefetch={false} sur les liens d'action ci-dessous (jusqu'à 7 par
+// maraude affichée) : le préchargement déclenche le middleware
+// (rafraîchissement de session) pour chaque lien visible à l'écran, sans
+// bénéfice réel sur nos pages client désormais légères — en cause dans
+// un cas de déconnexion malgré "Se souvenir de moi" (16/09, voir
+// docs/Tasks.md).
 export function MaraudesClient() {
   const profile = useSession();
   const isAdminOrManagerForQuery =
@@ -174,25 +181,25 @@ export function MaraudesClient() {
                     profile.roles.includes("admin") ||
                     maraude.manager_id === profile.id) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/points`}>
+                      <Link href={`/dashboard/maraudes/${maraude.id}/points`} prefetch={false}>
                         Points de passage
                       </Link>
                     </Button>
                   )}
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/dashboard/maraudes/${maraude.id}/repas`}>
+                    <Link href={`/dashboard/maraudes/${maraude.id}/repas`} prefetch={false}>
                       Repas
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/dashboard/maraudes/${maraude.id}/tickets`}>
+                    <Link href={`/dashboard/maraudes/${maraude.id}/tickets`} prefetch={false}>
                       Tickets de dépense
                     </Link>
                   </Button>
                   {(profile.roles.includes("admin") ||
                     maraude.manager_id === profile.id) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/meteo`}>
+                      <Link href={`/dashboard/maraudes/${maraude.id}/meteo`} prefetch={false}>
                         Météo équipe
                       </Link>
                     </Button>
@@ -201,7 +208,7 @@ export function MaraudesClient() {
                     profile.roles.includes("admin") ||
                     maraude.manager_id === profile.id) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/carte`}>
+                      <Link href={`/dashboard/maraudes/${maraude.id}/carte`} prefetch={false}>
                         Carte
                       </Link>
                     </Button>
@@ -210,7 +217,7 @@ export function MaraudesClient() {
                     profile.roles.includes("admin") ||
                     profile.roles.includes("manager")) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/besoins`}>
+                      <Link href={`/dashboard/maraudes/${maraude.id}/besoins`} prefetch={false}>
                         Besoins
                       </Link>
                     </Button>
@@ -219,7 +226,7 @@ export function MaraudesClient() {
                     profile.roles.includes("admin") ||
                     maraude.manager_id === profile.id) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/equipe`}>
+                      <Link href={`/dashboard/maraudes/${maraude.id}/equipe`} prefetch={false}>
                         Équipe
                       </Link>
                     </Button>

@@ -49,8 +49,14 @@ export default async function ProtectedLayout({
     <div className="flex min-h-full flex-col">
       <OfflineSync />
       <header className="flex flex-wrap items-center justify-between gap-3 bg-brand-navy px-4 py-3 text-white sm:px-6">
+        {/* prefetch={false} sur tous les liens de cet en-tête : présent sur
+            CHAQUE page protégée, donc toujours monté/visible — un
+            préchargement permanent qui déclenche le middleware (rafraîchit
+            le token) à chaque page inutilement. Voir docs/Tasks.md,
+            "Chantier lancé, suite (16/09)". */}
         <Link
           href="/dashboard"
+          prefetch={false}
           className="text-sm font-semibold tracking-wide sm:text-base"
         >
           Les Anges de la Baie
@@ -59,6 +65,7 @@ export default async function ProtectedLayout({
           {profile.roles.includes("admin") && (
             <Link
               href="/dashboard/comptes"
+              prefetch={false}
               className="flex items-center gap-1.5 text-sm text-white/90 hover:text-white"
             >
               Comptes en attente
@@ -70,6 +77,7 @@ export default async function ProtectedLayout({
           {profile.roles.includes("admin") && (
             <Link
               href="/dashboard/candidatures"
+              prefetch={false}
               className="flex items-center gap-1.5 text-sm text-white/90 hover:text-white"
             >
               Candidatures

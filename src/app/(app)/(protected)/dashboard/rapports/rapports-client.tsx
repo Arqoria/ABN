@@ -110,7 +110,10 @@ export function RapportsClient() {
           </p>
         </div>
         <Button asChild variant="outline" className="h-12">
-          <Link href={exportHref}>Exporter (.xlsx)</Link>
+          {/* prefetch={false} : ce lien déclenche un téléchargement de
+              fichier, pas une navigation — le précharger n'a aucun sens et
+              ne fait que déclencher le middleware inutilement. */}
+          <Link href={exportHref} prefetch={false}>Exporter (.xlsx)</Link>
         </Button>
       </div>
 

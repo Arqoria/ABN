@@ -29,6 +29,12 @@ async function fetchComptesEnAttenteCount(): Promise<number> {
 // Page d'accueil du dashboard — voir docs/Tasks.md, "Chantier lancé".
 // Identité via useSession(), seul le compteur "comptes en attente" (Admin
 // uniquement) vient d'un fetch réseau (React Query).
+//
+// prefetch={false} sur les liens ci-dessous : nos pages dashboard sont
+// maintenant des coquilles client légères, le préchargement n'apporte
+// plus grand-chose, alors qu'il déclenche le middleware (rafraîchissement
+// de session) inutilement à chaque page visible à l'écran — en cause
+// dans un cas de déconnexion malgré "Se souvenir de moi" (16/09).
 export function DashboardHomeClient() {
   const profile = useSession();
   const isAdminOrManager =
@@ -65,7 +71,7 @@ export function DashboardHomeClient() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/dashboard/comptes">Gérer les comptes</Link>
+              <Link href="/dashboard/comptes" prefetch={false}>Gérer les comptes</Link>
             </Button>
           </CardContent>
         </Card>
@@ -84,7 +90,7 @@ export function DashboardHomeClient() {
         </CardHeader>
         <CardContent>
           <Button asChild>
-            <Link href="/dashboard/maraudes">Voir les maraudes</Link>
+            <Link href="/dashboard/maraudes" prefetch={false}>Voir les maraudes</Link>
           </Button>
         </CardContent>
       </Card>
@@ -100,7 +106,7 @@ export function DashboardHomeClient() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/dashboard/rapports">Voir les rapports</Link>
+              <Link href="/dashboard/rapports" prefetch={false}>Voir les rapports</Link>
             </Button>
           </CardContent>
         </Card>
