@@ -648,15 +648,37 @@ un clic si besoin : dashboard Probalia → bloc "Compute" en haut de page,
 doit afficher "NANO" comme sur la capture ABN — mais pas bloquant pour
 avancer, l'inférence org Free est déjà solide).
 
-**🔵 EN ATTENTE DU CLIENT — étape 2 du plan, bloquant pour la suite** :
-pour lancer le test chronométré croisé (comparer les taux de pics de
-latence bruts entre les deux projets, cf. méthode utilisée pour ABN :
-18 appels REST bruts, 17 rapides/1 pic), il faut :
-1. L'URL du projet Probalia (dashboard Probalia → Settings → API →
-   "Project URL", ressemble à `https://xxxxx.supabase.co`)
-2. Sa clé `anon`/`publishable` (même page — PAS la clé `service_role`/
-   secrète). Cette clé n'est pas sensible à partager, c'est celle destinée
-   au code client public.
+**✅ Étape 2 faite (16/09) — résultat : aucune différence détectée côté
+Supabase brut.** Test chronométré croisé, appels REST entrelacés
+(`GET /rest/v1/`, avec apikey) sur les deux projets, au même moment,
+même réseau : 20 échantillons/projet puis 40/projet (120 appels au
+total) :
+- 20/projet : ABN moyenne 114,6ms (min 82, max 366,7) ; Probalia moyenne
+  103,9ms (min 77,4, max 248,5)
+- 40/projet : ABN moyenne 88,8ms (min 65,8, max 143,3) ; Probalia
+  moyenne 82,9ms (min 58,4, max 114,6)
+- **Aucun pic significatif chez aucun des deux projets** sur ces 120
+  appels (contrairement au test du 15/09 sur ABN seul qui avait capté 1
+  pic à 2,4s sur 18 appels — soit le hasard n'a pas refait tomber la
+  dé sur un pic cette fois, soit la charge/contention varie dans le
+  temps). Les deux projets se comportent de façon statistiquement
+  similaire (écarts de quelques dizaines de ms, dans le bruit normal).
+- **Conclusion** : pas de différence mesurable de performance brute côté
+  Supabase entre ABN et Probalia aujourd'hui. Cohérent avec le fait
+  qu'ils sont sur le même palier gratuit (voir étape 1). **La cause de la
+  lenteur ressentie sur ABN n'est donc très probablement PAS le compute
+  Supabase lui-même, mais la façon dont le code d'ABN l'utilise** —
+  confirme l'intérêt des optimisations déjà faites (réduction des
+  allers-retours séquentiels, ISR) et oriente vers l'étape 3 plutôt que
+  vers un upgrade payant.
+
+**🔵 EN ATTENTE DU CLIENT — étape 3 du plan** : pour comprendre en quoi
+l'usage réel diffère (nombre d'appels par navigation, type d'appli —
+SPA qui ne recharge pas la page à chaque clic vs Next.js qui refait une
+vérification serveur à chaque navigation comme ABN actuellement), il
+faudrait soit un accès lecture au repo Probalia, soit au minimum savoir
+avec quelle techno/stack il est construit (et si les clics dans l'appli
+rechargent la page à chaque fois ou non, à l'usage).
 
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
