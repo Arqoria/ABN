@@ -1222,7 +1222,7 @@ horodatages de requêtes, pas le chiffre total.
   - Testé en local : ajout du rôle Cuisinier à un membre existant déjà
     Maraudeur confirmé en base (les autres rôles n'ont pas bougé), case
     Admin bien désactivée/cochée pour le compte connecté.
-- ✅ **Gestion des stocks + Gestion des cuisines (17/09, commit à venir)**
+- ✅ **Gestion des stocks + Gestion des cuisines (17/09, commit `202be43`)**
   — nouvelle demande client, depuis l'accueil (à côté de Gestion des
   adhérents/maraudes/Rapports & KPIs) : "gestion des stocks (couvertures,
   vêtements, kits d'hygiène) et gestion des cuisines (dons de plats/snacks,
