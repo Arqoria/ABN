@@ -1140,6 +1140,18 @@ horodatages de requêtes, pas le chiffre total.
     brutes de `points_passage_geo` — une vraie agrégation côté base
     (vue SQL ou RPC) donnerait les mêmes chiffres pour une fraction du
     poids réseau. À faire si le lazy-loading seul ne suffit pas.
+  - **✅ Deux correctifs supplémentaires (16/09, commit `c09bd57`)** :
+    - Le squelette de chargement affichait encore l'ancienne mise en
+      page "tout ouvert" (gros blocs pleine hauteur), plus du tout
+      représentatif après le passage aux 4 sections fermées par
+      défaut — remplacé par des squelettes courts de la même hauteur
+      qu'une section fermée
+    - Les 4 courbes d'"Activité par jour" s'entremêlaient, illisibles
+      ensemble — ajouté un filtre par type (mêmes cases à cocher +
+      pastille de couleur que la heatmap, `Set` indépendant, purement
+      client), remplace l'ancienne légende recharts qui ne permettait
+      pas d'isoler une courbe. Testé : décocher un type fait
+      disparaître sa courbe en laissant les autres lisibles.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
