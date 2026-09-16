@@ -637,17 +637,26 @@ juste au niveau du projet. **Si Probalia est hébergé sous ce même compte
 Arqoria, il est donc probablement lui aussi sur du calcul partagé gratuit
 — ce qui écarterait d'emblée "palier différent" comme explication.**
 
-**🔵 EN ATTENTE DU CLIENT — bloquant pour la suite du diagnostic** :
-1. Confirmer si le projet Probalia est hébergé sous ce même compte/organisation
-   Arqoria (visible en haut à gauche du dashboard Supabase, à côté du nom
-   du projet) ou sous un compte Supabase différent (personnel ?).
-2. Si c'est un compte différent : vérifier le **palier de calcul de ce
-   projet** (même écran que la capture ci-dessus : bloc "Compute" sur la
-   page d'accueil du projet) et rapporter Nano/Micro partagé, ou un palier
-   payant dédié.
-C'est la première étape du plan ci-dessous, à faire avant tout accès
-élargi (repo, MCP, etc.) car c'est gratuit, prend 2 minutes, et a le plus
-fort pouvoir explicatif.
+**✅ Étape 1 tranchée (16/09)** : le client confirme que Probalia est
+hébergé sous ce même compte/organisation Arqoria. Or l'organisation
+Arqoria est sur le plan Free (confirmé sur la capture ABN) — le calcul
+dédié/payant se débloquant au niveau de l'organisation chez Supabase (pas
+projet par projet), **Probalia tourne donc très probablement lui aussi
+sur le palier Nano partagé gratuit, comme ABN**. "Palier de calcul
+différent" est donc écarté comme explication (à confirmer visuellement en
+un clic si besoin : dashboard Probalia → bloc "Compute" en haut de page,
+doit afficher "NANO" comme sur la capture ABN — mais pas bloquant pour
+avancer, l'inférence org Free est déjà solide).
+
+**🔵 EN ATTENTE DU CLIENT — étape 2 du plan, bloquant pour la suite** :
+pour lancer le test chronométré croisé (comparer les taux de pics de
+latence bruts entre les deux projets, cf. méthode utilisée pour ABN :
+18 appels REST bruts, 17 rapides/1 pic), il faut :
+1. L'URL du projet Probalia (dashboard Probalia → Settings → API →
+   "Project URL", ressemble à `https://xxxxx.supabase.co`)
+2. Sa clé `anon`/`publishable` (même page — PAS la clé `service_role`/
+   secrète). Cette clé n'est pas sensible à partager, c'est celle destinée
+   au code client public.
 
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
