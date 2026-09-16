@@ -940,6 +940,14 @@ chargement) — demandé explicitement par le client pour observer la
 vitesse brute sans l'interstitiel, avant de décider d'un éventuel
 remplacement par des squelettes visuels.
 
+**✅ Squelettes ajoutés (16/09, commit `2625ba1`)** — décision prise
+après mesure : le blanc pendant le chargement est remplacé par de vrais
+squelettes visuels sur les 10 pages concernées (`src/components/ui/
+skeleton.tsx` + `src/components/card-list-skeleton.tsx` génériques,
+squelettes sur mesure pour carte/points/rapports). Profité du passage
+pour séparer proprement chargement (squelette) et erreur réseau (message
+visible) — les deux étaient fusionnés en un seul `return null`.
+
 **Mesure en production (compte de test créé puis supprimé)** — premier
 essai comparant `maraudes` (converti) à `comptes` (converti dans le même
 commit) : résultat quasi identique (~290ms des deux côtés), ce qui
@@ -1025,6 +1033,40 @@ persiste après ce correctif.
   réel après le correctif prefetch avant d'envisager d'y toucher (bug
   intermittent par nature, difficile à confirmer "réglé" en une seule
   session de test).
+
+### ✅ Vraie cause trouvée et corrigée (16/09, commit `425163c`) — "je dois retaper mon mot de passe"
+
+Le client a précisé le scénario exact : même sur ordinateur (Chrome), en
+étant déjà connecté, ouvrir un nouvel onglet vers le site atterrit sur la
+page d'accueil publique, et il fallait retaper le mot de passe. Ça a
+permis de trouver la **vraie** cause, différente de la collision de
+rafraîchissement de jeton (qui reste une amélioration légitime mais
+n'était pas le problème principal) :
+
+**`/login` et `/signup` ne vérifiaient jamais si une session valide
+existait déjà** — le formulaire s'affichait systématiquement, même avec
+un cookie de session parfaitement valide (confirmé à 400 jours la
+veille). Donc rouvrir `/login` (nouvel onglet, lien "Espace bénévole"
+depuis le site public, etc.) réaffichait toujours un formulaire vide,
+même connecté — donnant l'impression d'être déconnecté alors que la
+session n'avait jamais expiré.
+
+**Correctif** : `/login` et `/signup` sont devenues des Server Components
+qui vérifient la session (`getUser()`) et redirigent vers `/dashboard` si
+un utilisateur existe déjà ; le formulaire lui-même déplacé dans
+`login-client.tsx` / `signup-client.tsx` (inchangés sinon).
+
+**Changement demandé en plus** : `start_url` du manifest PWA passé de
+`/` à `/login` — l'icône installée sur l'écran d'accueil sert
+maintenant l'espace bénévole directement (qui redirige vers `/dashboard`
+si déjà connecté, affiche le formulaire sinon) plutôt que la vitrine
+publique. La navigation normale du site via un navigateur classique
+n'est pas affectée.
+
+**Testé en local** (compte de test créé puis supprimé) : connexion, puis
+navigation vers `/login` dans le même onglet ET dans un nouvel onglet →
+redirection immédiate vers `/dashboard` confirmée dans les deux cas.
+Build propre. Déployé, en attente de vérification finale en production.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
