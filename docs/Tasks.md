@@ -1104,6 +1104,28 @@ appris plus haut dans ce document) — la preuve retenue est celle des
 horodatages de requêtes, pas le chiffre total.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
+
+**🟨 Chantier lancé (16/09)**, on commence par Rapports & KPIs.
+
+- 🟨 **Rapports & KPIs** — actuellement 4 chiffres clés + carte + 4
+  graphiques tous au même niveau visuel, "en vrac" (retour client,
+  16/09). Regroupement validé en 4 catégories :
+  - **Vue d'ensemble** — les 4 chiffres clés
+  - **Terrain** — carte (heatmap) + activité par jour + orientations
+    par organisme
+  - **Besoins matériels** — besoins signalés
+  - **Finances** (Admin seulement) — dépenses par catégorie
+  - **Chargement à la demande** pour la section Terrain (la plus lourde
+    — jusqu'à 5000 points pour la heatmap) : ne se charge qu'à
+    l'ouverture, pas systématiquement au premier affichage. Vue
+    d'ensemble + Besoins restent chargés immédiatement (légers).
+  - Piste notée mais **pas engagée maintenant** : `totals`,
+    `activiteData` et `orientationsData` sont aujourd'hui calculés en
+    JS à partir des 5000 lignes brutes de `points_passage_geo` — une
+    vraie agrégation côté base (vue SQL ou RPC) donnerait les mêmes
+    chiffres pour une fraction du poids réseau, indépendamment de
+    l'organisation visuelle. À faire si le lazy-loading seul ne suffit
+    pas.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
@@ -1132,6 +1154,45 @@ horodatages de requêtes, pas le chiffre total.
   - **Lien social et écoute** : client encore en train de se renseigner
     en interne sur les projets/contenu à mettre — pas de matière pour
     l'instant, attendre son retour avant d'attaquer cette page
+
+## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé)
+
+Demandé par le client — **absent de Specs.md et Tasks.md avant ce jour**,
+vérifié explicitement (pas dans le cahier des charges initial, ni discuté
+et oublié — vraie nouvelle idée ou remontée d'un échange jamais
+consigné). Besoin exprimé : goûter, café, maraude hors du vendredi
+habituel — des événements ponctuels, distincts de la récurrence
+hebdomadaire déjà gérée par le système de maraudes actuel.
+
+**Pas scopé sérieusement** — à clarifier avant de commencer :
+- Nouvelle table `evenements` (titre, description, date_heure, lieu,
+  créé par) — modèle distinct des `maraudes` (pas de récurrence
+  vendredi, pas de météo bénévole/points de passage a priori)
+- Inscriptions : réutiliser le principe de `inscriptions_maraude`
+  (liste d'attente, etc.) ou plus simple (pas de limite à 6 personnes
+  a priori) ?
+- Qui peut créer un événement — Admin/Manager seulement, ou plus large ?
+- Visible par qui — tous les bénévoles actifs, adhérents compris ?
+- Vue calendrier ou simple liste chronologique ?
+
+## Piste — Système de note de service / bulletin interne (16/09, pas scopé)
+
+Demandé par le client, **séparé du module d'événements ci-dessus** —
+diffusion d'informations à sens unique (Admin/Manager écrit, les
+bénévoles lisent), **pas une messagerie/chat** (le client a explicitement
+distingué les deux besoins). Piste du client : pourrait constituer le
+contenu du tableau de bord du rôle **Adhérent** — vérifié, ce rôle existe
+déjà dans `src/lib/roles.ts` mais n'a aujourd'hui **aucun contenu dédié**
+(un Adhérent voit le même accueil générique que tout le monde).
+
+**Pas scopé sérieusement** — à clarifier avant de commencer :
+- Nouvelle table `notes_service` (titre, contenu, créé par, date,
+  éventuelle date d'expiration/archivage)
+- Qui peut publier — Admin seulement, ou aussi Manager ?
+- Visible par quels rôles — Adhérent seulement, ou affiché à tous
+  (avec le dashboard Adhérent comme point de départ) ?
+- Lien avec le chantier notifications push (Étape 11, ci-dessous) — une
+  nouvelle note déclenche-t-elle une notification ?
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)
