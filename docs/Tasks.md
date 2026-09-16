@@ -1204,7 +1204,7 @@ horodatages de requêtes, pas le chiffre total.
   (webhook + table Supabase, ou appel direct à l'API à chaque
   ouverture — à trancher le moment venu) est regroupé avec les autres
   tâches "carte bancaire" (OAuth, nom de domaine).
-- ✅ **Section "Membres" — gestion des rôles (17/09, commit à venir)** —
+- ✅ **Section "Membres" — gestion des rôles (17/09, commit `eb2d90a`)** —
   demande client : pouvoir gérer les rôles (Cuisinier, Admin, Manager,
   etc.) des membres, pas seulement à la validation du compte. Nouvelle
   5ᵉ section (icône Users) entre Comptes en attente et Candidatures :
