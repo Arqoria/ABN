@@ -588,27 +588,40 @@ après coup, même méthode que les diagnostics précédents). Mesures réelles
   supplémentaire → **les données visibles ~1,8s au lieu de ~3,9s, soit un
   vrai gain perçu d'environ 2 secondes, mais uniquement à partir de la 2e
   visite sur cette page précise**.
-- **Conclusion honnête** : le cache local apporte un vrai bénéfice perçu,
-  mais seulement en répétition (2e clic et suivants sur la même page), pas
-  au premier chargement (légèrement plus lent). Il ne corrige PAS la cause
-  racine déjà identifiée (la coquille de page / vérification de session
-  reste ~1,6-2,2s quoi qu'il arrive, car elle doit rester côté serveur pour
-  la sécurité) — il masque seulement une partie du symptôme sur les pages
-  où on revient souvent. Généraliser ce pattern à tout le dashboard
-  demanderait de dupliquer cette logique (Route Handler + Client Component +
-  gestion cache) sur chaque page protégée, avec une vraie stratégie de
-  fraîcheur pour les données sensibles au temps réel (inscriptions, météo
-  bénévole) — décision à prendre avec le client : le jeu en vaut-il la
-  chandelle comparé au palier Supabase payant (~40$/mois, résultat
-  immédiat, aucun code supplémentaire à maintenir) ?
+- **⚠️ Correction (16/09) — méthodologie invalide, ne pas se fier aux
+  chiffres ci-dessus** : cette mesure est basée sur **un seul essai** par
+  condition (1 chargement "sans cache", 1 chargement "avec cache"). Or le
+  diagnostic précédent (voir plus haut) a établi que les appels Supabase
+  ont des pics de contention aléatoires (~1 appel sur 15-20 tombe à
+  ~2,4s au lieu de ~150ms) — l'écart observé entre les deux essais (1,6s
+  vs 2,2s de TTFB sur la coquille de page, qui elle n'est PAS affectée par
+  le cache) est **cohérent avec du simple bruit de mesure** (un essai qui
+  tombe sur un pic, l'autre non), pas forcément avec un effet réel du
+  cache. Le "gain perçu d'environ 2 secondes" annoncé initialement n'est
+  donc **pas fiable** — il aurait fallu plusieurs dizaines d'essais dans
+  chaque condition pour trancher. Ça ne remet pas en cause la décision de
+  revenir en arrière (voir ci-dessous) — au contraire, ça confirme qu'on
+  n'a jamais eu de preuve solide que le cache apportait un vrai bénéfice.
+- Généraliser ce pattern à tout le dashboard aurait de toute façon demandé
+  de dupliquer cette logique (Route Handler + Client Component + gestion
+  cache) sur chaque page protégée, avec une vraie stratégie de fraîcheur
+  pour les données sensibles au temps réel (inscriptions, météo bénévole).
 
 **Décision du client (15/09)** : revenu en arrière (`git revert`,
-commit `2ddeee5`) — `/dashboard/maraudes` est repassée en 100% serveur,
-gain jugé trop partiel (seulement dès la 2e visite) pour justifier
-d'étendre ce pattern à tout le dashboard dans l'immédiat. Piste conservée
-ici pour référence si le sujet est repris plus tard ; alternative palier
-Supabase dédié toujours ouverte, à trancher avec le client le moment
-venu.
+commit `2ddeee5`) — `/dashboard/maraudes` est repassée en 100% serveur.
+Piste conservée ici pour référence si le sujet est repris plus tard (avec
+cette fois une vraie méthodologie multi-essais si on veut la retester) ;
+alternative palier Supabase dédié toujours ouverte, à trancher avec le
+client le moment venu.
+
+**Suite (16/09)** — le client demande comment identifier l'origine réelle
+du ralentissement, notamment via une comparaison directe avec le projet
+Probalia (accès repo + configuration Supabase). Voir plan d'investigation
+plus bas dans la conversation / prochaine session : commencer par comparer
+le **palier de calcul Supabase** des deux projets (vérification à 2 minutes,
+avant tout accès élargi) — si Probalia tourne sur un palier payant/dédié,
+ça expliquerait la différence perçue sans qu'aucune architecture
+particulière ne soit en cause.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
