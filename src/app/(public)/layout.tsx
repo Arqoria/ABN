@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "./site-header";
 
 const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 
 // Layout du site vitrine public — Étape 10. Header sticky (reste visible au
 // scroll, via `sticky` plutôt que `fixed` — même effet visuel sans avoir à
-// compenser un padding-top ailleurs) + footer bleu marine.
+// compenser un padding-top ailleurs) + footer bleu marine. Header extrait
+// dans site-header.tsx (Client Component, menu hamburger mobile).
 //
 // Footer volontairement partiel : pas de liens réseaux sociaux ni de
 // mentions légales/transparence tant qu'on n'a pas les vraies infos de
@@ -15,27 +15,7 @@ const CONTACT_EMAIL = "lesangesdelabaiedenice@gmail.com";
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-brand-navy px-4 py-3 text-white sm:px-6">
-        <Link href="/" className="text-sm font-semibold tracking-wide sm:text-base">
-          Les Anges de la Baie
-        </Link>
-        <nav className="flex flex-wrap items-center gap-4 text-sm">
-          <Link href="/recrutement" className="text-white/90 hover:text-white">
-            Devenir bénévole
-          </Link>
-          <Link href="/dons" className="text-white/90 hover:text-white">
-            Faire un don
-          </Link>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
-          >
-            <Link href="/login">Espace bénévole</Link>
-          </Button>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="flex-1">{children}</main>
 

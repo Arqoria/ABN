@@ -417,9 +417,8 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
 
 ## Étape 10 — Site vitrine public
 - 🟨 Pages SEO local (accueil, présentation, actions) — **accueil v1 minimale
-  livrée** (13/09), **refonte v3 livrée** (14-15/09, branche
-  `feat/accueil-v3` — **PAS ENCORE mergée sur `main`**, à valider/merger en
-  prochaine session) :
+  livrée** (13/09), **refonte v3 livrée et mergée sur `main`** (14-15/09,
+  commit `d46cde6`) :
   - Hero 2 colonnes avec vraie photo d'équipe (récupérée par le client sur
     l'Instagram de l'asso, `@labnice06`, triée à la main — ~30 photos
     passées en revue, la plupart écartées : hors-sujet, visage de
@@ -441,9 +440,15 @@ maintenir. Retenu à la place : un champ cosmétique, pas de rôle.
     JSON-LD Organization (données réelles uniquement), `robots.ts` +
     `sitemap.ts` (rien n'existait avant), `metadataBase` sur l'URL Vercel
     de prod (pas de nom de domaine propre encore)
-  - **Connu, pas corrigé** : navbar sans menu hamburger mobile — prend
-    ~15% de la hauteur d'écran sur petit mobile, en permanence (sticky).
-    À traiter avant de considérer la vitrine vraiment finie
+  - ✅ **Corrigé (16/09)** : navbar sans menu hamburger mobile (prenait
+    ~15% de la hauteur d'écran en permanence sur petit mobile). Header
+    extrait dans `src/app/(public)/site-header.tsx` (seul Client
+    Component de la zone publique, pour le `useState` du menu) — sous
+    `sm` (640px), les liens sont repliés derrière un bouton hamburger ;
+    au-delà, affichage inline inchangé. Testé en vrai (desktop + mobile
+    375px, ouverture/fermeture, fermeture automatique à la navigation) :
+    OK des deux côtés, build statique de `/` et `/dons` inchangé (ISR
+    toujours actif).
   - **Reste factuel/pas de contenu inventé** : pas de "Présentation"/
     "Actions" dédiées, pas de témoignage, pas de réseaux sociaux, pas de
     mentions légales — attend du vrai contenu de l'association
