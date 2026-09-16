@@ -622,13 +622,32 @@ plus haut). Question ouverte du client : est-ce qu'un accès à Probalia
 trancher ? Et est-ce qu'il y a peut-être un lien tout court entre les deux
 projets ?
 
-**🔵 EN ATTENTE DU CLIENT — bloquant pour la suite du diagnostic** : le
-client doit vérifier le **palier de calcul Supabase de Probalia**
-(dashboard Supabase du projet Probalia → Settings → Compute and Disk, ou
-Billing) et rapporter si c'est Free/Micro partagé, ou un palier payant
-dédié. C'est la première étape du plan ci-dessous, à faire avant tout
-accès élargi (repo, MCP, etc.) car c'est gratuit, prend 2 minutes, et a le
-plus fort pouvoir explicatif.
+**Confirmé (16/09, capture d'écran du dashboard Supabase d'ABN)** : le
+projet ABN tourne sur le palier gratuit **Nano** (pas "Micro" comme
+formulé un peu vite plus haut — nom exact du palier par défaut du plan
+Free), instance `t3a.nano`, région `eu-west-3` (Paris), confirmé. Charge
+observée avec seulement les données de test actuelles : CPU 2%, RAM 60%
+(~300 Mo/512 Mo déjà utilisés), disque 14%, 8/60 connexions. Une RAM déjà
+à 60% avec quasiment aucune vraie activité est cohérent avec l'hypothèse
+des pics de contention (l'instance a très peu de marge). Point important
+vu sur ce même écran : l'organisation **Arqoria est elle-même sur le plan
+Free** — or chez Supabase, le calcul dédié/payant (Micro/Small/…) doit
+être débloqué au niveau de l'organisation (upgrade vers Pro minimum), pas
+juste au niveau du projet. **Si Probalia est hébergé sous ce même compte
+Arqoria, il est donc probablement lui aussi sur du calcul partagé gratuit
+— ce qui écarterait d'emblée "palier différent" comme explication.**
+
+**🔵 EN ATTENTE DU CLIENT — bloquant pour la suite du diagnostic** :
+1. Confirmer si le projet Probalia est hébergé sous ce même compte/organisation
+   Arqoria (visible en haut à gauche du dashboard Supabase, à côté du nom
+   du projet) ou sous un compte Supabase différent (personnel ?).
+2. Si c'est un compte différent : vérifier le **palier de calcul de ce
+   projet** (même écran que la capture ci-dessus : bloc "Compute" sur la
+   page d'accueil du projet) et rapporter Nano/Micro partagé, ou un palier
+   payant dédié.
+C'est la première étape du plan ci-dessous, à faire avant tout accès
+élargi (repo, MCP, etc.) car c'est gratuit, prend 2 minutes, et a le plus
+fort pouvoir explicatif.
 
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
