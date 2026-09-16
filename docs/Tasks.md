@@ -616,12 +616,55 @@ client le moment venu.
 
 **Suite (16/09)** — le client demande comment identifier l'origine réelle
 du ralentissement, notamment via une comparaison directe avec le projet
-Probalia (accès repo + configuration Supabase). Voir plan d'investigation
-plus bas dans la conversation / prochaine session : commencer par comparer
-le **palier de calcul Supabase** des deux projets (vérification à 2 minutes,
-avant tout accès élargi) — si Probalia tourne sur un palier payant/dédié,
-ça expliquerait la différence perçue sans qu'aucune architecture
-particulière ne soit en cause.
+Probalia (même compte Supabase, "semblait rapide" selon le client — voir
+plus haut). Question ouverte du client : est-ce qu'un accès à Probalia
+(repo + config Supabase) et/ou un budget Supabase permettraient de
+trancher ? Et est-ce qu'il y a peut-être un lien tout court entre les deux
+projets ?
+
+**🔵 EN ATTENTE DU CLIENT — bloquant pour la suite du diagnostic** : le
+client doit vérifier le **palier de calcul Supabase de Probalia**
+(dashboard Supabase du projet Probalia → Settings → Compute and Disk, ou
+Billing) et rapporter si c'est Free/Micro partagé, ou un palier payant
+dédié. C'est la première étape du plan ci-dessous, à faire avant tout
+accès élargi (repo, MCP, etc.) car c'est gratuit, prend 2 minutes, et a le
+plus fort pouvoir explicatif.
+
+Plan d'investigation complet (du moins cher/rapide au plus lourd), à
+suivre dans l'ordre :
+
+1. **Palier de calcul Supabase, Probalia vs ABN** (2 min, aucun accès à
+   débloquer — juste que le client regarde et rapporte). ABN est sur Free
+   (compute partagé Micro). Si Probalia est sur un palier payant/dédié,
+   ça explique probablement toute la différence perçue, sans qu'aucune
+   architecture particulière (cache local, etc.) ne soit en cause — il
+   suffirait alors de basculer ABN sur le même palier (~10-40$/mois
+   selon le palier, voir tarifs ci-dessus).
+2. **Si même palier gratuit des deux côtés** : test chronométré croisé —
+   20-30 appels REST bruts sur chaque projet, au même moment, même
+   réseau, pour comparer les taux de pics de contention (référence ABN :
+   17/18 rapides 89-257ms, 1/18 à 2,4s, voir plus haut). Nécessite l'URL
+   du projet Probalia + sa clé `anon`/`publishable` (pas la clé secrète,
+   celle-là n'est pas sensible à partager).
+3. **Si le comportement brut Supabase est identique des deux côtés** :
+   inspection réelle du code Probalia (accès lecture au repo GitHub, ou
+   juste les fichiers qui chargent les données) pour vérifier
+   objectivement s'il y a un vrai mécanisme local-first/offline-sync, au
+   lieu de partir sur une supposition based on la description du client.
+4. **Si tout ça ne suffit pas** : accès Supabase MCP en lecture seule sur
+   le projet Probalia (nouveau Personal Access Token, nouvelle session
+   Claude Code — voir note dans CLAUDE.md, section Accès & sécurité) pour
+   regarder ses advisors/logs directement.
+
+Important : upgrader le palier de calcul d'ABN ne réglera le problème QUE
+si l'étape 1 confirme que c'est bien le compute la cause — dépenser sans
+savoir ne réglera rien si la vraie cause est ailleurs.
+
+⚠️ Rappel important pour la suite : la preuve de concept "cache local"
+testée le 15/09 (voir ci-dessus) a été invalidée méthodologiquement (un
+seul essai par condition, chiffres non fiables) puis annulée (`git
+revert`, commit `2ddeee5`). Ne pas repartir de ces chiffres si le sujet du
+cache local est repris — refaire une vraie mesure multi-essais.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
