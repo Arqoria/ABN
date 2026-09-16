@@ -1107,25 +1107,28 @@ horodatages de requêtes, pas le chiffre total.
 
 **🟨 Chantier lancé (16/09)**, on commence par Rapports & KPIs.
 
-- 🟨 **Rapports & KPIs** — actuellement 4 chiffres clés + carte + 4
-  graphiques tous au même niveau visuel, "en vrac" (retour client,
-  16/09). Regroupement validé en 4 catégories :
-  - **Vue d'ensemble** — les 4 chiffres clés
+- ✅ **Rapports & KPIs** (16/09, commit `5749e1c`) — regroupée en 4
+  sections repliables (`rapport-section.tsx`, pas de nouvelle
+  dépendance) :
+  - **Vue d'ensemble** — les 4 chiffres clés, ouverte par défaut
   - **Terrain** — carte (heatmap) + activité par jour + orientations
-    par organisme
-  - **Besoins matériels** — besoins signalés
-  - **Finances** (Admin seulement) — dépenses par catégorie
-  - **Chargement à la demande** pour la section Terrain (la plus lourde
-    — jusqu'à 5000 points pour la heatmap) : ne se charge qu'à
-    l'ouverture, pas systématiquement au premier affichage. Vue
-    d'ensemble + Besoins restent chargés immédiatement (légers).
-  - Piste notée mais **pas engagée maintenant** : `totals`,
-    `activiteData` et `orientationsData` sont aujourd'hui calculés en
-    JS à partir des 5000 lignes brutes de `points_passage_geo` — une
-    vraie agrégation côté base (vue SQL ou RPC) donnerait les mêmes
-    chiffres pour une fraction du poids réseau, indépendamment de
-    l'organisation visuelle. À faire si le lazy-loading seul ne suffit
-    pas.
+    par organisme, **fermée par défaut** (la plus lourde — jusqu'à
+    5000 points) : ses composants (Leaflet, graphiques) ne sont montés
+    qu'à l'ouverture, pas au premier affichage
+  - **Besoins matériels** — ouverte par défaut (légère)
+  - **Finances** (Admin seulement) — ouverte par défaut (légère)
+  - **Portée réelle du gain, à ne pas surestimer** : les 4 catégories
+    viennent toujours d'un seul appel `/api/rapports` (pas scindé) — le
+    gain porte sur le coût de **rendu** (DOM/JS, Leaflet notamment) au
+    premier affichage, pas sur le volume réseau téléchargé
+  - Testé en local (compte de test créé puis supprimé) : les 4
+    sections s'affichent/se replient correctement, Terrain repliée au
+    chargement puis carte+graphiques fonctionnels à l'ouverture
+  - Piste notée mais **pas engagée** : `totals`, `activiteData` et
+    `orientationsData` sont calculés en JS à partir des 5000 lignes
+    brutes de `points_passage_geo` — une vraie agrégation côté base
+    (vue SQL ou RPC) donnerait les mêmes chiffres pour une fraction du
+    poids réseau. À faire si le lazy-loading seul ne suffit pas.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
