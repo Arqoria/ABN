@@ -1193,6 +1193,17 @@ horodatages de requêtes, pas le chiffre total.
     de chasser un faux bug : en cas de doute sur un rafraîchissement qui
     semble ne pas se produire, vérifier via le DOM/texte réel avant de
     conclure, pas seulement via une capture d'écran.
+- ✅ **Coquille "Cotisations" ajoutée à Gestion des adhérents (17/09,
+  commit à venir)** — question client : la gestion des cotisations
+  (HelloAsso) peut-elle être gérée depuis cette page ? Réponse : oui,
+  techniquement, via l'API HelloAsso (liste des adhésions d'un
+  formulaire, qui a payé/quand/combien). Décision client : "on fabrique
+  la coquille, on fera le branchement en même temps que OAuth, etc." —
+  4ᵉ section (icône CreditCard) entre Candidatures et Bureau, texte
+  d'attente uniquement, aucun appel réseau. Le vrai branchement
+  (webhook + table Supabase, ou appel direct à l'API à chaque
+  ouverture — à trancher le moment venu) est regroupé avec les autres
+  tâches "carte bancaire" (OAuth, nom de domaine).
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
@@ -1292,6 +1303,11 @@ Recherché le 12/09 (voir sources dans la conversation) :
 - **Prérequis avant de coder quoi que ce soit** : l'utilisateur doit d'abord
   créer le compte association sur HelloAsso lui-même (création de compte =
   hors de portée de l'assistant) et récupérer clientId/clientSecret.
+- **Lié (17/09)** : section "Cotisations" (coquille posée sur
+  `/dashboard/adherents`, voir Étape 10bis) — même compte/API HelloAsso,
+  mais usage différent : lister les **adhésions** existantes (qui a payé
+  sa cotisation, pas collecter un nouveau don). À brancher en même temps
+  que ce module dons, une fois les identifiants API disponibles.
 
 ## Ajout — affectations par maraude (retour utilisateur, 12-13/09)
 

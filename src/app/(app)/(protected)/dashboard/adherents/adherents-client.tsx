@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { CollapsibleSection } from "@/components/collapsible-section";
-import { UserPlus, Inbox, Briefcase } from "lucide-react";
+import { UserPlus, Inbox, Briefcase, CreditCard } from "lucide-react";
 import { ValiderCompteForm } from "./valider-compte-form";
 import { BureauForm } from "./bureau-form";
 import { ToggleTraitee } from "./toggle-traitee";
@@ -153,7 +153,8 @@ export function AdherentsClient() {
           Gestion des adhérents
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Comptes à valider, candidatures bénévoles et fonctions du bureau.
+          Comptes à valider, candidatures bénévoles, cotisations et
+          fonctions du bureau.
         </p>
       </div>
 
@@ -231,6 +232,23 @@ export function AdherentsClient() {
             ))
           )}
         </div>
+      </CollapsibleSection>
+
+      {/* Coquille (17/09) : la synchronisation réelle avec HelloAsso est
+          groupée avec les autres tâches nécessitant la carte bancaire de
+          l'association (OAuth, nom de domaine) — voir docs/Tasks.md. Pas
+          de donnée ici tant que le branchement n'est pas fait. */}
+      <CollapsibleSection
+        title="Cotisations"
+        description="Synchronisation HelloAsso à venir."
+        icon={CreditCard}
+      >
+        <p className="text-sm text-muted-foreground">
+          Cette section affichera qui est à jour de cotisation dès que la
+          synchronisation avec HelloAsso sera branchée (regroupée avec
+          OAuth et le nom de domaine, en attente de la carte bancaire de
+          l&apos;association).
+        </p>
       </CollapsibleSection>
 
       <CollapsibleSection
