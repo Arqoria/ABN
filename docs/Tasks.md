@@ -822,6 +822,75 @@ seul essai par condition, chiffres non fiables) puis annulée (`git
 revert`, commit `2ddeee5`). Ne pas repartir de ces chiffres si le sujet du
 cache local est repris — refaire une vraie mesure multi-essais.
 
+### 🟨 Chantier lancé (16/09) — généraliser le pattern "auth unique par session"
+
+Décision du client : attaquer ce chantier en priorité. Contrairement à la
+preuve de concept du 15/09 (hypothèse non testée), celui-ci s'appuie sur
+le mécanisme réel confirmé chez Probalia (étape 3 ci-dessus) et sur
+`@tanstack/react-query`, la même librairie que Probalia utilise avec
+succès en production — pas de code de cache fait maison cette fois.
+
+**Fondations posées** (commit `f729839`) :
+- `src/components/session-provider.tsx` — contexte client `useSession()`,
+  **hydraté depuis le `profile` déjà calculé une fois par le layout
+  serveur** (`(app)/(protected)/layout.tsx`) — zéro appel réseau
+  supplémentaire au premier chargement, contrairement à Probalia qui
+  refait un fetch client. Le layout ne se remontant pas entre deux pages
+  du même groupe de routes, ce contexte reste stable pendant toute la
+  navigation côté client.
+- `src/components/query-provider.tsx` — `@tanstack/react-query`,
+  `staleTime: 30s`.
+- Sécurité **inchangée** : RLS Postgres reste la vraie barrière sur
+  chaque requête, comme avant. Le premier chargement/rafraîchissement
+  passe toujours par `getCurrentProfile()` côté serveur (layout).
+  Contrepartie assumée et documentée dans le code : un changement de
+  rôle/statut par un Admin ne s'applique qu'au prochain rafraîchissement
+  complet de la personne concernée, plus au prochain clic (avant :
+  quasi-immédiat) — à surveiller si ça pose un problème d'usage réel.
+
+**Page pilote migrée** : `/dashboard/maraudes`
+- `page.tsx` réduit à un simple point d'entrée de route (plus aucun appel
+  serveur propre à cette page)
+- `maraudes-client.tsx` (nouveau) : Client Component, identité via
+  `useSession()`, données via `useQuery` + `/api/maraudes`
+- `/api/maraudes/route.ts` (recréé) : Route Handler JSON léger, même
+  logique/RLS que l'ancienne page 100% serveur — reste protégé par
+  `getCurrentProfile()`, c'est la vraie vérification pour CES données,
+  juste déplacée d'un rendu de page complet vers un endpoint JSON léger
+- Vérification de statut (`compte_en_attente`) faite **côté client** dans
+  `maraudes-client.tsx`, pas dans le layout partagé — le layout englobe
+  aussi `/compte-en-attente`, y centraliser créerait une boucle de
+  redirection. Centraliser proprement = suite possible une fois le
+  pattern généralisé à plus de pages.
+
+**✅ Mesure en production (16/09, compte de test créé puis supprimé)** —
+test A/B **dans la même session**, en alternant les clics entre la page
+pilote et une page pas encore migrée (`/dashboard/comptes`), pour éliminer
+la variabilité jour/heure/charge Supabase (12 allers-retours de chaque
+côté, marqueur = apparition des vraies données dans le DOM) :
+
+| Page | Moyenne | Min | Max |
+|---|---|---|---|
+| `/dashboard/maraudes` (migrée) | **291ms** | 233ms | 443ms |
+| `/dashboard/comptes` (pas migrée, même session/minute) | 1147ms | 719ms | 2231ms |
+
+**Environ 3,9x plus rapide**, mesuré en conditions réelles, contrôle direct
+dans la même session (pas une comparaison avec un autre jour). Reste
+~1,7x plus lent que la moyenne mesurée sur une page Probalia équivalente
+(167ms, voir plus haut) — écart plausible : le Route Handler
+`/api/maraudes` fait quand même un aller-retour serveur (léger, mais réel)
+pour la vérification d'identité sur CES données, alors que Probalia
+interroge Supabase directement sans cette étape intermédiaire ; à
+surveiller mais pas bloquant, l'essentiel de l'écart initial est comblé.
+
+**Pas fait d'un coup** — reste à généraliser à ~14 autres pages protégées
+(candidatures, comptes, rapports, et toutes les sous-pages de maraude :
+carte, équipe, météo, points, repas, tickets, besoins), une par une,
+testées à chaque fois, chantier réparti sur plusieurs sessions. Centraliser
+la vérification de statut dans le layout (au lieu de la dupliquer page par
+page comme fait ici pour la pilote) est une amélioration à faire une fois
+2-3 pages migrées, pas avant.
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
