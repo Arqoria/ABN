@@ -916,8 +916,52 @@ passage (`repas-form.tsx`, `ticket-form.tsx`).
 **Testé en local** (compte de test créé puis supprimé) : chaque page
 visitée, carte (heatmap Leaflet fonctionnelle), filtre de période testé,
 soumission d'un repas testée avec confirmation visuelle immédiate
-(invalidation React Query). Build + `tsc --noEmit` propres. Déployé en
-production, en attente de la confirmation de déploiement Vercel.
+(invalidation React Query). Build + `tsc --noEmit` propres.
+
+**✅ Écart Probalia fermé (16/09, commit `be8cbf8`)** — le client a
+relevé, à juste titre, que l'écart mesuré (1,7x) n'était "pas anodin".
+Cause identifiée avec précision : les Route Handlers ajoutaient un aller-
+retour serveur superflu (navigateur → Vercel → Supabase → Vercel →
+navigateur) pour de la simple lecture protégée par RLS, là où Probalia
+appelle Supabase **directement** depuis le navigateur (RLS = seule
+barrière de sécurité dans les deux cas, aucune perte de sécurité à faire
+pareil). Converti en appel direct (`src/lib/supabase/client.ts`, déjà
+présent, jamais branché) pour toutes les pages sauf `rapports` — celle-ci
+garde son Route Handler car elle partage sa logique d'agrégation
+(`getRapportsData`) avec l'export .xlsx ; la dupliquer côté client aurait
+créé un risque de divergence entre les deux, sans bénéfice de vitesse
+proportionné (voir échange avec le client, 16/09 — décision explicite de
+laisser `rapports` de côté et d'optimiser le reste).
+
+Retire aussi l'état "Chargement…" séparé (rendu `null` pendant le
+chargement) — demandé explicitement par le client pour observer la
+vitesse brute sans l'interstitiel, avant de décider d'un éventuel
+remplacement par des squelettes visuels.
+
+**Mesure en production (compte de test créé puis supprimé)** — premier
+essai comparant `maraudes` (converti) à `comptes` (converti dans le même
+commit) : résultat quasi identique (~290ms des deux côtés), ce qui
+**n'infirme pas l'hypothèse mais invalide la méthode de test** — les
+deux pages étaient déjà converties, ce n'était plus un vrai A/B. Corrigé
+en comparant à `rapports` (seule page restée en Route Handler) :
+
+| Page | Médiane | Moyenne |
+|---|---|---|
+| `maraudes` (appel direct) | 267,7ms | 318,6ms |
+| `rapports` (Route Handler, hors 1 pic à 2,8s) | 410,6ms | 417,6ms |
+
+**~1,5x plus rapide** — confirme l'hypothèse, même si `rapports` charge
+davantage de données (graphiques, heatmap complémentaire) donc pas une
+comparaison parfaitement égale. Testé en production (dashboard, comptes,
+candidatures, maraudes, carte, équipe, météo, besoins, repas avec
+soumission réelle, tickets, points) : tout fonctionne, aucune erreur
+console.
+
+**Bilan cumulé du chantier perf** : ~1,6-3,9s (état initial) → ~270ms
+(page pilote, appel direct) — écart d'environ 10-15x sur les pages qui
+en avaient le plus besoin. `rapports` reste volontairement à ~400ms
+(Route Handler assumé), déjà une nette amélioration par rapport à l'état
+initial du dashboard entier.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
