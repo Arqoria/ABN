@@ -995,6 +995,35 @@ circonstances — plusieurs onglets ouverts, coupure réseau pendant un
 rafraîchissement). À surveiller ; repasser dessus si le problème
 persiste après ce correctif.
 
+**Vérifications complémentaires (16/09)** :
+- **Cookie de session confirmé correct** : testé en conditions réelles
+  (compte de test, connexion avec "Se souvenir de moi" coché) — le
+  cookie `sb-<ref>-auth-token` a bien une expiration à **400,0 jours**
+  exactement (vérifié via `cookieStore.getAll()`, pas juste supposé).
+  Écarte l'hypothèse "le cookie lui-même expire trop tôt".
+- **Réglages Supabase Auth (dashboard, Authentication → Sessions)
+  vérifiés sur ABN** (le client a d'abord regardé par erreur sur
+  Probalia, mêmes réglages puisque même compte/plan Arqoria Free — puis
+  reconfirmé sur ABN directement) :
+  - Time-box user sessions / Inactivity timeout : à "0 / jamais",
+    **grisés, réservés au plan Pro** — le plan Free actuel ne permet
+    même pas de les activer. **Écarte définitivement l'hypothèse d'une
+    coupure automatique par inactivité.**
+  - "Detect and revoke potentially compromised refresh tokens" :
+    **activé** — confirme que le mécanisme de détection de réutilisation
+    de jeton (cause retenue) est bien actif sur le projet.
+- Fait notable : Probalia a exactement les mêmes réglages activés, mais
+  ne semble pas souffrir du même problème en pratique — cohérent avec
+  son architecture (un seul rafraîchissement propre par session, géré en
+  tâche de fond par le SDK, plutôt que N rafraîchissements déclenchés par
+  navigation comme ABN avant le correctif prefetch).
+- **Décision** : ne pas désactiver "Detect and revoke..." pour
+  contourner le problème — c'est une vraie protection contre le vol de
+  session, la désactiver a un coût de sécurité réel. Observer l'usage
+  réel après le correctif prefetch avant d'envisager d'y toucher (bug
+  intermittent par nature, difficile à confirmer "réglé" en une seule
+  session de test).
+
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
