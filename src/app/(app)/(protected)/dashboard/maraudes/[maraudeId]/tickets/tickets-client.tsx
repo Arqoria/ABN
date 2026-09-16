@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CATEGORIE_LABELS, type CategorieDepense } from "@/lib/categorie-depense";
+import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { TicketForm } from "./ticket-form";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -65,8 +66,18 @@ export function TicketsClient() {
     queryFn: () => fetchTickets(maraudeId),
   });
 
-  if (isLoading || isError || !data) {
-    return null;
+  if (isLoading) {
+    return <CardListSkeleton rows={2} />;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+        <p className="text-sm text-muted-foreground">
+          Impossible de charger les tickets pour l&apos;instant.
+        </p>
+      </div>
+    );
   }
 
   const { tickets, urlByPath } = data;

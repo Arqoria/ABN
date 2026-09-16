@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { CreerMaraudeForm } from "./creer-maraude-form";
 import { InscriptionForm } from "./inscription-form";
 import { MeteoForm } from "./meteo-form";
@@ -97,9 +98,18 @@ export function MaraudesClient() {
     queryFn: () => fetchMaraudes(isAdminOrManagerForQuery),
   });
 
-  // Pas d'état "Chargement…" séparé (test, voir docs/Tasks.md).
-  if (isLoading || isError || !data) {
-    return null;
+  if (isLoading) {
+    return <CardListSkeleton />;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+        <p className="text-sm text-muted-foreground">
+          Impossible de charger les maraudes pour l&apos;instant.
+        </p>
+      </div>
+    );
   }
 
   const { managers, maraudes } = data;

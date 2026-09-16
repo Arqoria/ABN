@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { TypeAction } from "@/lib/type-action";
 import type { OrganismeOrientation } from "@/lib/organisme-orientation";
 import MaraudeCarte from "./maraude-carte-client";
@@ -132,8 +133,37 @@ export function CarteClient() {
     }
   }, [data?.refuse, router]);
 
-  if (isLoading || isError || !data || data.refuse) {
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-20" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[420px] w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (data?.refuse) {
     return null;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
+        <p className="text-sm text-muted-foreground">
+          Impossible de charger la carte pour l&apos;instant.
+        </p>
+      </div>
+    );
   }
 
   const { circuitReel, heatPoints, circuitPlanifieInitial, canEdit } = data;

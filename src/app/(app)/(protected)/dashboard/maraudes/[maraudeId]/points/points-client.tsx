@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CapturePointForm } from "./capture-point-form";
 
 // Lecture directe Supabase depuis le navigateur — juste une vérification
@@ -47,7 +48,25 @@ export function PointsClient() {
     }
   }, [allowed, router]);
 
-  if (isLoading || isError || !allowed) {
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <Card>
+          <CardContent className="flex flex-wrap gap-2 pt-6">
+            <Skeleton className="h-12 w-40" />
+            <Skeleton className="h-12 w-40" />
+            <Skeleton className="h-12 w-40" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError || !allowed) {
     return null;
   }
 

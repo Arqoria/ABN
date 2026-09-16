@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { ToggleTraitee } from "./toggle-traitee";
 
 type Candidature = {
@@ -57,8 +58,18 @@ export function CandidaturesClient() {
     return null;
   }
 
-  if (isLoading || isError || !candidatures) {
-    return null;
+  if (isLoading) {
+    return <CardListSkeleton />;
+  }
+
+  if (isError || !candidatures) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+        <p className="text-sm text-muted-foreground">
+          Impossible de charger les candidatures pour l&apos;instant.
+        </p>
+      </div>
+    );
   }
 
   return (

@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { RepasForm } from "./repas-form";
 
 type Repas = { id: string; quoi: string; quantite: number; created_at: string };
@@ -38,8 +39,18 @@ export function RepasClient() {
     queryFn: () => fetchRepas(maraudeId),
   });
 
-  if (isLoading || isError || !repas) {
-    return null;
+  if (isLoading) {
+    return <CardListSkeleton rows={2} />;
+  }
+
+  if (isError || !repas) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+        <p className="text-sm text-muted-foreground">
+          Impossible de charger les repas pour l&apos;instant.
+        </p>
+      </div>
+    );
   }
 
   return (
