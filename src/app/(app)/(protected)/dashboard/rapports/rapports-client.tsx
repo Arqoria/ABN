@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Gauge, MapPin, Package, Wallet } from "lucide-react";
 import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS } from "@/lib/type-action";
 import HeatmapFiltree from "./heatmap-filtree-client";
 import { ActiviteChart } from "./activite-chart";
@@ -158,7 +159,11 @@ export function RapportsClient() {
         </CardContent>
       </Card>
 
-      <RapportSection title="Vue d'ensemble" description="Les chiffres clés de la période.">
+      <RapportSection
+        title="Vue d'ensemble"
+        description="Les chiffres clés de la période."
+        icon={Gauge}
+      >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {TYPE_ACTIONS.map((type) => (
             <Card key={type} className="overflow-hidden py-0">
@@ -174,14 +179,17 @@ export function RapportsClient() {
         </div>
       </RapportSection>
 
-      {/* Fermée par défaut : de loin la section la plus lourde (heatmap
-          jusqu'à 5000 points) — ne paye son coût de rendu (Leaflet,
-          graphiques) qu'à l'ouverture, pas au premier affichage. Voir
-          docs/Tasks.md, Étape 10bis. */}
+      {/* De loin la section la plus lourde (heatmap jusqu'à 5000 points) —
+          ne paye son coût de rendu (Leaflet, graphiques) qu'à l'ouverture,
+          pas au premier affichage. Voir docs/Tasks.md, Étape 10bis.
+          Attention : seule la heatmap ci-dessous est filtrable par type —
+          l'activité par jour et les orientations restent sur toute la
+          période sélectionnée, ne pas laisser penser qu'elles suivent le
+          même filtre. */}
       <RapportSection
         title="Terrain"
         description="Carte, activité par jour et orientations sociales."
-        defaultOpen={false}
+        icon={MapPin}
       >
         <div className="flex flex-col gap-4">
           <div>
@@ -189,9 +197,9 @@ export function RapportsClient() {
               Zones d&apos;activité
             </h3>
             <p className="mb-3 text-sm text-muted-foreground">
-              Heatmap de l&apos;historique, filtrable par type — cliquez un
-              point pour le détail, utile pour repérer les zones à couvrir
-              et planifier les prochains circuits.
+              Heatmap de l&apos;historique, filtrable par type (ci-dessous)
+              — cliquez un point pour le détail, utile pour repérer les
+              zones à couvrir et planifier les prochains circuits.
             </p>
             <HeatmapFiltree points={heatmapPoints} />
           </div>
@@ -201,7 +209,8 @@ export function RapportsClient() {
             </h3>
             <p className="mb-3 text-sm text-muted-foreground">
               Une courbe par type d&apos;action, pour suivre la tendance sur
-              la période.
+              la période (pas de filtre par type ici, contrairement à la
+              heatmap ci-dessus).
             </p>
             <ActiviteChart data={activiteData} />
           </div>
@@ -220,12 +229,17 @@ export function RapportsClient() {
       <RapportSection
         title="Besoins matériels"
         description="Manques remontés par les bénévoles — aide à ajuster les prochains achats."
+        icon={Package}
       >
         <BesoinsChart data={besoinsData} />
       </RapportSection>
 
       {isAdmin && (
-        <RapportSection title="Finances" description="Tickets de dépense, toutes maraudes.">
+        <RapportSection
+          title="Finances"
+          description="Tickets de dépense, toutes maraudes."
+          icon={Wallet}
+        >
           <DepensesChart data={depensesData} />
         </RapportSection>
       )}
