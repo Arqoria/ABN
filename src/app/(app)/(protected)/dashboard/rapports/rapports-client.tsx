@@ -66,7 +66,7 @@ export function RapportsClient() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
             <Skeleton className="h-7 w-40" />
@@ -88,7 +88,7 @@ export function RapportsClient() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <p className="text-sm text-muted-foreground">
           Impossible de charger les rapports pour l&apos;instant.
         </p>
@@ -115,7 +115,7 @@ export function RapportsClient() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">

@@ -48,7 +48,7 @@ export function DashboardHomeClient() {
   const comptesEnAttenteCount = data ?? 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
         <h1 className="text-xl font-semibold text-foreground">
           Bienvenue, {profile.full_name ?? "bénévole"}

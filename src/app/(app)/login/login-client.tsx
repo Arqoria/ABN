@@ -55,7 +55,7 @@ export function LoginClient() {
   }
 
   return (
-    <div className="relative flex flex-1 items-center justify-center px-4 py-16">
+    <div className="relative flex flex-1 items-center justify-center px-4 pt-8 pb-16">
       <div className="absolute top-4 right-4">
         <ModeToggle />
       </div>

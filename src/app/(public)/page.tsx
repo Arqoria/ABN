@@ -206,7 +206,7 @@ export default async function AccueilPage() {
       </div>
 
       {/* Nos actions sur le terrain */}
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-16 sm:px-6 lg:max-w-5xl lg:py-24 xl:max-w-6xl">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pt-8 pb-16 sm:px-6 lg:max-w-5xl lg:pt-12 lg:pb-24 xl:max-w-6xl">
         <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
           Nos actions sur le terrain
         </h2>
@@ -301,7 +301,7 @@ export default async function AccueilPage() {
       </div>
 
       {/* Comment se passe une maraude ? */}
-      <div className="border-t border-border bg-muted/50 px-4 py-16 sm:px-6 lg:py-24">
+      <div className="border-t border-border bg-muted/50 px-4 pt-8 pb-16 sm:px-6 lg:pt-12 lg:pb-24">
         <div className="mx-auto grid w-full max-w-5xl gap-10 lg:max-w-6xl lg:grid-cols-2 lg:items-center">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg order-2 lg:order-1">
             <Image
@@ -359,7 +359,7 @@ export default async function AccueilPage() {
       </div>
 
       {/* Faire un don */}
-      <div className="px-4 py-16 sm:px-6 lg:py-24">
+      <div className="px-4 pt-8 pb-16 sm:px-6 lg:pt-12 lg:pb-24">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 lg:max-w-3xl">
           <h2 className="text-center text-2xl font-semibold text-foreground lg:text-3xl">
             Faire un don

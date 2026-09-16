@@ -135,7 +135,7 @@ export function CarteClient() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-7 w-56" />
           <Skeleton className="h-4 w-80" />
@@ -158,7 +158,7 @@ export function CarteClient() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <p className="text-sm text-muted-foreground">
           Impossible de charger la carte pour l&apos;instant.
         </p>
@@ -170,7 +170,7 @@ export function CarteClient() {
   const center = circuitReel[0] ?? heatPoints[0] ?? circuitPlanifieInitial[0] ?? CENTRE_PAR_DEFAUT;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
         <h1 className="text-xl font-semibold text-foreground">
           Carte de la maraude

@@ -5,7 +5,7 @@ import { CandidatureForm } from "./candidature-form";
 // soumettreCandidature (RLS anon insert-only, jamais de lecture publique).
 export default function RecrutementPage() {
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">
           Devenir bénévole

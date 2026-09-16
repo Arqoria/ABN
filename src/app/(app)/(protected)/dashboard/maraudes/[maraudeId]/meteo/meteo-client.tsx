@@ -87,7 +87,7 @@ export function MeteoClient() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <p className="text-sm text-muted-foreground">
           Impossible de charger la météo pour l&apos;instant.
         </p>
@@ -99,7 +99,7 @@ export function MeteoClient() {
   const meteoMap = new Map(meteos.map((m) => [m.user_id, m.valeur]));
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-16">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
         <h1 className="text-xl font-semibold text-foreground">Météo bénévole</h1>
         <p className="mt-1 text-sm text-muted-foreground">

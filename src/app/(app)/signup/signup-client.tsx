@@ -23,7 +23,7 @@ export function SignupClient() {
 
   if (state?.status === "success") {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
+      <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-16">
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle>Vérifiez votre boîte mail</CardTitle>
@@ -40,7 +40,7 @@ export function SignupClient() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-16">
+    <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-16">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Inscription</CardTitle>

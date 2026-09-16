@@ -7,7 +7,7 @@ export default function RapportsPage() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-16">
+        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
           <p className="text-sm text-muted-foreground">Chargement…</p>
         </div>
       }
