@@ -1222,6 +1222,56 @@ horodatages de requêtes, pas le chiffre total.
   - Testé en local : ajout du rôle Cuisinier à un membre existant déjà
     Maraudeur confirmé en base (les autres rôles n'ont pas bougé), case
     Admin bien désactivée/cochée pour le compte connecté.
+- ✅ **Gestion des stocks + Gestion des cuisines (17/09, commit à venir)**
+  — nouvelle demande client, depuis l'accueil (à côté de Gestion des
+  adhérents/maraudes/Rapports & KPIs) : "gestion des stocks (couvertures,
+  vêtements, kits d'hygiène) et gestion des cuisines (dons de plats/snacks,
+  denrées alimentaires)". Scoping fait via 3 questions avant de coder
+  (niveau de suivi, périmètre cuisine, permissions) :
+  - **Stocks (matériel)** — quantités réelles avec mouvements (pas juste
+    un signalement comme `besoins_signales`) : nouvelle table
+    `stock_materiel_mouvements` (categorie réutilise l'enum
+    `categorie_besoin`, quantite signée +/-, maraude_id optionnel), stock
+    actuel = somme des mouvements (agrégé côté client, pas de vue SQL —
+    volume faible, même choix que pour les rapports). Page
+    `/dashboard/stocks` : totaux par catégorie, formulaire
+    Entrée/Sortie, historique.
+  - **Cuisines** — les 2 usages demandés, dans une page
+    `/dashboard/cuisine` à 2 sections repliables (même pattern que
+    Rapports/Adhérents) :
+    - **Dons ponctuels** — table `dons_ponctuels`, maraude_id
+      **obligatoire** (contrairement au stock) : objectif explicite du
+      client, "ne pas qu'un cuisinier de l'asso fasse un repas de son
+      côté" — un don déjà enregistré pour une maraude doit être visible
+      avant de cuisiner en double.
+    - **Stock de denrées** — table `stock_denrees_mouvements`, même
+      principe que le stock matériel mais `nom` en texte libre (une
+      denrée alimentaire ne rentre pas dans un enum fixe).
+  - **Permissions** : Admin/Manager + Maraudeur (stocks) ou Cuisinier
+    (cuisine) en écriture — extension explicitement qualifiée par le
+    client d'"initiative perso, pas validée par l'association", avec la
+    demande de pouvoir revenir en arrière facilement. Chaque policy RLS
+    d'écriture isole cette clause sur sa propre ligne
+    (`stock_materiel_insert_admin_manager_maraudeur`,
+    `stock_denrees_insert_admin_manager_cuisinier`,
+    `dons_ponctuels_insert_admin_manager_cuisinier`) : un retour en
+    arrière sera une migration d'une ligne par policy, pas un redesign.
+    Lecture large (authenticated) pour toutes ces tables — pas de donnée
+    sensible sur des personnes aidées, même raisonnement que `repas`.
+  - Migration `20260917100000_stocks_et_cuisine.sql` appliquée en
+    production (`supabase db push`) — vérifiée sans nouvelle alerte RLS/
+    sécurité via les advisors Supabase après coup.
+  - Testé en local (compte de test cumulant Admin+Maraudeur+Cuisinier,
+    une maraude de test) : mouvement matériel, don ponctuel et mouvement
+    de denrée tous confirmés directement en base après soumission ; page
+    correctement inaccessible pour un compte n'ayant aucun des rôles
+    autorisés (redirection vers `/dashboard`).
+  - ⚠️ **Leçon retenue pendant le test** : un script de nettoyage de
+    compte de test avait affiché "cleaned up" sans que la suppression
+    ait réellement eu lieu (`deleteUser` sans vérifier l'erreur retournée)
+    — a fait croire un instant à un bug de session fantôme dans l'app.
+    Toujours vérifier `error` sur `auth.admin.deleteUser`, ne jamais se
+    fier à un message codé en dur.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de

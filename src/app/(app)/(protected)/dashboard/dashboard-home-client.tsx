@@ -50,6 +50,8 @@ export function DashboardHomeClient() {
   const profile = useSession();
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
+  const peutAccederStocks = isAdminOrManager || profile.roles.includes("maraudeur");
+  const peutAccederCuisine = isAdminOrManager || profile.roles.includes("cuisinier");
 
   const { data } = useQuery({
     queryKey: ["dashboard-summary"],
@@ -105,6 +107,40 @@ export function DashboardHomeClient() {
           </Button>
         </CardContent>
       </Card>
+
+      {peutAccederStocks && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestion des stocks</CardTitle>
+            <CardDescription>
+              Matériel (couvertures, vêtements, hygiène...) — entrées et
+              sorties.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/dashboard/stocks" prefetch={false}>Voir les stocks</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {peutAccederCuisine && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestion des cuisines</CardTitle>
+            <CardDescription>
+              Dons ponctuels de repas/snacks et stock de denrées
+              alimentaires.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/dashboard/cuisine" prefetch={false}>Voir la cuisine</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {isAdminOrManager && (
         <Card>
