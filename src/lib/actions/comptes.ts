@@ -123,3 +123,82 @@ export async function definirFonctionBureau(
   revalidatePath("/dashboard/adherents");
   return undefined;
 }
+
+// Modifie l'ensemble des rôles d'un membre déjà actif (contrairement à
+// validerCompte ci-dessus, qui n'attribue des rôles qu'à l'activation).
+// Calcule le diff (rôles ajoutés / retirés) plutôt que de tout supprimer
+// puis tout réinsérer, pour ne pas perdre `granted_by`/`created_at` sur
+// les rôles qui ne changent pas.
+//
+// Garde-fou spécifique (en plus de la vérification "caller est Admin") :
+// un Admin ne peut pas retirer son PROPRE rôle admin depuis ce formulaire
+// — le client service_role utilisé ici contourne le trigger
+// protect_profile_role_status qui bloquerait normalement l'auto-
+// modification, donc rien d'autre n'empêcherait un Admin de se
+// verrouiller lui-même hors de la page sans repasser par la base
+// directement.
+export async function modifierRoles(
+  _prevState: ValiderCompteState,
+  formData: FormData,
+): Promise<ValiderCompteState> {
+  const caller = await getCurrentProfile();
+  if (!caller.roles.includes("admin") || caller.status !== "actif") {
+    return { error: "Action réservée aux administrateurs." };
+  }
+
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) {
+    return { error: "Membre introuvable." };
+  }
+
+  const roles = formData
+    .getAll("roles")
+    .filter((r): r is Role => typeof r === "string" && ROLES.includes(r as Role));
+
+  if (roles.length === 0) {
+    return { error: "Sélectionnez au moins un rôle." };
+  }
+
+  if (userId === caller.id && !roles.includes("admin")) {
+    return { error: "Vous ne pouvez pas retirer votre propre rôle Admin." };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: currentRoleRows, error: readError } = await admin
+    .from("profile_roles")
+    .select("role")
+    .eq("profile_id", userId);
+
+  if (readError) {
+    return { error: "Échec de la lecture des rôles actuels." };
+  }
+
+  const currentRoles = (currentRoleRows ?? []).map((r) => r.role as Role);
+  const rolesToAdd = roles.filter((r) => !currentRoles.includes(r));
+  const rolesToRemove = currentRoles.filter((r) => !roles.includes(r));
+
+  if (rolesToAdd.length > 0) {
+    const { error } = await admin.from("profile_roles").upsert(
+      rolesToAdd.map((role) => ({ profile_id: userId, role, granted_by: caller.id })),
+      { onConflict: "profile_id,role", ignoreDuplicates: true },
+    );
+    if (error) {
+      return { error: "Échec de l'attribution des rôles." };
+    }
+  }
+
+  if (rolesToRemove.length > 0) {
+    const { error } = await admin
+      .from("profile_roles")
+      .delete()
+      .eq("profile_id", userId)
+      .in("role", rolesToRemove);
+    if (error) {
+      return { error: "Échec du retrait des rôles." };
+    }
+  }
+
+  revalidatePath("/dashboard/adherents");
+  return undefined;
+}

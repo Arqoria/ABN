@@ -1204,6 +1204,24 @@ horodatages de requêtes, pas le chiffre total.
   (webhook + table Supabase, ou appel direct à l'API à chaque
   ouverture — à trancher le moment venu) est regroupé avec les autres
   tâches "carte bancaire" (OAuth, nom de domaine).
+- ✅ **Section "Membres" — gestion des rôles (17/09, commit à venir)** —
+  demande client : pouvoir gérer les rôles (Cuisinier, Admin, Manager,
+  etc.) des membres, pas seulement à la validation du compte. Nouvelle
+  5ᵉ section (icône Users) entre Comptes en attente et Candidatures :
+  liste tous les membres actifs, mêmes cases à cocher que la validation
+  de compte, une nouvelle Server Action `modifierRoles`
+  (`lib/actions/comptes.ts`) calcule le diff (rôles ajoutés/retirés)
+  plutôt que tout supprimer-réinsérer.
+  - **Garde-fou** : un Admin ne peut pas retirer son propre rôle Admin
+    depuis ce formulaire (case décochée + désactivée côté UI, ET
+    vérification serveur indépendante dans `modifierRoles` — l'UI seule
+    ne suffit jamais, voir le commentaire dans validerCompte). Un champ
+    caché force "admin" dans les données soumises pour son propre profil
+    puisqu'une case à cocher désactivée n'est pas envoyée par le
+    navigateur avec le formulaire.
+  - Testé en local : ajout du rôle Cuisinier à un membre existant déjà
+    Maraudeur confirmé en base (les autres rôles n'ont pas bougé), case
+    Admin bien désactivée/cochée pour le compte connecté.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de

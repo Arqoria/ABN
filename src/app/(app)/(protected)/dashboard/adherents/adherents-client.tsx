@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { CollapsibleSection } from "@/components/collapsible-section";
-import { UserPlus, Inbox, Briefcase, CreditCard } from "lucide-react";
+import { UserPlus, Users, Inbox, Briefcase, CreditCard } from "lucide-react";
 import { ValiderCompteForm } from "./valider-compte-form";
+import { GererRolesForm } from "./gerer-roles-form";
 import { BureauForm } from "./bureau-form";
 import { ToggleTraitee } from "./toggle-traitee";
 
@@ -33,6 +34,8 @@ type Candidature = {
 type Payload = {
   comptesEnAttente: { id: string; full_name: string | null; created_at: string }[];
   roleRows: { profile_id: string; role: RoleName }[];
+  membresActifs: { id: string; full_name: string | null }[];
+  membresRoleRows: { profile_id: string; role: RoleName }[];
   admins: { id: string; full_name: string | null; fonction_bureau: FonctionBureau | null }[];
   candidatures: Candidature[];
 };
@@ -63,6 +66,24 @@ async function fetchAdherents(): Promise<Payload> {
     return { comptesEnAttente: comptesEnAttente ?? [], roleRows: roleRows ?? [] };
   }
 
+  async function chargerMembresActifs() {
+    const { data: membresActifs } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("status", "actif")
+      .order("full_name", { ascending: true });
+
+    const membreIds = (membresActifs ?? []).map((m) => m.id as string);
+    const { data: membresRoleRows } = membreIds.length
+      ? await supabase
+          .from("profile_roles")
+          .select("profile_id, role")
+          .in("profile_id", membreIds)
+      : { data: [] as { profile_id: string; role: RoleName }[] };
+
+    return { membresActifs: membresActifs ?? [], membresRoleRows: membresRoleRows ?? [] };
+  }
+
   async function chargerAdmins() {
     const { data: adminRoleRows } = await supabase
       .from("profile_roles")
@@ -90,13 +111,15 @@ async function fetchAdherents(): Promise<Payload> {
     return data ?? [];
   }
 
-  const [{ comptesEnAttente, roleRows }, admins, candidatures] = await Promise.all([
-    chargerComptesEnAttente(),
-    chargerAdmins(),
-    chargerCandidatures(),
-  ]);
+  const [{ comptesEnAttente, roleRows }, { membresActifs, membresRoleRows }, admins, candidatures] =
+    await Promise.all([
+      chargerComptesEnAttente(),
+      chargerMembresActifs(),
+      chargerAdmins(),
+      chargerCandidatures(),
+    ]);
 
-  return { comptesEnAttente, roleRows, admins, candidatures };
+  return { comptesEnAttente, roleRows, membresActifs, membresRoleRows, admins, candidatures };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé". Réservée aux Admins : la
@@ -130,7 +153,7 @@ export function AdherentsClient() {
   }
 
   if (isLoading) {
-    return <CardListSkeleton rows={3} />;
+    return <CardListSkeleton rows={5} />;
   }
 
   if (isError || !data) {
@@ -143,7 +166,7 @@ export function AdherentsClient() {
     );
   }
 
-  const { comptesEnAttente, roleRows, admins, candidatures } = data;
+  const { comptesEnAttente, roleRows, membresActifs, membresRoleRows, admins, candidatures } = data;
   const candidaturesNonTraitees = candidatures.filter((c) => !c.traitee).length;
 
   return (
@@ -153,8 +176,8 @@ export function AdherentsClient() {
           Gestion des adhérents
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Comptes à valider, candidatures bénévoles, cotisations et
-          fonctions du bureau.
+          Comptes à valider, rôles des membres, candidatures bénévoles,
+          cotisations et fonctions du bureau.
         </p>
       </div>
 
@@ -189,6 +212,39 @@ export function AdherentsClient() {
                   </CardHeader>
                   <CardContent>
                     <ValiderCompteForm userId={compte.id} defaultRoles={defaultRoles} />
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Membres"
+        description={`${membresActifs.length} membre${membresActifs.length > 1 ? "s" : ""} actif${membresActifs.length > 1 ? "s" : ""} — gérer les rôles.`}
+        icon={Users}
+      >
+        <div className="flex flex-col gap-4">
+          {membresActifs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun membre actif.</p>
+          ) : (
+            membresActifs.map((membre) => {
+              const rolesActuels = membresRoleRows
+                .filter((r) => r.profile_id === membre.id)
+                .map((r) => r.role);
+
+              return (
+                <Card key={membre.id}>
+                  <CardHeader>
+                    <CardTitle>{membre.full_name ?? "(sans nom)"}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <GererRolesForm
+                      userId={membre.id}
+                      defaultRoles={rolesActuels}
+                      isSelf={membre.id === profile.id}
+                    />
                   </CardContent>
                 </Card>
               );
