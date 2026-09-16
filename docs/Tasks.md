@@ -672,13 +672,59 @@ total) :
   allers-retours séquentiels, ISR) et oriente vers l'étape 3 plutôt que
   vers un upgrade payant.
 
-**🔵 EN ATTENTE DU CLIENT — étape 3 du plan** : pour comprendre en quoi
-l'usage réel diffère (nombre d'appels par navigation, type d'appli —
-SPA qui ne recharge pas la page à chaque clic vs Next.js qui refait une
-vérification serveur à chaque navigation comme ABN actuellement), il
-faudrait soit un accès lecture au repo Probalia, soit au minimum savoir
-avec quelle techno/stack il est construit (et si les clics dans l'appli
-rechargent la page à chaque fois ou non, à l'usage).
+**✅ Étape 3 faite (16/09) — cause racine réelle identifiée, plus une
+hypothèse.** Le dépôt Probalia a été retrouvé en local sur la machine
+(`C:\Users\a-gas\Documents\Probalia`, un autre projet du même
+utilisateur) et son code lu directement — plus besoin de deviner à partir
+de sa description.
+
+**Mécanisme réel de Probalia** : c'est une SPA classique (Vite + React +
+`react-router-dom`), pas du Next.js server-rendered comme ABN.
+- `src/App.tsx` : une seule page HTML chargée au démarrage, toute la
+  navigation ensuite se fait côté client (`BrowserRouter`) — zéro
+  aller-retour serveur à chaque clic.
+- `src/contexts/AuthContext.tsx` : session + profil + rôle chargés **une
+  seule fois** au montage de l'appli (`useEffect` deps `[]`), gardés en
+  mémoire (React Context) pour toute la durée de la session.
+- `src/components/ProtectedRoute.tsx` : le contrôle d'accès à chaque page
+  lit ce contexte déjà en mémoire — **aucun appel réseau** à chaque
+  navigation.
+- Utilise aussi `@tanstack/react-query` (cache de données standard,
+  affichage instantané des données déjà chargées pendant la
+  revalidation en fond).
+
+**Donc pas du "sync sur l'appareil"/offline-first comme supposé au
+départ (pas d'IndexedDB) — plus simple que ça** : Probalia ne revérifie
+l'identité/le profil qu'**une fois par session**, alors qu'ABN (Next.js
+App Router, Server Components) refait cette vérification **à chaque
+navigation**, par construction de l'App Router (chaque route = un
+nouveau rendu serveur).
+
+**Sécurité** : le `ProtectedRoute` de Probalia est un contrôle client
+uniquement (contournable en théorie) — la vraie barrière est le RLS
+Postgres, appliqué quoi qu'il arrive à chaque requête. Donc rapprocher
+ABN de ce pattern ne réduirait pas la sécurité réelle des données (RLS
+déjà en place sur ABN aussi), seulement la fréquence de re-vérification
+de session pour la simple navigation.
+
+**Implication pour ABN** : contrairement à la preuve de concept du 15/09
+(hypothèse non vérifiée, mesure ratée), on a maintenant un exemple qui
+tourne réellement en production et qui prouve que le pattern fonctionne.
+Deux options, à trancher avec le client :
+1. **Chantier ciblé** : convertir la zone `(app)/(protected)` (ou au
+   moins les pages dashboard les plus visitées) en un sous-ensemble plus
+   "SPA-like" — authentifier une fois (contexte client, comme
+   `AuthProvider` de Probalia), puis naviguer/charger les données via
+   React Query (ou SWR) côté client plutôt que de refaire
+   `getCurrentProfile()` côté serveur à chaque clic. RLS reste la
+   vraie barrière de sécurité dans les deux cas.
+2. **Statu quo** : accepter la latence actuelle (chaque page protégée
+   revérifie tout côté serveur), qui a déjà été réduite significativement
+   cette session (Promise.all, embeds PostgREST, RLS InitPlan).
+
+Pas engagé pour l'instant — c'est un vrai changement d'architecture pour
+la partie protégée du site (pas une petite extension), à scoper
+sérieusement si le client choisit l'option 1.
 
 Plan d'investigation complet (du moins cher/rapide au plus lourd), à
 suivre dans l'ordre :
