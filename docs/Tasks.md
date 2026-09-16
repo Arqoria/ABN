@@ -160,11 +160,13 @@ Découpage en petites itérations logiques. Statut : ⬜ à faire · 🟨 en cou
   PRIVILEGES pour que les futures tables n'aient pas le même problème). **Testé
   et confirmé en conditions réelles** : inscription → confirmation email → connexion
   → redirection /compte-en-attente, avec un vrai compte (06aymen.gasmi@gmail.com)
-- ⬜ Bootstrap du tout premier compte Admin — aucun compte admin n'existe encore,
-  et le trigger protect_profile_role_status bloque même une modification manuelle
-  via le SQL Editor du Dashboard (auth.role() y est toujours NULL, jamais
-  'service_role' — ce GUC n'est posé que par PostgREST). Un appel direct à l'API
-  REST avec la clé service_role (qui passe par PostgREST) fonctionne, lui.
+- ✅ Bootstrap du tout premier compte Admin — fait (le trigger
+  protect_profile_role_status bloquait la modification manuelle via le
+  SQL Editor du Dashboard, auth.role() y est toujours NULL ; contourné
+  via un appel direct à l'API REST avec la clé service_role, qui passe
+  par PostgREST). Compte réel confirmé actif en production (Aymen
+  Gasmi, Trésorier, vu dans le Bureau de /dashboard/comptes) — entrée
+  laissée ⬜ par erreur, corrigée le 16/09.
 - ✅ Dashboard par rôle (vue Admin/Manager ≠ vue Maraudeur/Cuisinier), remplace les données
   factices du styleguide — layout partagé src/app/(app)/(protected)/layout.tsx (header,
   badge de rôle, bouton déconnexion, lien "Comptes en attente" + compteur pour Admin) ;
