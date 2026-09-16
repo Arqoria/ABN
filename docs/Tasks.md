@@ -1164,6 +1164,35 @@ horodatages de requêtes, pas le chiffre total.
   au breakpoint large. Testé en local (compte de test créé puis
   supprimé) : page d'accueil publique, `/login`, dashboard et
   `/dashboard/rapports` — écart visuel net, rien de cassé.
+- ✅ **Comptes en attente + Candidatures fusionnés en "Gestion des
+  adhérents" (17/09, commit `7a26fa1`)** — retour client : la carte du
+  dashboard devient "Gestion des adhérents", et "Comptes en attente"/
+  "Candidatures" quittent la barre bleue (visible sur CHAQUE page
+  protégée) pour vivre à l'intérieur de la page elle-même.
+  - Nouvelle route `/dashboard/adherents` (remplace `/dashboard/comptes`
+    et `/dashboard/candidatures`) avec 3 sections repliables (même
+    pattern que Rapports & KPIs) : Comptes en attente, Candidatures,
+    Bureau — toutes fermées par défaut
+  - `rapport-section.tsx` devient `components/collapsible-section.tsx`,
+    généralisé (plus rien de spécifique à Rapports dans son code) et
+    réutilisé par les deux pages
+  - La barre bleue ne fait plus les 2 requêtes de comptage
+    (`comptesEnAttenteCount`, `candidaturesEnAttenteCount`) à chaque
+    navigation pour un Admin — le compteur combiné vit désormais sur la
+    carte "Gestion des adhérents" du dashboard (`fetchAdherentsSummary`)
+  - Testé en local puis en prod (comptes de test créés/validés/supprimés
+    à chaque fois) : les 3 sections s'ouvrent et se peuplent
+    correctement, la validation d'un compte en attente le fait
+    disparaître de la liste sans recharger la page
+  - ⚠️ Piège rencontré pendant le test : l'outil de capture d'écran du
+    navigateur intégré a parfois affiché une image figée (bouton
+    "Valider le compte" cliqué, compte toujours visible) alors que la
+    base et le DOM réel (vérifiés via `get_page_text`/`read_page` et une
+    requête directe en base) étaient déjà à jour — un artefact de
+    l'outil de test, pas un bug de l'appli. À garder en tête pour éviter
+    de chasser un faux bug : en cas de doute sur un rafraîchissement qui
+    semble ne pas se produire, vérifier via le DOM/texte réel avant de
+    conclure, pas seulement via une capture d'écran.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
