@@ -948,6 +948,12 @@ squelettes sur mesure pour carte/points/rapports). Profité du passage
 pour séparer proprement chargement (squelette) et erreur réseau (message
 visible) — les deux étaient fusionnés en un seul `return null`.
 
+**Confirmé en production** : indétectable en local (tout est trop
+rapide une fois les connexions chaudes — c'est bon signe), mais bien
+visible en conditions réelles — détecté à ~348ms après le clic via un
+script de sondage (`document.querySelector('.animate-pulse')`) sur la
+page carte en production.
+
 **Mesure en production (compte de test créé puis supprimé)** — premier
 essai comparant `maraudes` (converti) à `comptes` (converti dans le même
 commit) : résultat quasi identique (~290ms des deux côtés), ce qui
@@ -1066,7 +1072,8 @@ n'est pas affectée.
 **Testé en local** (compte de test créé puis supprimé) : connexion, puis
 navigation vers `/login` dans le même onglet ET dans un nouvel onglet →
 redirection immédiate vers `/dashboard` confirmée dans les deux cas.
-Build propre. Déployé, en attente de vérification finale en production.
+Build propre. **Confirmé en production** (compte de test) : navigation
+vers `/login` déjà connecté → redirection immédiate vers `/dashboard`.
 
 ## Étape 10bis — Refonte UI des espaces par rôle (après OAuth, avant Étape 11)
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
