@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ajouterRepas } from "@/lib/actions/repas";
 import { offlineDb } from "@/lib/offline/db";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ type Message = { type: "error" | "queued"; text: string };
 export function RepasForm({ maraudeId }: { maraudeId: string }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<Message | null>(null);
+  const queryClient = useQueryClient();
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,6 +55,7 @@ export function RepasForm({ maraudeId }: { maraudeId: string }) {
         }
         setMessage(null);
         form.reset();
+        queryClient.invalidateQueries({ queryKey: ["repas", maraudeId] });
       } catch {
         await offlineDb.pendingRepas.add({
           maraudeId,
@@ -74,6 +77,7 @@ export function RepasForm({ maraudeId }: { maraudeId: string }) {
       onSubmit={handleSubmit}
       className="flex flex-col gap-3 sm:flex-row sm:items-end"
     >
+      <input type="hidden" name="maraudeId" value={maraudeId} />
       <div className="flex flex-1 flex-col gap-2">
         <Label htmlFor="quoi">Quoi</Label>
         <Input id="quoi" name="quoi" type="text" required className="h-12" />

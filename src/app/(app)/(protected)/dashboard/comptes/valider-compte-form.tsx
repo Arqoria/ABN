@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { validerCompte } from "@/lib/actions/comptes";
 import { ROLE_LABELS, type RoleName } from "@/lib/roles";
 import { FONCTION_BUREAU_LABELS, type FonctionBureau } from "@/lib/fonction-bureau";
@@ -34,6 +35,21 @@ export function ValiderCompteForm({
   defaultRoles?: RoleName[];
 }) {
   const [state, action, pending] = useActionState(validerCompte, undefined);
+  const queryClient = useQueryClient();
+  const isFirstRender = useRef(true);
+
+  // La donnée vient maintenant de React Query (voir comptes-client.tsx) —
+  // revalidatePath() côté serveur (dans l'action) ne suffit plus à
+  // rafraîchir l'affichage, il faut invalider la query explicitement.
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!state?.error) {
+      queryClient.invalidateQueries({ queryKey: ["comptes"] });
+    }
+  }, [state, queryClient]);
 
   return (
     <form action={action} className="flex flex-col gap-3">

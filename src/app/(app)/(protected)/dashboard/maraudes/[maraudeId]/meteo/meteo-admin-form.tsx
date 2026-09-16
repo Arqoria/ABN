@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { saisirMeteo } from "@/lib/actions/meteo";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,18 @@ export function MeteoAdminForm({
   valeur?: Valeur;
 }) {
   const [state, action, pending] = useActionState(saisirMeteo, undefined);
+  const queryClient = useQueryClient();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (state?.status !== "error") {
+      queryClient.invalidateQueries({ queryKey: ["meteo", maraudeId] });
+    }
+  }, [state, queryClient, maraudeId]);
 
   return (
     <div className="flex flex-col gap-2">

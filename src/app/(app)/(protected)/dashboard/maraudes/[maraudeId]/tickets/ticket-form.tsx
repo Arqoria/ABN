@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { creerTicket } from "@/lib/actions/tickets";
 import { CATEGORIE_LABELS, type CategorieDepense } from "@/lib/categorie-depense";
 import { offlineDb } from "@/lib/offline/db";
@@ -26,6 +27,7 @@ type Message = { type: "error" | "queued"; text: string };
 export function TicketForm({ maraudeId }: { maraudeId: string }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<Message | null>(null);
+  const queryClient = useQueryClient();
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +81,7 @@ export function TicketForm({ maraudeId }: { maraudeId: string }) {
         }
         setMessage(null);
         form.reset();
+        queryClient.invalidateQueries({ queryKey: ["tickets", maraudeId] });
       } catch {
         await queueOffline();
         setMessage({
@@ -91,6 +94,7 @@ export function TicketForm({ maraudeId }: { maraudeId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <input type="hidden" name="maraudeId" value={maraudeId} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="montant">Montant (€)</Label>
         <Input

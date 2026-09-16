@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { affecterFonction, retirerAffectation } from "@/lib/actions/affectations";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ export function AffectationToggle({
   canToggle: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   if (!canToggle) {
     return assigned ? (
@@ -50,6 +52,7 @@ export function AffectationToggle({
         formData.set("fonction", fonction);
         await affecterFonction(undefined, formData);
       }
+      queryClient.invalidateQueries({ queryKey: ["equipe", maraudeId] });
     });
   }
 

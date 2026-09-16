@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { definirFonctionBureau } from "@/lib/actions/comptes";
 import { FONCTION_BUREAU_LABELS, type FonctionBureau } from "@/lib/fonction-bureau";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,18 @@ export function BureauForm({
   fonctionActuelle: FonctionBureau | null;
 }) {
   const [state, action, pending] = useActionState(definirFonctionBureau, undefined);
+  const queryClient = useQueryClient();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!state?.error) {
+      queryClient.invalidateQueries({ queryKey: ["comptes"] });
+    }
+  }, [state, queryClient]);
 
   return (
     <form action={action} className="flex flex-wrap items-center gap-3">

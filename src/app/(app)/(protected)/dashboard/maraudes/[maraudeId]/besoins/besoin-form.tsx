@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { signalerBesoin } from "@/lib/actions/besoins";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,7 @@ export function BesoinForm({ maraudeId }: { maraudeId: string }) {
   const [pending, startTransition] = useTransition();
   const [commentaire, setCommentaire] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   function submit(categorie: CategorieBesoin) {
     const formData = new FormData();
@@ -40,6 +42,7 @@ export function BesoinForm({ maraudeId }: { maraudeId: string }) {
       setMessage(result?.error ?? "Besoin signalé, merci.");
       if (!result?.error) {
         setCommentaire("");
+        queryClient.invalidateQueries({ queryKey: ["besoins", maraudeId] });
       }
     });
   }

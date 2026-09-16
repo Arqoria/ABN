@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
@@ -49,30 +47,15 @@ async function fetchMaraudes(): Promise<Payload> {
 // par le layout serveur, voir session-provider.tsx), les données viennent
 // de React Query + /api/maraudes plutôt que de bloquer le rendu de la page.
 //
-// Vérification de statut : faite ici côté client (pas de nouvel appel
-// serveur, profile.status est déjà connu) plutôt que dans le layout partagé
-// — le layout englobe aussi /compte-en-attente, y centraliser ce redirect
-// créerait une boucle. Centraliser proprement est une suite possible une
-// fois le pattern généralisé à plus de pages.
+// Vérification de statut : centralisée dans dashboard/layout.tsx (redirect
+// serveur si pas "actif") — plus besoin de la refaire ici.
 export function MaraudesClient() {
   const profile = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (profile.status !== "actif") {
-      router.replace("/compte-en-attente");
-    }
-  }, [profile.status, router]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["maraudes"],
     queryFn: fetchMaraudes,
-    enabled: profile.status === "actif",
   });
-
-  if (profile.status !== "actif") {
-    return null;
-  }
 
   if (isLoading) {
     return (
