@@ -1152,6 +1152,18 @@ horodatages de requêtes, pas le chiffre total.
       client), remplace l'ancienne légende recharts qui ne permettait
       pas d'isoler une courbe. Testé : décocher un type fait
       disparaître sa courbe en laissant les autres lisibles.
+- ✅ **Espace vertical sous le header réduit (16/09, commit `0af019a`)**
+  — retour client : "entre la barre bleu en haut et le debut du texte,
+  il y a un espace de quelques centimetre inutile". `py-16` (haut ET
+  bas, 64px) était copié-collé comme padding du conteneur principal sur
+  ~20 pages, dashboard et site public confondus. Remplacé par
+  `pt-8 pb-16` (haut divisé par deux, bas inchangé pour ne pas resserrer
+  le bas de page) partout où le motif était un simple `py-16` ; les
+  sections hero du site public en `lg:py-24` (page d'accueil, dons,
+  recrutement) passent en `lg:pt-12 lg:pb-24`, même logique appliquée
+  au breakpoint large. Testé en local (compte de test créé puis
+  supprimé) : page d'accueil publique, `/login`, dashboard et
+  `/dashboard/rapports` — écart visuel net, rien de cassé.
 - ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
