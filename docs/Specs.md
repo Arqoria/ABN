@@ -9,9 +9,72 @@ Source de vérité fonctionnelle du projet. CLAUDE.md y renvoie plutôt que de d
 - **Cuisinier** : gestion de la préparation des repas, pas d'accès aux données agrégées/carto
 
 ## Gestion des maraudes
-- Récurrence : tous les vendredis, 20h30
-- Équipe max 6 personnes par maraude
-- Liste d'attente automatique au-delà de 6 inscrits, promotion automatique en cas de désistement
+- Équipe limitée à `max_participants` par événement (6 par défaut, configurable par événement ou par série — voir ci-dessous)
+- Liste d'attente automatique au-delà de la capacité, promotion automatique en cas de désistement
+
+## Types d'événements, nature, séries récurrentes et vacances scolaires (22/09)
+
+La table `maraudes` couvre depuis le 22/09 plus que la maraude hebdomadaire
+classique : tout événement (maraude mobile, événement à point fixe comme un
+goûter) y vit sous le même nom de table (décision explicite : pas de
+renommage, voir docs/Tasks.md pour l'état des lieux qui a précédé cette
+décision), distingué par son **type**.
+
+- **`nature`** (enum fixe, 2 valeurs, non éditable) : `maraude` (mobile,
+  autorise un circuit planifié) ou `evenement_fixe` (point fixe, ne peut
+  jamais avoir de circuit planifié — seule restriction structurelle liée à
+  la nature ; toutes les autres tables — repas, tickets de dépense, météo
+  bénévole, besoins signalés, affectations, stocks, dons ponctuels — restent
+  disponibles pour les deux natures, sans logique dupliquée).
+- **`types_evenement`** : ce que l'Admin configure réellement (ex. "Maraude
+  classique", "Goûter"). Chaque type est rattaché à une nature fixe. Jamais
+  de suppression physique, seulement une désactivation (`actif`).
+- **`series_evenements`** : une règle de récurrence (fréquence
+  hebdomadaire/toutes les 2 semaines/mensuelle au Nième jour, jour de la
+  semaine, heure, Manager et capacité par défaut, horizon de génération)
+  rattachée à un `type_evenement_id`. La génération crée automatiquement les
+  lignes `maraudes` correspondantes (immédiatement à la création de la
+  série, puis quotidiennement via `/api/cron/generer-occurrences`).
+  Désactiver une série arrête la génération future sans toucher aux
+  occurrences déjà créées.
+
+### Cumuler deux fréquences sur un même type (méthode recommandée)
+
+Pour un besoin comme "plus souvent pendant les vacances scolaires", ne pas
+chercher un mécanisme d'exception unique — **superposer deux séries sur le
+même `type_evenement_id`**, chacune avec sa propre fréquence. Les deux
+règles cohabitent et se cumulent, elles ne s'excluent pas.
+
+**Exemple concret : "Maraude des enfants"**
+- Une série **mensuelle** (ex. le 1er mercredi du mois), toute l'année —
+  `limiter_aux_vacances_scolaires = false`.
+- Une seconde série **hebdomadaire** (même jour), mais
+  `limiter_aux_vacances_scolaires = true` : ne génère une occurrence QUE si
+  la date calculée tombe dans une période `vacances_scolaires`.
+
+Résultat : une maraude des enfants par mois habituellement, chaque semaine
+pendant les vacances — sans aucune règle spéciale à coder, juste deux
+séries simples empilées.
+
+### Vacances scolaires
+
+Table `vacances_scolaires` (nom, date_debut, date_fin) — **Zone B
+uniquement** (académie de Nice), pas de gestion multi-zone, l'association
+n'opère qu'à Nice.
+
+**⚠️ Mise à jour manuelle annuelle requise.** Le Ministère de l'Éducation
+nationale ne publie le calendrier scolaire officiel que quelques mois à
+l'avance (pas assez tôt pour couvrir un horizon glissant de façon fiable
+via une automatisation/cron) — aucune automatisation n'est prévue. Quand un
+nouveau calendrier officiel est publié
+(https://www.education.gouv.fr/le-calendrier-scolaire-9047, ou directement
+le fichier ICS Zone B :
+https://fr.ftp.opendatasoft.com/openscol/fr-en-calendrier-scolaire/Zone-B.ics),
+un Admin doit ajouter les nouvelles périodes dans `vacances_scolaires`
+(actuellement via une migration SQL — pas encore d'UI dédiée à cette table,
+seulement sa lecture par le moteur de récurrence). Le DTEND d'un événement
+ICS "jour entier" est exclusif (RFC 5545, jour APRÈS la fin réelle) : à
+convertir en borne inclusive (DTEND − 1 jour) avant insertion.
 
 ## Sécurité & suivi des bénévoles
 - Validation manuelle obligatoire de tout nouveau compte par un Admin avant accès aux fonctionnalités métier

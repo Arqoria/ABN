@@ -12,8 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
-import { CreerMaraudeForm } from "./creer-maraude-form";
+import { CreerEvenementForm } from "./creer-evenement-form";
 import { InscriptionForm } from "./inscription-form";
 import { MeteoForm } from "./meteo-form";
 
@@ -25,17 +26,21 @@ type Inscription = {
 };
 
 type Manager = { id: string; full_name: string | null };
+type TypeEvenement = { id: string; nom: string };
 
 type Maraude = {
   id: string;
   date_heure: string;
   statut: string;
   manager_id: string;
+  max_participants: number;
+  serie_id: string | null;
   manager: { full_name: string | null } | { full_name: string | null }[] | null;
+  type_evenement: { nom: string } | { nom: string }[] | null;
   inscriptions_maraude: Inscription[];
 };
 
-type Payload = { managers: Manager[]; maraudes: Maraude[] };
+type Payload = { managers: Manager[]; typesEvenement: TypeEvenement[]; maraudes: Maraude[] };
 
 // Lecture directe Supabase depuis le navigateur (RLS comme seule
 // barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
@@ -60,18 +65,29 @@ async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
     const { data } = await supabase
       .from("maraudes")
       .select(
-        "id, date_heure, statut, manager_id, manager:manager_id(full_name), inscriptions_maraude(id, maraude_id, user_id, statut)",
+        "id, date_heure, statut, manager_id, max_participants, serie_id, manager:manager_id(full_name), type_evenement:type_evenement_id(nom), inscriptions_maraude(id, maraude_id, user_id, statut)",
       )
       .order("date_heure", { ascending: true });
     return (data ?? []) as unknown as Maraude[];
   }
 
-  const [managers, maraudes] = await Promise.all([
+  async function chargerTypesEvenement() {
+    if (!isAdminOrManager) return [] as TypeEvenement[];
+    const { data } = await supabase
+      .from("types_evenement")
+      .select("id, nom")
+      .eq("actif", true)
+      .order("nom", { ascending: true });
+    return data ?? [];
+  }
+
+  const [managers, typesEvenement, maraudes] = await Promise.all([
     chargerManagers(),
+    chargerTypesEvenement(),
     chargerMaraudesAvecInscriptions(),
   ]);
 
-  return { managers, maraudes };
+  return { managers, typesEvenement, maraudes };
 }
 
 // Page pilote du chantier "rapprocher ABN du pattern Probalia" (voir
@@ -112,27 +128,43 @@ export function MaraudesClient() {
     );
   }
 
-  const { managers, maraudes } = data;
+  const { managers, typesEvenement, maraudes } = data;
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
+  const isAdmin = profile.roles.includes("admin");
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Équipe max 6 personnes par maraude, liste d&apos;attente automatique
-          au-delà.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Capacité par événement, liste d&apos;attente automatique au-delà.
+          </p>
+        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/maraudes/types-evenement" prefetch={false}>
+                Types d&apos;événements
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/maraudes/series" prefetch={false}>
+                Séries récurrentes
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
 
       {isAdminOrManager && (
         <Card>
           <CardHeader>
-            <CardTitle>Créer une maraude</CardTitle>
+            <CardTitle>Créer un événement</CardTitle>
           </CardHeader>
           <CardContent>
-            <CreerMaraudeForm managers={managers} />
+            <CreerEvenementForm typesEvenement={typesEvenement} managers={managers} />
           </CardContent>
         </Card>
       )}
@@ -156,11 +188,14 @@ export function MaraudesClient() {
           const managerRow = Array.isArray(maraude.manager)
             ? maraude.manager[0]
             : maraude.manager;
+          const typeRow = Array.isArray(maraude.type_evenement)
+            ? maraude.type_evenement[0]
+            : maraude.type_evenement;
 
           return (
             <Card key={maraude.id}>
               <CardHeader>
-                <CardTitle>
+                <CardTitle className="flex flex-wrap items-center gap-2">
                   {new Date(maraude.date_heure).toLocaleString("fr-FR", {
                     weekday: "long",
                     day: "numeric",
@@ -168,9 +203,11 @@ export function MaraudesClient() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
+                  {typeRow?.nom && <Badge variant="secondary">{typeRow.nom}</Badge>}
+                  {maraude.serie_id && <Badge variant="outline">Généré par série</Badge>}
                 </CardTitle>
                 <CardDescription>
-                  {inscritsCount}/6 inscrits
+                  {inscritsCount}/{maraude.max_participants} inscrits
                   {listeAttenteCount > 0
                     ? ` · ${listeAttenteCount} en liste d'attente`
                     : ""}

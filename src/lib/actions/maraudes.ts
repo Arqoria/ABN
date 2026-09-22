@@ -6,9 +6,13 @@ import { getCurrentProfile } from "@/lib/supabase/dal";
 
 export type ActionState = { error: string } | undefined;
 
-// Toute la logique de capacité (max 6, liste d'attente) est déjà gérée en
-// base par le trigger set_inscription_statut (Étape 3) — cette Server
-// Action se contente d'insérer, jamais de calculer/forcer un statut ici.
+// Toute la logique de capacité (max_participants, liste d'attente) est déjà
+// gérée en base par le trigger set_inscription_statut (Étape 3, mis à jour
+// Partie A 22/09 pour lire maraudes.max_participants au lieu d'un 6 codé en
+// dur) — cette Server Action se contente d'insérer, jamais de calculer/
+// forcer un statut ici. Création "Ponctuelle" (voir docs/Tasks.md, Partie
+// C) : type_evenement_id est désormais NOT NULL sur maraudes, obligatoire
+// même pour une maraude créée à la main, hors de toute série.
 
 export async function creerMaraude(
   _prevState: ActionState,
@@ -21,6 +25,8 @@ export async function creerMaraude(
 
   const dateHeure = formData.get("dateHeure");
   const managerId = formData.get("managerId");
+  const typeEvenementId = formData.get("typeEvenementId");
+  const maxParticipantsRaw = formData.get("maxParticipants");
 
   if (typeof dateHeure !== "string" || !dateHeure) {
     return { error: "Date et heure requises." };
@@ -28,11 +34,21 @@ export async function creerMaraude(
   if (typeof managerId !== "string" || !managerId) {
     return { error: "Manager requis." };
   }
+  if (typeof typeEvenementId !== "string" || !typeEvenementId) {
+    return { error: "Type d'événement requis." };
+  }
+  const maxParticipants =
+    typeof maxParticipantsRaw === "string" && maxParticipantsRaw ? Number(maxParticipantsRaw) : 6;
+  if (!Number.isInteger(maxParticipants) || maxParticipants <= 0) {
+    return { error: "Capacité invalide." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("maraudes").insert({
     date_heure: new Date(dateHeure).toISOString(),
     manager_id: managerId,
+    type_evenement_id: typeEvenementId,
+    max_participants: maxParticipants,
   });
 
   if (error) {

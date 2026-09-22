@@ -1301,7 +1301,138 @@ horodatages de requêtes, pas le chiffre total.
     en interne sur les projets/contenu à mettre — pas de matière pour
     l'instant, attendre son retour avant d'attaquer cette page
 
-## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé)
+## État des lieux — renommage `maraudes` (22/09, mission lecture seule)
+
+Demande du Chef de Produit avant de généraliser le concept de maraude :
+renommer la table `maraudes` (et tout ce qui en dérive) est-il raisonnable,
+ou disproportionné par rapport à juste garder le nom et ajouter un type
+par-dessus ? Rapport livré en texte (pas de fichier créé, mission
+explicitement lecture seule) :
+- 406 occurrences de "maraude" dans `src/` (59 fichiers), dont 169 (41 %)
+  un seul motif mécanique répété (`maraude_id`/`maraudeId`) — pas 406
+  décisions indépendantes
+- 22 occurrences dans la copie marketing du site public : ne changeraient
+  dans aucun des deux scénarios, "maraude" reste le mot que l'association
+  utilise pour son activité historique
+- Objets vivants en base : 3 tables, 13 colonnes `maraude_id`, 9 policies
+  RLS nommées, 2 fonctions/triggers, 2 vrais enums
+- Recommandation retenue : **garder `maraudes`**, ajouter un type par-
+  dessus — le renommage seul ne résout pas la vraie difficulté (rendre
+  `circuits_planifies`/`points_passage` conditionnels à la nature), et son
+  coût réel est la re-vérification manuelle de toute la fonctionnalité
+  (pas de tests automatisés dans ce projet), pas le diff lui-même, pour un
+  gain purement cosmétique
+- **Décision Chef de Produit** : confirmée, voir chantier ci-dessous.
+
+## ✅ Généralisation maraude → types d'événements + récurrence + vacances scolaires (22/09)
+
+**Remplace la piste "Module de planification d'événements hors maraude
+régulière" (16/09, ci-dessous conservée pour l'historique)** — au lieu
+d'une table `evenements` séparée envisagée le 16/09, décision finale du
+Chef de Produit après un état des lieux chiffré (voir plus bas, "État des
+lieux — renommage maraudes") : généraliser la table `maraudes` existante
+plutôt que dupliquer un modèle parallèle, en gardant son nom tel quel
+(aucun renommage table/colonnes/routes/policies). Répond aussi au besoin
+"goûter, café, maraude hors du vendredi habituel" de la piste initiale, en
+mieux : génération automatique récurrente, pas seulement une saisie
+ponctuelle manuelle.
+
+Chantier en 3 parties, validées et testées en conditions réelles à chaque
+étape (compte de test créé puis supprimé) :
+
+**Partie A — Types d'événements**
+- Enum `nature_evenement` (`maraude` | `evenement_fixe`, fixe, non
+  éditable) ; table `types_evenement` (nom unique, nature, description,
+  actif — jamais de suppression physique, désactivation seulement)
+- `maraudes.type_evenement_id` (FK NOT NULL) et `maraudes.max_participants`
+  (NOT NULL, défaut 6) — remplace le "6" codé en dur dans le trigger
+  `set_inscription_statut` (Étape 3). Migration : type "Maraude classique"
+  créé, assigné à toutes les lignes existantes, `max_participants=6` pour
+  elles, avant de poser les contraintes NOT NULL — comportement inchangé
+  pour l'historique
+- Restriction structurelle (trigger, pas juste UI) : un `circuits_planifies`
+  ne peut jamais être créé pour un événement dont le type a
+  `nature='evenement_fixe'` — seule table restreinte par nature, toutes
+  les autres (points_passage, besoins_signales, meteo_benevole_saisies,
+  repas, tickets_depense, affectations_maraude, dons_ponctuels, stocks)
+  restent disponibles pour toute nature, sans logique dupliquée
+- Testé directement en base (compte service_role) : circuit refusé avec le
+  bon message pour `evenement_fixe`, accepté pour `maraude` ; capacité à 2
+  → 2 inscrits + 1 en liste d'attente confirmé
+
+**Partie B — Récurrence**
+- Table `series_evenements` (type, fréquence `hebdomadaire` /
+  `toutes_les_2_semaines` / `mensuelle_nieme_jour`, jour de la semaine,
+  Nième semaine du mois si pertinent, heure, Manager par défaut, capacité
+  par défaut, horizon de génération, date de fin optionnelle,
+  `limiter_aux_vacances_scolaires`). **Décision Chef de Produit (22/09)** :
+  `manager_id_defaut` NOT NULL (même contrainte que `maraudes.manager_id`,
+  doit désigner un profil Manager) — cohérent avec la règle déjà en place
+  partout ailleurs, plutôt que de l'assouplir pour ce seul cas
+- Table `vacances_scolaires` (nom, date_debut, date_fin), Zone B
+  uniquement. **Dates réelles importées** depuis le fichier ICS officiel
+  Zone B (`fr.ftp.opendatasoft.com/openscol/...Zone-B.ics`,
+  data.education.gouv.fr) — 9 périodes couvrant les années scolaires
+  2026-2027 et 2027-2028 (Été 2028 pas encore publié par le Ministère à
+  cette date, normal). DTEND ICS (exclusif) converti en borne inclusive
+  (−1 jour). Mise à jour manuelle annuelle documentée dans docs/Specs.md —
+  pas d'automatisation, les dates ne sont pas publiées assez à l'avance
+- Calcul des dates de récurrence en TypeScript pur (`src/lib/recurrence.ts`,
+  testé isolément avant intégration : hebdomadaire, bimensuel avec ancrage
+  correct sur `date_debut`, mensuel Nième-jour et dernier-jour-du-mois,
+  tous vérifiés par des cas de test à la main) — pas en PL/pgSQL, trop de
+  logique de calendrier pour rester lisible. Conversion heure locale
+  Europe/Paris → UTC consciente du changement d'heure
+  (`src/lib/timezone.ts`, `Intl.DateTimeFormat`, aucune nouvelle
+  dépendance) — vérifié DST hiver/été et sur une date à cheval sur la
+  bascule d'octobre
+- Route `/api/cron/generer-occurrences` (Vercel Cron, une fois par jour,
+  3h UTC, voir `vercel.json`) : seule barrière `CRON_SECRET` (en-tête
+  `Authorization: Bearer`, pas de session possible pour un job système) —
+  `CRON_SECRET` ajouté à `.env.local.example`, **doit aussi être défini
+  manuellement dans les variables d'environnement Vercel** (pas fait par
+  l'assistant, pas d'accès au dashboard Vercel depuis cette session)
+- Génération immédiate à la création d'une série (pas d'attente du
+  prochain passage cron), idempotente (vérifie les dates déjà générées
+  pour la série avant d'insérer)
+- **Testé en conditions réelles via l'UI complète** (compte
+  Admin+Manager de test) : série mensuelle (1er mercredi du mois) →
+  génération immédiate confirmée en base (2026-10-07, 2026-11-04,
+  heures UTC correctes de part et d'autre de la bascule DST) ; série
+  hebdomadaire (mercredi) avec `limiter_aux_vacances_scolaires=true` →
+  UNIQUEMENT 2026-10-21 et 2026-10-28 générées (les deux mercredis dans
+  Toussaint 2026), tous les autres mercredis de la fenêtre correctement
+  exclus — cas vacances/hors-vacances vérifié avec les vraies dates
+  importées. Appel manuel de la route cron : 401 sans secret, 401 avec
+  mauvais secret, 200 avec le bon secret ; idempotence confirmée
+  (`creees:0` au second appel) ; rattrapage confirmé après suppression
+  d'une occurrence (`creees:1`, date exacte recréée sans doublon) ;
+  désactivation d'une série confirmée exclue du cron suivant (`series`
+  passe de 2 à 1)
+
+**Partie C — UI (Admin)**
+- Page `/dashboard/maraudes/types-evenement` : liste, création
+  (nom + nature), désactivation/réactivation
+- Formulaire de création d'événement unifié sur `/dashboard/maraudes`
+  (remplace l'ancien `CreerMaraudeForm`) : bascule Ponctuel / Série
+  récurrente, sélection du type (actifs uniquement) dans les deux cas.
+  `date_debut` de série non exposée en UI (démarre le jour de la
+  création, jamais dans le passé) ni `horizon_generation_jours` (garde le
+  défaut de 56 jours) — périmètre de champs exact demandé, pas plus
+- Page `/dashboard/maraudes/series` : liste actives/inactives (triées
+  actives d'abord), description lisible de la fréquence, désactivation
+- Badge sur chaque carte de la liste des maraudes : nom du type + "Généré
+  par série" si `serie_id` non nul ; "X/max_participants inscrits"
+  remplace l'ancien "X/6" codé en dur dans le texte d'accueil
+
+⚠️ **Nettoyage opportuniste (22/09)** : en testant, découvert un compte de
+test + une maraude + un mouvement de stock d'une session précédente jamais
+réellement supprimés (le script de nettoyage de l'époque ne vérifiait pas
+l'erreur de `deleteUser`, voir mémoire `verify-test-account-deletion`) —
+supprimés proprement cette fois, avec vérification systématique de chaque
+suppression avant de continuer.
+
+## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé, **remplacé** — voir chantier ci-dessus, 22/09)
 
 Demandé par le client — **absent de Specs.md et Tasks.md avant ce jour**,
 vérifié explicitement (pas dans le cahier des charges initial, ni discuté
