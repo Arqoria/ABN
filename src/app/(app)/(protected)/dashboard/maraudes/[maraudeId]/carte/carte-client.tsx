@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TypeAction } from "@/lib/type-action";
 import type { OrganismeOrientation } from "@/lib/organisme-orientation";
+import type { GeometrieLigne } from "@/lib/ors";
 import MaraudeCarte from "./maraude-carte-client";
 
 // Centre par défaut si aucune donnée exploitable (Nice, place Masséna) —
@@ -27,6 +28,7 @@ type Payload = {
   circuitReel: CircuitPoint[];
   heatPoints: { lat: number; lng: number }[];
   circuitPlanifieInitial: { lat: number; lng: number }[];
+  circuitPlanifieGeometrieInitial: GeometrieLigne | null;
   canEdit: boolean;
   refuse: boolean;
 };
@@ -53,6 +55,7 @@ async function fetchCarte(
       circuitReel: [],
       heatPoints: [],
       circuitPlanifieInitial: [],
+      circuitPlanifieGeometrieInitial: null,
       canEdit: false,
       refuse: true,
     };
@@ -74,6 +77,7 @@ async function fetchCarte(
         circuitReel: [],
         heatPoints: [],
         circuitPlanifieInitial: [],
+        circuitPlanifieGeometrieInitial: null,
         canEdit: false,
         refuse: true,
       };
@@ -90,7 +94,7 @@ async function fetchCarte(
       supabase.from("points_passage_geo").select("lat, lng").limit(5000),
       supabase
         .from("circuits_planifies")
-        .select("points")
+        .select("points, geometrie_reelle")
         .eq("maraude_id", maraudeId)
         .maybeSingle(),
     ]);
@@ -111,8 +115,17 @@ async function fetchCarte(
 
   const circuitPlanifieInitial =
     (circuitPlanifie?.points as { lat: number; lng: number }[] | null) ?? [];
+  const circuitPlanifieGeometrieInitial =
+    (circuitPlanifie?.geometrie_reelle as GeometrieLigne | null) ?? null;
 
-  return { circuitReel, heatPoints, circuitPlanifieInitial, canEdit, refuse: false };
+  return {
+    circuitReel,
+    heatPoints,
+    circuitPlanifieInitial,
+    circuitPlanifieGeometrieInitial,
+    canEdit,
+    refuse: false,
+  };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
@@ -166,7 +179,8 @@ export function CarteClient() {
     );
   }
 
-  const { circuitReel, heatPoints, circuitPlanifieInitial, canEdit } = data;
+  const { circuitReel, heatPoints, circuitPlanifieInitial, circuitPlanifieGeometrieInitial, canEdit } =
+    data;
   const center = circuitReel[0] ?? heatPoints[0] ?? circuitPlanifieInitial[0] ?? CENTRE_PAR_DEFAUT;
 
   return (
@@ -192,6 +206,7 @@ export function CarteClient() {
             heatPoints={heatPoints}
             circuitReel={circuitReel}
             circuitPlanifieInitial={circuitPlanifieInitial}
+            circuitPlanifieGeometrieInitial={circuitPlanifieGeometrieInitial}
             canEdit={canEdit}
           />
         </CardContent>

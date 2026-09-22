@@ -1432,6 +1432,47 @@ l'erreur de `deleteUser`, voir mémoire `verify-test-account-deletion`) —
 supprimés proprement cette fois, avec vérification systématique de chaque
 suppression avant de continuer.
 
+## 🟨 Circuit planifié — tracé réel suivant les rues (22-23/09)
+
+Retour client : le circuit planifié traçait une ligne droite entre les
+points cliqués — les équipes se déplacent à pied, il faut suivre les
+rues/trottoirs réels.
+
+- **Compte OpenRouteService** : création refusée par l'assistant (règle
+  absolue — créer un compte tiers, même gratuit sans CB, reste toujours
+  à l'utilisateur). Le client crée le compte lui-même et ajoute
+  `ORS_API_KEY` en local + Vercel, comme pour `CRON_SECRET`.
+- Migration `20260922120000_circuit_geometrie_reelle.sql` — ajoute
+  `circuits_planifies.geometrie_reelle` (jsonb, nullable, GeoJSON
+  `LineString`), **à côté** de `points` (jamais remplacée, reste la
+  donnée source éditable). Appliquée en production.
+- `src/lib/ors.ts` : appel serveur-only à l'API Directions ORS (profil
+  `foot-walking`), ne lève jamais d'exception — retourne `null` sur
+  n'importe quel échec (pas de connexion, quota dépassé, points non
+  routables à pied, clé absente/invalide, timeout 10s). `ORS_API_KEY`
+  jamais exposée au client.
+- `enregistrerCircuitPlanifie` (`src/lib/actions/circuits.ts`) : recalcule
+  la géométrie à CHAQUE enregistrement (jamais réutilisée) — sinon un
+  échec après modification des points laisserait un tracé qui ne
+  correspond plus aux points actuels, silencieusement faux. Retourne la
+  géométrie au client pour affichage immédiat, plus un signal
+  "tracé réel indisponible" distinct de l'échec d'enregistrement.
+- `maraude-carte.tsx` : affiche `geometrie_reelle` (convertie
+  [lng,lat]→[lat,lng] pour Leaflet) si présente, sinon repli sur la ligne
+  droite entre les points bruts — jamais d'écran cassé. Toute
+  modification des points pendant l'édition invalide localement l'ancien
+  tracé affiché (retour à la ligne droite en aperçu) jusqu'au prochain
+  enregistrement réussi. Message discret si le tracé réel n'a pas pu
+  être calculé, distinct du message de succès normal.
+- Documenté dans docs/Specs.md, section "Circuit planifié — tracé réel
+  suivant les rues".
+
+**⏸️ En attente** : `ORS_API_KEY` pas encore fournie par le client — code
+et migration prêts, testés uniquement en repli (pas d'appel API réel
+encore vérifié). Reste à faire une fois la clé disponible : test en
+conditions réelles avec de vrais points sur Nice, vérification visuelle
+que le tracé suit bien les rues, déploiement, vérification en production.
+
 ## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé, **remplacé** — voir chantier ci-dessus, 22/09)
 
 Demandé par le client — **absent de Specs.md et Tasks.md avant ce jour**,

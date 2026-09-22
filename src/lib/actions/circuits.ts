@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
+import { calculerTraceReel, type GeometrieLigne } from "@/lib/ors";
 
-export type ActionState = { error: string } | undefined;
+export type ActionState =
+  | { error: string }
+  | { success: true; geometrieReelle: GeometrieLigne | null }
+  | undefined;
 
 type Point = { lat: number; lng: number };
 
@@ -55,17 +59,24 @@ export async function enregistrerCircuitPlanifie(
     return { error: "Tracé invalide." };
   }
 
+  // Recalculé à chaque enregistrement, jamais réutilisé de la fois d'avant
+  // — sinon un appel qui échoue après une modification des points laisserait
+  // une géométrie qui ne correspond plus au tracé actuel, silencieusement
+  // fausse. null explicite ici efface toute ancienne valeur en cas d'échec.
+  const geometrieReelle = await calculerTraceReel(points);
+
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("circuits_planifies")
-    .upsert({ maraude_id: maraudeId, points }, { onConflict: "maraude_id" });
+  const { error } = await supabase.from("circuits_planifies").upsert(
+    { maraude_id: maraudeId, points, geometrie_reelle: geometrieReelle },
+    { onConflict: "maraude_id" },
+  );
 
   if (error) {
     return { error: "Impossible d'enregistrer le circuit." };
   }
 
   revalidatePath(`/dashboard/maraudes/${maraudeId}/carte`);
-  return undefined;
+  return { success: true, geometrieReelle };
 }
 
 // Vide le circuit planifié (repart de zéro) — même politique RLS que

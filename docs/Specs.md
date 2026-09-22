@@ -100,6 +100,38 @@ convertir en borne inclusive (DTEND − 1 jour) avant insertion.
 - Visibilité : heatmap + circuits + compteurs détaillés réservés à Admin/Manager.
   Maraudeur/Cuisinier n'ont pas besoin de cette vue
 
+### Circuit planifié — tracé réel suivant les rues (22/09)
+
+Le Manager/Admin définit un circuit planifié en cliquant une suite de
+points sur la carte (`circuits_planifies.points`, ordonnés). Ces points
+restent la donnée source, jamais remplacée. En plus, à chaque
+enregistrement, le circuit est envoyé à l'API **Directions
+d'OpenRouteService** (profil `foot-walking` — les équipes se déplacent à
+pied) qui retourne le tracé réel suivant les rues/trottoirs, stocké à côté
+(`circuits_planifies.geometrie_reelle`, GeoJSON `LineString`). La carte
+affiche ce tracé réel quand il est disponible.
+
+- **Compte/clé** : `ORS_API_KEY`, compte gratuit openrouteservice.org
+  (créé et géré par l'association, pas par l'assistant — voir
+  `.env.local.example`). Appel fait uniquement côté serveur
+  (`src/lib/ors.ts`, depuis la Server Action `enregistrerCircuitPlanifie`)
+  — la clé n'est jamais exposée au navigateur.
+- **Dégradation obligatoire** : si l'appel échoue pour n'importe quelle
+  raison (pas de connexion, quota gratuit dépassé, points trop excentrés/
+  non routables à pied, clé absente ou invalide, timeout), le circuit
+  s'enregistre quand même avec `geometrie_reelle = null` — jamais
+  d'exception qui bloquerait l'enregistrement. La carte se replie alors
+  sur l'ancienne ligne droite entre les points bruts, avec un message
+  discret ("tracé réel indisponible pour l'instant, ligne droite
+  affichée"), jamais un écran cassé.
+- **Recalcul systématique** : la géométrie est recalculée à CHAQUE
+  enregistrement du circuit (jamais réutilisée d'une fois sur l'autre) —
+  sinon un appel qui échoue après une modification des points laisserait
+  un tracé qui ne correspond plus aux points actuels, silencieusement faux.
+- Pendant l'édition (avant le prochain enregistrement), la carte affiche
+  la ligne droite en aperçu — le tracé réel n'apparaît qu'une fois le
+  circuit (ré-)enregistré avec succès.
+
 ## Anonymat des personnes aidées
 - Aucune fiche individuelle, aucun nom, aucune donnée identifiante sur les personnes aidées
 - Uniquement des compteurs agrégés (nombre de personnes aidées, orientations sociales effectuées)

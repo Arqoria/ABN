@@ -15,6 +15,7 @@ import L from "leaflet";
 import "leaflet.heat";
 import { Button } from "@/components/ui/button";
 import { enregistrerCircuitPlanifie } from "@/lib/actions/circuits";
+import type { GeometrieLigne } from "@/lib/ors";
 import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS_COURT, type TypeAction } from "@/lib/type-action";
 import {
   ORGANISME_ORIENTATION_LABELS,
@@ -70,6 +71,7 @@ export function MaraudeCarte({
   heatPoints,
   circuitReel,
   circuitPlanifieInitial,
+  circuitPlanifieGeometrieInitial,
   canEdit,
 }: {
   maraudeId: string;
@@ -77,14 +79,34 @@ export function MaraudeCarte({
   heatPoints: LatLng[];
   circuitReel: PointReel[];
   circuitPlanifieInitial: LatLng[];
+  circuitPlanifieGeometrieInitial: GeometrieLigne | null;
   canEdit: boolean;
 }) {
   const [planned, setPlanned] = useState<LatLng[]>(circuitPlanifieInitial);
+  const [geometrieReelle, setGeometrieReelle] = useState<GeometrieLigne | null>(
+    circuitPlanifieGeometrieInitial,
+  );
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
   const reelLine: LatLngExpression[] = circuitReel.map((p) => [p.lat, p.lng]);
-  const plannedLine: LatLngExpression[] = planned.map((p) => [p.lat, p.lng]);
+  // Tracé réel (suivant les rues) si disponible pour les points ACTUELLEMENT
+  // enregistrés ; sinon repli sur la ligne droite entre les points bruts —
+  // jamais d'écran cassé si l'API a échoué ou n'a pas encore été appelée.
+  // GeoJSON stocke [lng, lat], Leaflet attend [lat, lng] : conversion ici.
+  const plannedLine: LatLngExpression[] = geometrieReelle
+    ? geometrieReelle.coordinates.map(([lng, lat]) => [lat, lng])
+    : planned.map((p) => [p.lat, p.lng]);
+
+  // Toute modification des points en cours d'édition invalide l'ancien
+  // tracé réel affiché (il ne correspondrait plus aux points actuels tant
+  // que le nouveau circuit n'est pas ré-enregistré) — on repasse sur la
+  // ligne droite en aperçu pendant l'édition, le tracé réel réapparaît au
+  // prochain enregistrement réussi.
+  function modifierPoints(nouveaux: LatLng[]) {
+    setPlanned(nouveaux);
+    setGeometrieReelle(null);
+  }
 
   function save() {
     const formData = new FormData();
@@ -92,7 +114,16 @@ export function MaraudeCarte({
     formData.set("points", JSON.stringify(planned));
     startTransition(async () => {
       const result = await enregistrerCircuitPlanifie(undefined, formData);
-      setMessage(result?.error ?? "Circuit planifié enregistré.");
+      if (result && "error" in result) {
+        setMessage(result.error);
+        return;
+      }
+      setGeometrieReelle(result?.geometrieReelle ?? null);
+      setMessage(
+        planned.length >= 2 && !result?.geometrieReelle
+          ? "Circuit planifié enregistré (tracé réel indisponible pour l'instant, ligne droite affichée)."
+          : "Circuit planifié enregistré.",
+      );
     });
   }
 
@@ -182,7 +213,7 @@ export function MaraudeCarte({
 
           {canEdit && (
             <ClickCatcher
-              onClick={(p) => setPlanned((prev) => [...prev, p])}
+              onClick={(p) => modifierPoints([...planned, p])}
             />
           )}
         </MapContainer>
@@ -215,7 +246,7 @@ export function MaraudeCarte({
             variant="outline"
             size="sm"
             disabled={pending || planned.length === 0}
-            onClick={() => setPlanned((prev) => prev.slice(0, -1))}
+            onClick={() => modifierPoints(planned.slice(0, -1))}
           >
             Annuler le dernier point
           </Button>
@@ -224,7 +255,7 @@ export function MaraudeCarte({
             variant="outline"
             size="sm"
             disabled={pending || planned.length === 0}
-            onClick={() => setPlanned([])}
+            onClick={() => modifierPoints([])}
           >
             Effacer le circuit
           </Button>
