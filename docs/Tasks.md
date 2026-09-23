@@ -1432,7 +1432,7 @@ l'erreur de `deleteUser`, voir mémoire `verify-test-account-deletion`) —
 supprimés proprement cette fois, avec vérification systématique de chaque
 suppression avant de continuer.
 
-## 🟨 Circuit planifié — tracé réel suivant les rues (22-23/09)
+## ✅ Circuit planifié — tracé réel suivant les rues (22-23/09, commit `b4705fa`)
 
 Retour client : le circuit planifié traçait une ligne droite entre les
 points cliqués — les équipes se déplacent à pied, il faut suivre les
@@ -1467,11 +1467,18 @@ rues/trottoirs réels.
 - Documenté dans docs/Specs.md, section "Circuit planifié — tracé réel
   suivant les rues".
 
-**⏸️ En attente** : `ORS_API_KEY` pas encore fournie par le client — code
-et migration prêts, testés uniquement en repli (pas d'appel API réel
-encore vérifié). Reste à faire une fois la clé disponible : test en
-conditions réelles avec de vrais points sur Nice, vérification visuelle
-que le tracé suit bien les rues, déploiement, vérification en production.
+**✅ Confirmé en production (23/09)** : `ORS_API_KEY` fournie par le
+client (compte créé par ses soins) et ajoutée en local + Vercel.
+Testé de bout en bout avec de vrais points le long de la promenade
+côtière de Nice — tracé réel de 72 points confirmé en base, en local et
+en production. Fausse alerte initiale du client résolue : la ligne
+droite affichée pendant qu'on place les points est le comportement
+normal (aperçu avant sauvegarde, le tracé réel n'apparaît qu'après clic
+sur "Enregistrer le circuit planifié" — pas de calcul à chaque clic pour
+ne pas solliciter l'API inutilement) ; le vrai souci était que le
+circuit n'avait simplement pas encore été enregistré au moment de la
+capture d'écran envoyée. Repli testé avec les 2 cas d'échec réels de
+l'API (clé invalide → 403, points non routables → 404).
 
 ## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé, **remplacé** — voir chantier ci-dessus, 22/09)
 
