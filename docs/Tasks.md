@@ -1480,6 +1480,55 @@ circuit n'avait simplement pas encore été enregistré au moment de la
 capture d'écran envoyée. Repli testé avec les 2 cas d'échec réels de
 l'API (clé invalide → 403, points non routables → 404).
 
+## ✅ Dons ponctuels visibles sur la page maraude + répertoire de commerçants (23/09)
+
+**Partie 1 — Investigation** : retour client, un don ajouté via
+`/dashboard/cuisine` n'apparaissait pas "dans les repas" de la maraude.
+Vérifié directement en base : le don était bien enregistré (`donateur`,
+`maraude_id`, etc. tous corrects, `created_by` un vrai compte Admin) —
+**pas un bug de sauvegarde**, un manque d'affichage :
+`dons_ponctuels` n'était visible que sur `/dashboard/cuisine`, jamais sur
+la page repas de la maraude elle-même.
+- Corrigé : `/dashboard/maraudes/[id]/repas` affiche maintenant une
+  section "Dons reçus pour cette maraude" à côté des repas cuisinés
+  (`fetchRepasEtDons`, une seule requête parallèle en plus, même
+  `queryKey` que la page — pas de nouveau chantier de cache).
+
+**Partie 2 — Répertoire de commerçants partenaires** (nouvelle demande) :
+- Schéma `dons_ponctuels` vérifié avant extension (id, maraude_id,
+  donateur, description, quantite, created_by, created_at) — inchangé
+  depuis sa création, aucune surprise.
+- Migration `20260923100000_commercants_partenaires.sql` : nouvelle table
+  `commercants_partenaires` (nom unique, actif, notes, cree_par/cree_le),
+  même principe que `types_evenement` — écriture Admin, lecture
+  authenticated, **jamais de suppression physique** (juste `actif`).
+  `dons_ponctuels.commercant_id` ajouté en FK nullable — le texte libre
+  `donateur` existant est conservé, jamais remplacé.
+- Formulaire de don (`don-ponctuel-form.tsx`) : menu déroulant des
+  commerçants actifs + option "Autre" qui révèle le champ texte libre.
+  Le nom du commerçant est résolu **côté serveur** (jamais transmis tel
+  quel par le client) pour peupler `donateur`, afin de ne jamais casser
+  l'affichage existant qui lit cette colonne.
+- Nouvelle page `/dashboard/cuisine/commercants` (Admin) : lister, créer,
+  modifier (édition inline nom/notes), désactiver/réactiver. Choix
+  d'emplacement : sous `/dashboard/cuisine` plutôt qu'ailleurs — même
+  logique que `types-evenement`/`series` sous `/dashboard/maraudes`
+  (config Admin d'un domaine, rattachée à la page de ce domaine, pas un
+  nouveau chantier de navigation top-level). Lien ajouté dans l'en-tête
+  de `/dashboard/cuisine` (Admin uniquement).
+- Documenté dans docs/Specs.md, section "Dons ponctuels & commerçants
+  partenaires".
+
+Testé en conditions réelles (compte Admin+Cuisinier créé puis supprimé,
+vérification explicite de l'erreur à chaque suppression) : don "Point B"
+existant confirmé visible sur la page repas de sa maraude ; création d'un
+commerçant confirmée en base (`cree_par` forcé au vrai compte
+authentifié) ; don enregistré via ce commerçant confirmé lié
+(`commercant_id`) avec `donateur` correctement résolu côté serveur ;
+option "Autre" toujours fonctionnelle en parallèle ; désactivation
+confirmée — disparaît du menu déroulant pour un nouveau don, mais le don
+déjà enregistré reste intact (nom + lien).
+
 ## Piste — Module de planification d'événements hors maraude régulière (16/09, pas scopé, **remplacé** — voir chantier ci-dessus, 22/09)
 
 Demandé par le client — **absent de Specs.md et Tasks.md avant ce jour**,

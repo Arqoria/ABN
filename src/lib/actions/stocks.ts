@@ -131,9 +131,35 @@ export async function ajouterDonPonctuel(
     return { error: "Choisissez une maraude." };
   }
 
-  const donateurRaw = formData.get("donateur");
-  if (typeof donateurRaw !== "string" || !donateurRaw.trim()) {
-    return { error: "Le nom du donateur est requis." };
+  // "Autre" (pas de commerçant répertorié) : donateurLibre en texte libre,
+  // conservé tel quel. Commerçant répertorié : le nom vient de la base
+  // (jamais celui envoyé par le client, même principe que partout ailleurs
+  // dans ce projet), donateur reste toujours renseigné en texte pour ne
+  // pas casser l'affichage existant qui lit dons_ponctuels.donateur.
+  const supabase = await createClient();
+  const commercantIdRaw = formData.get("commercantId");
+  const commercantId =
+    typeof commercantIdRaw === "string" && commercantIdRaw && commercantIdRaw !== "autre"
+      ? commercantIdRaw
+      : null;
+
+  let donateur: string;
+  if (commercantId) {
+    const { data: commercant } = await supabase
+      .from("commercants_partenaires")
+      .select("nom")
+      .eq("id", commercantId)
+      .single();
+    if (!commercant) {
+      return { error: "Commerçant introuvable." };
+    }
+    donateur = commercant.nom;
+  } else {
+    const donateurLibre = formData.get("donateurLibre");
+    if (typeof donateurLibre !== "string" || !donateurLibre.trim()) {
+      return { error: "Le nom du donateur est requis." };
+    }
+    donateur = donateurLibre.trim();
   }
 
   const descriptionRaw = formData.get("description");
@@ -148,10 +174,10 @@ export async function ajouterDonPonctuel(
     return { error: "Quantité invalide." };
   }
 
-  const supabase = await createClient();
   const { error } = await supabase.from("dons_ponctuels").insert({
     maraude_id: maraudeId,
-    donateur: donateurRaw.trim(),
+    commercant_id: commercantId,
+    donateur,
     description: descriptionRaw.trim(),
     quantite,
   });

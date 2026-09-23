@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
@@ -41,6 +42,7 @@ type Payload = {
   dons: Don[];
   mouvementsDenrees: MouvementDenree[];
   maraudes: { id: string; date_heure: string }[];
+  commercants: { id: string; nom: string }[];
 };
 
 // Lecture directe Supabase depuis le navigateur — RLS
@@ -50,23 +52,30 @@ type Payload = {
 async function fetchCuisine(): Promise<Payload> {
   const supabase = createClient();
 
-  const [{ data: dons }, { data: mouvementsDenrees }, { data: maraudes }] = await Promise.all([
-    supabase
-      .from("dons_ponctuels")
-      .select("id, donateur, description, quantite, created_at, maraude:maraude_id(date_heure)")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("stock_denrees_mouvements")
-      .select("id, nom, unite, quantite, motif, created_at, maraude:maraude_id(date_heure)")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("maraudes")
-      .select("id, date_heure")
-      .order("date_heure", { ascending: false })
-      .limit(50),
-  ]);
+  const [{ data: dons }, { data: mouvementsDenrees }, { data: maraudes }, { data: commercants }] =
+    await Promise.all([
+      supabase
+        .from("dons_ponctuels")
+        .select("id, donateur, description, quantite, created_at, maraude:maraude_id(date_heure)")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("stock_denrees_mouvements")
+        .select("id, nom, unite, quantite, motif, created_at, maraude:maraude_id(date_heure)")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("maraudes")
+        .select("id, date_heure")
+        .order("date_heure", { ascending: false })
+        .limit(50),
+      supabase.from("commercants_partenaires").select("id, nom").eq("actif", true).order("nom", { ascending: true }),
+    ]);
 
-  return { dons: dons ?? [], mouvementsDenrees: mouvementsDenrees ?? [], maraudes: maraudes ?? [] };
+  return {
+    dons: dons ?? [],
+    mouvementsDenrees: mouvementsDenrees ?? [],
+    maraudes: maraudes ?? [],
+    commercants: commercants ?? [],
+  };
 }
 
 // Voir docs/Tasks.md, "Chantier lancé" (17/09). Réservée à Admin, Manager ou
@@ -111,7 +120,7 @@ export function CuisineClient() {
     );
   }
 
-  const { dons, mouvementsDenrees, maraudes } = data;
+  const { dons, mouvementsDenrees, maraudes, commercants } = data;
 
   const totauxDenrees = new Map<string, { nom: string; unite: string | null; total: number }>();
   for (const m of mouvementsDenrees) {
@@ -129,13 +138,22 @@ export function CuisineClient() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Gestion des cuisines
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Dons ponctuels de repas/snacks et stock de denrées alimentaires.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">
+            Gestion des cuisines
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Dons ponctuels de repas/snacks et stock de denrées alimentaires.
+          </p>
+        </div>
+        {isAdmin && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/cuisine/commercants" prefetch={false}>
+              Commerçants partenaires
+            </Link>
+          </Button>
+        )}
       </div>
 
       <CollapsibleSection
@@ -149,7 +167,7 @@ export function CuisineClient() {
               <CardTitle>Enregistrer un don</CardTitle>
             </CardHeader>
             <CardContent>
-              <DonPonctuelForm maraudes={maraudes} />
+              <DonPonctuelForm maraudes={maraudes} commercants={commercants} />
             </CardContent>
           </Card>
 

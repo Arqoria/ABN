@@ -87,6 +87,33 @@ convertir en borne inclusive (DTEND − 1 jour) avant insertion.
 - Upload de tickets de caisse (photo) pour remboursement par le Trésorier
 - Statut de remboursement suivi (en attente / remboursé)
 
+## Dons ponctuels & commerçants partenaires (23/09)
+
+Un don ponctuel (repas/snacks offerts par un commerce ou un particulier
+pour une maraude précise) est visible à DEUX endroits, pas seulement sur
+`/dashboard/cuisine` : aussi sur la page repas de la maraude concernée
+(`/dashboard/maraudes/[id]/repas`), à côté des repas cuisinés — objectif
+explicite : une vue d'ensemble de ce qui sera distribué ce soir-là (repas
+cuisinés + dons reçus), pas juste la traçabilité globale de tous les dons.
+
+- **`commercants_partenaires`** : répertoire réutilisable de commerçants
+  donateurs réguliers (nom, notes libres, actif). Gestion (création/
+  modification/désactivation) réservée à l'Admin, page dédiée
+  `/dashboard/cuisine/commercants`. **Jamais de suppression physique** —
+  un commerçant désactivé disparaît du menu déroulant pour un NOUVEAU don,
+  mais reste lisible sur l'historique des dons déjà enregistrés à son nom
+  (même principe que `types_evenement`).
+- Le formulaire d'ajout d'un don propose un menu déroulant des
+  commerçants actifs, plus une option **"Autre"** qui révèle un champ
+  texte libre — un don d'un donateur non répertorié reste possible sans
+  devoir d'abord créer une fiche commerçant.
+- `dons_ponctuels.commercant_id` (nullable) lie le don au commerçant
+  répertorié le cas échéant ; `dons_ponctuels.donateur` (texte) reste
+  TOUJOURS renseigné dans les deux cas — soit recopié du nom du
+  commerçant (résolu côté serveur, jamais transmis tel quel par le
+  client), soit saisi librement — pour ne jamais casser l'affichage
+  existant qui lit cette colonne.
+
 ## Suivi terrain & cartographie
 - Capture automatique d'un "point de passage" à chaque action clé (ex. repas distribué) :
   géolocalisation du téléphone + horodatage, en un tap, fonctionne offline (mise en file, synchro au retour réseau)

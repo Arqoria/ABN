@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ajouterDonPonctuel } from "@/lib/actions/stocks";
 import { Button } from "@/components/ui/button";
@@ -17,15 +17,22 @@ import {
 // maraudeId obligatoire (contrairement aux mouvements de stock) — voir
 // docs/Tasks.md : tout l'intérêt est qu'un Cuisinier voie qu'un don a déjà
 // été fait pour SA maraude avant de préparer un repas en double.
+//
+// Commerçant répertorié (dropdown, 23/09) OU "Autre" avec le champ texte
+// libre existant conservé — un don ponctuel d'un donateur non répertorié
+// reste possible.
 export function DonPonctuelForm({
   maraudes,
+  commercants,
 }: {
   maraudes: { id: string; date_heure: string }[];
+  commercants: { id: string; nom: string }[];
 }) {
   const [state, action, pending] = useActionState(ajouterDonPonctuel, undefined);
   const queryClient = useQueryClient();
   const isFirstRender = useRef(true);
   const formRef = useRef<HTMLFormElement>(null);
+  const [commercantId, setCommercantId] = useState("autre");
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -35,6 +42,7 @@ export function DonPonctuelForm({
     if (!state?.error) {
       queryClient.invalidateQueries({ queryKey: ["cuisine"] });
       formRef.current?.reset();
+      setCommercantId("autre");
     }
   }, [state, queryClient]);
 
@@ -57,14 +65,38 @@ export function DonPonctuelForm({
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="donateur">Donateur</Label>
-          <Input id="donateur" name="donateur" placeholder="Ex. « Boulangerie du coin »" required className="h-12" />
+          <Label htmlFor="commercantId">Commerçant</Label>
+          <Select name="commercantId" value={commercantId} onValueChange={setCommercantId}>
+            <SelectTrigger id="commercantId" className="h-12">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="autre">Autre (préciser)</SelectItem>
+              {commercants.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="quantite">Quantité (facultatif)</Label>
           <Input id="quantite" name="quantite" type="number" min={1} step={1} className="h-12" />
         </div>
       </div>
+      {commercantId === "autre" && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="donateurLibre">Nom du donateur</Label>
+          <Input
+            id="donateurLibre"
+            name="donateurLibre"
+            placeholder="Ex. « Boulangerie du coin »"
+            required
+            className="h-12"
+          />
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="description">Description</Label>
         <Input id="description" name="description" placeholder="Ex. « 20 sandwichs »" required className="h-12" />
