@@ -1340,6 +1340,58 @@ Stocks (totaux + 2 sections fermées) et message "Seul un Cuisinier..." sur
 Repas vérifiés à l'écran ; section "Zones d'activité" de Rapports
 confirmée encapsulée dans une Card après ouverture. Build + `tsc --noEmit`
 propres après nettoyage du cache `.next` (routes supprimées).
+
+### ✅ Correctif (24/09) — doublons signalés par le Chef de Produit sur la refonte Admin
+
+Retour direct après la refonte ci-dessus : "le résultat global est pire
+qu'avant, pas mieux". Avant de corriger, un constat précis a été fait
+(aucune correction avant d'avoir identifié la vraie cause) :
+- Les 3 anciennes pages étaient bien supprimées (pas de doublon de route).
+- Le vrai doublon : **le même texte affiché deux fois sur un même
+  écran** — la `description` d'une `CollapsibleSection` (toujours visible,
+  même fermée) était reformulée puis quasiment répétée dans le paragraphe
+  interne une fois la section ouverte. Pattern absent du reste de l'app
+  (Adhérents/Rapports/Cuisine d'origine), introduit uniquement par cette
+  refonte sur 4 sections.
+- Secondaire : 4 chemins distincts menaient tous à `/dashboard/configuration`
+  (accueil, en-tête Cuisine, formulaire vide, navigation directe) — pas
+  des liens morts, mais plus d'entrées que nécessaire.
+
+**Corrections appliquées** :
+- **Chemins d'accès simplifiés** : bouton "Commerçants partenaires" retiré
+  de l'en-tête de `/dashboard/cuisine` (`cuisine-client.tsx`, import
+  `Link` devenu inutile retiré au passage). Restent uniquement : la carte
+  Configuration sur l'accueil (accès principal), et le lien contextuel
+  dans le formulaire de création d'événement quand aucun type n'est actif
+  (utilité réelle — apparaît exactement quand on en a besoin).
+- **Texte dupliqué retiré** :
+  - `stocks-client.tsx`, section Historique : le paragraphe interne "Aucun
+    mouvement enregistré pour l'instant." (répétition EXACTE de la
+    description) supprimé — rien ne s'affiche à l'ouverture si la liste
+    est vide, la description suffit.
+  - `configuration/types-evenement-content.tsx` : le paragraphe interne ne
+    garde que l'information réellement nouvelle ("Jamais de suppression —
+    seulement une désactivation"), la partie qui reformulait la
+    description ("nature fixe (Maraude ou point fixe)") retirée.
+  - `configuration/commercants-content.tsx` : même principe, le préfixe
+    "Répertoire réutilisable pour les dons ponctuels" (répétition quasi
+    mot pour mot de la description) retiré, seule l'information nouvelle
+    (jamais de suppression, historique préservé) reste.
+  - `configuration/series-content.tsx` : **non modifié** — vérifié qu'il
+    n'y a pas de réel doublon ici (description = ce que fait la
+    fonctionnalité, paragraphe interne = effet d'une désactivation, deux
+    informations différentes malgré des mots en commun comme "génération"/
+    "occurrences") ; le corriger quand même aurait supprimé une
+    information utile sans raison.
+
+**Testé en conditions réelles** (compte Admin de test créé puis supprimé,
+vérification explicite de l'erreur de suppression) : bouton "Commerçants
+partenaires" confirmé absent de l'en-tête Cuisine ; section Historique de
+Stocks ouverte avec 0 mouvement — le texte n'apparaît plus qu'une fois ;
+sections "Types d'événements" et "Commerçants partenaires" de Configuration
+ouvertes — plus aucune répétition, uniquement l'information nouvelle
+affichée sous la description. Build + `tsc --noEmit` propres.
+
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le

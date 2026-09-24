@@ -66,8 +66,7 @@ export function TypesEvenementContent() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Chaque type est rattaché à une nature fixe (Maraude ou Événement à
-        point fixe). Jamais de suppression — seulement une désactivation.
+        Jamais de suppression — seulement une désactivation.
       </p>
 
       <Card>

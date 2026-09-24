@@ -63,9 +63,8 @@ export function CommercantsContent() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Répertoire réutilisable pour les dons ponctuels — jamais de
-        suppression, seulement une désactivation (n&apos;affecte pas
-        l&apos;historique des dons déjà enregistrés).
+        Jamais de suppression, seulement une désactivation (n&apos;affecte
+        pas l&apos;historique des dons déjà enregistrés).
       </p>
 
       <Card>

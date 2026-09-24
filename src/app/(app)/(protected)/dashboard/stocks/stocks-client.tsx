@@ -151,11 +151,7 @@ export function StocksClient() {
         }
         icon={History}
       >
-        {mouvements.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Aucun mouvement enregistré pour l&apos;instant.
-          </p>
-        ) : (
+        {mouvements.length > 0 && (
           <Card>
             <CardContent className="flex flex-col divide-y divide-border py-0">
               {mouvements.map((m) => {

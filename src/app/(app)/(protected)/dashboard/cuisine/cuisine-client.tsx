@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
@@ -138,22 +137,13 @@ export function CuisineClient() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Gestion des cuisines
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Dons ponctuels de repas/snacks et stock de denrées alimentaires.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/configuration" prefetch={false}>
-              Commerçants partenaires
-            </Link>
-          </Button>
-        )}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">
+          Gestion des cuisines
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Dons ponctuels de repas/snacks et stock de denrées alimentaires.
+        </p>
       </div>
 
       <CollapsibleSection
