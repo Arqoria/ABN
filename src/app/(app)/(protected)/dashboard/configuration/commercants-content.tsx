@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/components/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { basculerActifCommercant } from "@/lib/actions/commercants";
 import {
@@ -28,8 +26,9 @@ type Commercant = {
 
 // Lecture directe Supabase — RLS
 // (commercants_partenaires_select_authenticated) fait la restriction
-// réelle pour la lecture ; cette page reste réservée à l'Admin côté
-// client (seul habilité à créer/modifier/désactiver). Voir docs/Tasks.md.
+// réelle. Le garde-fou Admin vit désormais une seule fois au niveau de
+// /dashboard/configuration. Voir docs/Tasks.md, Étape 10bis (migration
+// depuis l'ancienne page /dashboard/cuisine/commercants).
 async function fetchCommercants(): Promise<Commercant[]> {
   const supabase = createClient();
   const { data } = await supabase
@@ -39,29 +38,15 @@ async function fetchCommercants(): Promise<Commercant[]> {
   return data ?? [];
 }
 
-export function CommercantsClient() {
-  const profile = useSession();
-  const router = useRouter();
+export function CommercantsContent() {
   const queryClient = useQueryClient();
   const [, startTransition] = useTransition();
   const [enEdition, setEnEdition] = useState<string | null>(null);
-  const isAdmin = profile.roles.includes("admin");
-
-  useEffect(() => {
-    if (!isAdmin) {
-      router.replace("/dashboard/cuisine");
-    }
-  }, [isAdmin, router]);
 
   const { data: commercants, isLoading, isError } = useQuery({
     queryKey: ["commercants"],
     queryFn: fetchCommercants,
-    enabled: isAdmin,
   });
-
-  if (!isAdmin) {
-    return null;
-  }
 
   if (isLoading) {
     return <CardListSkeleton rows={2} />;
@@ -69,24 +54,19 @@ export function CommercantsClient() {
 
   if (isError || !commercants) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les commerçants pour l&apos;instant.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Impossible de charger les commerçants pour l&apos;instant.
+      </p>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Commerçants partenaires</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Répertoire réutilisable pour les dons ponctuels — jamais de
-          suppression, seulement une désactivation (n&apos;affecte pas
-          l&apos;historique des dons déjà enregistrés).
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">
+        Répertoire réutilisable pour les dons ponctuels — jamais de
+        suppression, seulement une désactivation (n&apos;affecte pas
+        l&apos;historique des dons déjà enregistrés).
+      </p>
 
       <Card>
         <CardHeader>

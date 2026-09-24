@@ -62,8 +62,8 @@ export function CreerEvenementForm({
     return (
       <p className="text-sm text-muted-foreground">
         Aucun type d&apos;événement actif — crée d&apos;abord un type (
-        <a href="/dashboard/maraudes/types-evenement" className="underline underline-offset-4">
-          Types d&apos;événements
+        <a href="/dashboard/configuration" className="underline underline-offset-4">
+          Configuration
         </a>
         ) avant de pouvoir créer un événement.
       </p>

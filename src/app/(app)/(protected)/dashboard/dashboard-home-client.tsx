@@ -158,6 +158,23 @@ export function DashboardHomeClient() {
           </CardContent>
         </Card>
       )}
+
+      {profile.roles.includes("admin") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration</CardTitle>
+            <CardDescription>
+              Types d&apos;événements, séries récurrentes, commerçants
+              partenaires.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/dashboard/configuration" prefetch={false}>Gérer la configuration</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

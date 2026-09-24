@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { CollapsibleSection } from "@/components/collapsible-section";
+import { PlusCircle, History } from "lucide-react";
 import { MouvementMaterielForm } from "./mouvement-materiel-form";
 
 type Mouvement = {
@@ -132,66 +134,69 @@ export function StocksClient() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Enregistrer un mouvement</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MouvementMaterielForm maraudes={maraudes} />
-        </CardContent>
-      </Card>
+      <CollapsibleSection
+        title="Enregistrer un mouvement"
+        description="Entrée (don reçu) ou sortie (distribué)."
+        icon={PlusCircle}
+      >
+        <MouvementMaterielForm maraudes={maraudes} />
+      </CollapsibleSection>
 
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Historique</h2>
-      </div>
-
-      {mouvements.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+      <CollapsibleSection
+        title="Historique"
+        description={
+          mouvements.length === 0
+            ? "Aucun mouvement enregistré pour l'instant."
+            : `${mouvements.length} mouvement${mouvements.length > 1 ? "s" : ""} enregistré${mouvements.length > 1 ? "s" : ""}.`
+        }
+        icon={History}
+      >
+        {mouvements.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
             Aucun mouvement enregistré pour l&apos;instant.
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col divide-y divide-border py-0">
-            {mouvements.map((m) => {
-              const maraude = Array.isArray(m.maraude) ? m.maraude[0] : m.maraude;
-              const auteur = Array.isArray(m.profil) ? m.profil[0] : m.profil;
-              return (
-                <div key={m.id} className="flex items-start justify-between gap-3 py-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium text-foreground">
-                      {CATEGORIE_BESOIN_LABELS[m.categorie]} ·{" "}
-                      {m.quantite > 0 ? `+${m.quantite}` : m.quantite}
-                    </span>
-                    <CardDescription>
-                      {new Date(m.created_at).toLocaleDateString("fr-FR")}
-                      {auteur?.full_name ? ` · ${auteur.full_name}` : ""}
-                      {maraude ? ` · maraude du ${new Date(maraude.date_heure).toLocaleDateString("fr-FR")}` : ""}
-                    </CardDescription>
-                    {m.motif && <p className="text-sm text-muted-foreground">{m.motif}</p>}
+          </p>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col divide-y divide-border py-0">
+              {mouvements.map((m) => {
+                const maraude = Array.isArray(m.maraude) ? m.maraude[0] : m.maraude;
+                const auteur = Array.isArray(m.profil) ? m.profil[0] : m.profil;
+                return (
+                  <div key={m.id} className="flex items-start justify-between gap-3 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-foreground">
+                        {CATEGORIE_BESOIN_LABELS[m.categorie]} ·{" "}
+                        {m.quantite > 0 ? `+${m.quantite}` : m.quantite}
+                      </span>
+                      <CardDescription>
+                        {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                        {auteur?.full_name ? ` · ${auteur.full_name}` : ""}
+                        {maraude ? ` · maraude du ${new Date(maraude.date_heure).toLocaleDateString("fr-FR")}` : ""}
+                      </CardDescription>
+                      {m.motif && <p className="text-sm text-muted-foreground">{m.motif}</p>}
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await supprimerMouvementMateriel(m.id);
+                            queryClient.invalidateQueries({ queryKey: ["stocks-materiel"] });
+                          })
+                        }
+                      >
+                        Supprimer
+                      </Button>
+                    )}
                   </div>
-                  {isAdmin && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        startTransition(async () => {
-                          await supprimerMouvementMateriel(m.id);
-                          queryClient.invalidateQueries({ queryKey: ["stocks-materiel"] });
-                        })
-                      }
-                    >
-                      Supprimer
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+      </CollapsibleSection>
     </div>
   );
 }

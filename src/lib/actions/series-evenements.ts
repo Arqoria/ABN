@@ -120,12 +120,12 @@ export async function creerSerieEvenement(
   }
 
   revalidatePath("/dashboard/maraudes");
-  revalidatePath("/dashboard/series-evenements");
+  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
 export async function basculerActifSerie(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("series_evenements").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/series-evenements");
+  revalidatePath("/dashboard/configuration");
 }

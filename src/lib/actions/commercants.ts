@@ -34,7 +34,7 @@ export async function creerCommercant(
     return { error: error.message.includes("unique") ? "Ce commerçant existe déjà." : "Impossible de créer le commerçant." };
   }
 
-  revalidatePath("/dashboard/cuisine/commercants");
+  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -65,7 +65,7 @@ export async function modifierCommercant(
     return { error: error.message.includes("unique") ? "Ce nom existe déjà." : "Impossible de modifier le commerçant." };
   }
 
-  revalidatePath("/dashboard/cuisine/commercants");
+  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -76,5 +76,5 @@ export async function modifierCommercant(
 export async function basculerActifCommercant(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("commercants_partenaires").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/cuisine/commercants");
+  revalidatePath("/dashboard/configuration");
 }

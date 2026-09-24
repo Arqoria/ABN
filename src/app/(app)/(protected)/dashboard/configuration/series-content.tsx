@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/components/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { basculerActifSerie } from "@/lib/actions/series-evenements";
 import {
@@ -42,8 +40,12 @@ function decrireFrequence(s: Serie): string {
 }
 
 // Lecture directe Supabase — RLS (series_evenements_select_authenticated)
-// fait la restriction réelle ; page réservée à l'Admin côté client (seul
-// habilité à désactiver). Voir docs/Tasks.md, Partie C.
+// fait la restriction réelle. Le garde-fou Admin vit désormais une seule
+// fois au niveau de /dashboard/configuration. Voir docs/Tasks.md, Étape
+// 10bis (migration depuis l'ancienne page /dashboard/maraudes/series). Pas
+// de formulaire de création ici : une série se crée depuis
+// /dashboard/maraudes (bascule Ponctuel/Série du formulaire de création
+// d'événement), inchangé.
 async function fetchSeries(): Promise<Serie[]> {
   const supabase = createClient();
   const { data } = await supabase
@@ -55,28 +57,14 @@ async function fetchSeries(): Promise<Serie[]> {
   return data ?? [];
 }
 
-export function SeriesClient() {
-  const profile = useSession();
-  const router = useRouter();
+export function SeriesContent() {
   const queryClient = useQueryClient();
   const [, startTransition] = useTransition();
-  const isAdmin = profile.roles.includes("admin");
-
-  useEffect(() => {
-    if (!isAdmin) {
-      router.replace("/dashboard/maraudes");
-    }
-  }, [isAdmin, router]);
 
   const { data: series, isLoading, isError } = useQuery({
     queryKey: ["series-evenements"],
     queryFn: fetchSeries,
-    enabled: isAdmin,
   });
-
-  if (!isAdmin) {
-    return null;
-  }
 
   if (isLoading) {
     return <CardListSkeleton rows={2} />;
@@ -84,23 +72,18 @@ export function SeriesClient() {
 
   if (isError || !series) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-        <p className="text-sm text-muted-foreground">
-          Impossible de charger les séries pour l&apos;instant.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Impossible de charger les séries pour l&apos;instant.
+      </p>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Séries récurrentes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Désactiver une série arrête la génération future, sans toucher aux
-          occurrences déjà créées.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">
+        Désactiver une série arrête la génération future, sans toucher aux
+        occurrences déjà créées.
+      </p>
 
       {series.length === 0 ? (
         <Card>

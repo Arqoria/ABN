@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { CollapsibleSection } from "@/components/collapsible-section";
+import { CalendarPlus, MapPin, Users, Package } from "lucide-react";
 import { CreerEvenementForm } from "./creer-evenement-form";
 import { InscriptionForm } from "./inscription-form";
 import { MeteoForm } from "./meteo-form";
@@ -98,12 +100,17 @@ async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
 // Vérification de statut : centralisée dans dashboard/layout.tsx (redirect
 // serveur si pas "actif") — plus besoin de la refaire ici.
 //
-// prefetch={false} sur les liens d'action ci-dessous (jusqu'à 7 par
-// maraude affichée) : le préchargement déclenche le middleware
-// (rafraîchissement de session) pour chaque lien visible à l'écran, sans
-// bénéfice réel sur nos pages client désormais légères — en cause dans
-// un cas de déconnexion malgré "Se souvenir de moi" (16/09, voir
-// docs/Tasks.md).
+// prefetch={false} sur les liens d'action ci-dessous : le préchargement
+// déclenche le middleware (rafraîchissement de session) pour chaque lien
+// visible à l'écran, sans bénéfice réel sur nos pages client désormais
+// légères — en cause dans un cas de déconnexion malgré "Se souvenir de
+// moi" (16/09, voir docs/Tasks.md).
+//
+// Étape 10bis (24/09) : les 9 boutons d'action par maraude, auparavant à
+// plat, sont regroupés en 3 sections repliables (Terrain/Équipe/
+// Logistique) — même pattern CollapsibleSection que le reste du dashboard.
+// Chaque bouton garde EXACTEMENT sa condition d'affichage d'origine (aucun
+// changement de permission) ; seul le regroupement visuel change.
 export function MaraudesClient() {
   const profile = useSession();
   const isAdminOrManagerForQuery =
@@ -131,42 +138,24 @@ export function MaraudesClient() {
   const { managers, typesEvenement, maraudes } = data;
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
-  const isAdmin = profile.roles.includes("admin");
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Capacité par événement, liste d&apos;attente automatique au-delà.
-          </p>
-        </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard/maraudes/types-evenement" prefetch={false}>
-                Types d&apos;événements
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard/maraudes/series" prefetch={false}>
-                Séries récurrentes
-              </Link>
-            </Button>
-          </div>
-        )}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Capacité par événement, liste d&apos;attente automatique au-delà.
+        </p>
       </div>
 
       {isAdminOrManager && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Créer un événement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CreerEvenementForm typesEvenement={typesEvenement} managers={managers} />
-          </CardContent>
-        </Card>
+        <CollapsibleSection
+          title="Créer un événement"
+          description="Ponctuel ou série récurrente."
+          icon={CalendarPlus}
+        >
+          <CreerEvenementForm typesEvenement={typesEvenement} managers={managers} />
+        </CollapsibleSection>
       )}
 
       {!maraudes || maraudes.length === 0 ? (
@@ -191,6 +180,18 @@ export function MaraudesClient() {
           const typeRow = Array.isArray(maraude.type_evenement)
             ? maraude.type_evenement[0]
             : maraude.type_evenement;
+
+          const estInscrit = mine?.statut === "inscrit";
+          const isAdmin = profile.roles.includes("admin");
+          const isOwnManager = maraude.manager_id === profile.id;
+
+          // Union des conditions des boutons d'origine de chaque groupe —
+          // n'affiche la section que si au moins un de ses boutons le
+          // serait avant regroupement.
+          const voitTerrain = estInscrit || isAdmin || isOwnManager;
+          const voitEquipe = estInscrit || isAdmin || isOwnManager;
+          const voitMeteoEquipe = isAdmin || isOwnManager;
+          const voitBesoins = estInscrit || isAdmin || profile.roles.includes("manager");
 
           return (
             <Card key={maraude.id}>
@@ -220,83 +221,87 @@ export function MaraudesClient() {
                   inscriptionId={mine?.id}
                   statut={mine?.statut}
                 />
-                {mine?.statut === "inscrit" && (
-                  <MeteoForm maraudeId={maraude.id} userId={profile.id} />
+                {estInscrit && <MeteoForm maraudeId={maraude.id} userId={profile.id} />}
+
+                {voitTerrain && (
+                  <CollapsibleSection
+                    title="Terrain"
+                    description="Points de passage, carte, parcours réel."
+                    icon={MapPin}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/points`} prefetch={false}>
+                          Points de passage
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/carte`} prefetch={false}>
+                          Carte
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/parcours`} prefetch={false}>
+                          Parcours réel
+                        </Link>
+                      </Button>
+                    </div>
+                  </CollapsibleSection>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
+
+                {voitEquipe && (
+                  <CollapsibleSection
+                    title="Équipe"
+                    description="Composition, météo équipe, avant le départ."
+                    icon={Users}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/equipe`} prefetch={false}>
+                          Équipe
+                        </Link>
+                      </Button>
+                      {voitMeteoEquipe && (
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/dashboard/maraudes/${maraude.id}/meteo`} prefetch={false}>
+                            Météo équipe
+                          </Link>
+                        </Button>
+                      )}
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/depart`} prefetch={false}>
+                          Avant le départ
+                        </Link>
+                      </Button>
+                    </div>
+                  </CollapsibleSection>
+                )}
+
+                <CollapsibleSection
+                  title="Logistique"
+                  description="Repas, tickets de dépense, besoins."
+                  icon={Package}
+                >
+                  <div className="flex flex-wrap gap-2">
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/points`} prefetch={false}>
-                        Points de passage
+                      <Link href={`/dashboard/maraudes/${maraude.id}/repas`} prefetch={false}>
+                        Repas
                       </Link>
                     </Button>
-                  )}
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/dashboard/maraudes/${maraude.id}/repas`} prefetch={false}>
-                      Repas
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/dashboard/maraudes/${maraude.id}/tickets`} prefetch={false}>
-                      Tickets de dépense
-                    </Link>
-                  </Button>
-                  {(profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/meteo`} prefetch={false}>
-                        Météo équipe
+                      <Link href={`/dashboard/maraudes/${maraude.id}/tickets`} prefetch={false}>
+                        Tickets de dépense
                       </Link>
                     </Button>
-                  )}
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/carte`} prefetch={false}>
-                        Carte
-                      </Link>
-                    </Button>
-                  )}
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    profile.roles.includes("manager")) && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/besoins`} prefetch={false}>
-                        Besoins
-                      </Link>
-                    </Button>
-                  )}
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/equipe`} prefetch={false}>
-                        Équipe
-                      </Link>
-                    </Button>
-                  )}
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/depart`} prefetch={false}>
-                        Avant le départ
-                      </Link>
-                    </Button>
-                  )}
-                  {(mine?.statut === "inscrit" ||
-                    profile.roles.includes("admin") ||
-                    maraude.manager_id === profile.id) && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/parcours`} prefetch={false}>
-                        Parcours réel
-                      </Link>
-                    </Button>
-                  )}
-                </div>
+                    {voitBesoins && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/maraudes/${maraude.id}/besoins`} prefetch={false}>
+                          Besoins
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CollapsibleSection>
               </CardContent>
             </Card>
           );

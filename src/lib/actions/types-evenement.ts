@@ -44,7 +44,7 @@ export async function creerTypeEvenement(
     return { error: error.message.includes("unique") ? "Ce nom existe déjà." : "Impossible de créer le type." };
   }
 
-  revalidatePath("/dashboard/types-evenement");
+  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -53,5 +53,5 @@ export async function creerTypeEvenement(
 export async function basculerActifTypeEvenement(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("types_evenement").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/types-evenement");
+  revalidatePath("/dashboard/configuration");
 }

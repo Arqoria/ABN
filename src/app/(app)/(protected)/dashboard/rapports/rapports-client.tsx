@@ -191,37 +191,41 @@ export function RapportsClient() {
         icon={MapPin}
       >
         <div className="flex flex-col gap-4">
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-foreground">
-              Zones d&apos;activité
-            </h3>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Heatmap de l&apos;historique, filtrable par type (ci-dessous)
-              — cliquez un point pour le détail, utile pour repérer les
-              zones à couvrir et planifier les prochains circuits.
-            </p>
-            <HeatmapFiltree points={heatmapPoints} />
-          </div>
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-foreground">
-              Activité par jour
-            </h3>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Une courbe par type d&apos;action, pour suivre la tendance sur
-              la période — décochez un type pour l&apos;isoler si les
-              courbes se superposent trop.
-            </p>
-            <ActiviteChart data={activiteData} />
-          </div>
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-foreground">
-              Orientations par organisme
-            </h3>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Vers qui les orientations sociales sont faites.
-            </p>
-            <OrientationsChart data={orientationsData} />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Zones d&apos;activité</CardTitle>
+              <CardDescription>
+                Heatmap de l&apos;historique, filtrable par type (ci-dessous)
+                — cliquez un point pour le détail, utile pour repérer les
+                zones à couvrir et planifier les prochains circuits.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HeatmapFiltree points={heatmapPoints} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Activité par jour</CardTitle>
+              <CardDescription>
+                Une courbe par type d&apos;action, pour suivre la tendance sur
+                la période — décochez un type pour l&apos;isoler si les
+                courbes se superposent trop.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActiviteChart data={activiteData} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Orientations par organisme</CardTitle>
+              <CardDescription>Vers qui les orientations sociales sont faites.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OrientationsChart data={orientationsData} />
+            </CardContent>
+          </Card>
         </div>
       </CollapsibleSection>
 

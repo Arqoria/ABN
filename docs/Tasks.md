@@ -1272,10 +1272,74 @@ horodatages de requêtes, pas le chiffre total.
     — a fait croire un instant à un bug de session fantôme dans l'app.
     Toujours vérifier `error` sur `auth.admin.deleteUser`, ne jamais se
     fier à un message codé en dur.
-- ⬜ Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
+- 🟨 Pages Maraudeur, Cuisinier, Admin, Manager — actuellement fonctionnelles
   mais visuellement "cartes + boutons en vrac" (dixit client, 15/09) :
   besoin d'une vraie structure/hiérarchie visuelle par rôle, pas de
-  nouvelle fonctionnalité, du réagencement/design
+  nouvelle fonctionnalité, du réagencement/design. **Vue Admin traitée
+  (24/09), voir ci-dessous** ; Maraudeur/Cuisinier/Manager restent à
+  faire.
+
+### ✅ Refonte visuelle — vue Admin (24/09)
+
+Basée sur un état des lieux préalable (inventaire de l'existant, puis
+inventaire du contenu de chaque section) — réagencement/design uniquement,
+aucune nouvelle fonctionnalité, aucune query ni policy RLS modifiée.
+
+- **Regroupement des 9 boutons plats par maraude** (`maraudes-client.tsx`)
+  en 3 `CollapsibleSection` fermées par défaut : **Terrain** (Points de
+  passage, Carte, Parcours réel), **Équipe** (Équipe, Météo équipe, Avant
+  le départ), **Logistique** (Repas, Tickets, Besoins). Chaque bouton
+  garde EXACTEMENT sa condition d'affichage d'origine (aucun changement de
+  permission) — une section n'est rendue que si au moins un de ses
+  boutons le serait avant regroupement.
+- **Nouvelle page `/dashboard/configuration`** (Admin uniquement) : 3
+  sections repliables (Types d'événements, Séries récurrentes,
+  Commerçants partenaires) reprenant le contenu exact des 3 anciennes
+  pages (`/dashboard/maraudes/types-evenement`, `/dashboard/maraudes/series`,
+  `/dashboard/cuisine/commercants`), migrées et **supprimées** (fichiers
+  déplacés vers `dashboard/configuration/`, pas dupliqués). Toutes les
+  références internes retrouvées et mises à jour (`revalidatePath` dans
+  les 3 fichiers d'actions, liens dans `cuisine-client.tsx` et
+  `creer-evenement-form.tsx`) — vérifié par grep qu'aucun lien mort ne
+  subsiste. Carte "Configuration" ajoutée sur `/dashboard` (Admin).
+- **`CollapsibleSection` généralisée à Maraudes et Stocks** (seules pages
+  n'en disposant pas encore, avec Cuisine qui en dispose déjà — correction
+  d'une erreur de mon précédent état des lieux, qui affirmait à tort que
+  Cuisine n'en avait pas). Sur Maraudes : "Créer un événement" (jusqu'à 9
+  champs en mode Série) déplacé dans une section fermée par défaut, avant
+  la liste — la liste des maraudes existantes est maintenant ce qu'on voit
+  en premier. Sur Stocks : totaux (vue d'ensemble) restent toujours
+  visibles hors section — comme "Vue d'ensemble" sur Rapports, elle,
+  répliquée à l'identique aurait fermé cette vue par défaut, moins utile
+  ici pour un coup d'œil rapide — formulaire et historique chacun dans
+  leur propre section fermée. **Signalé comme choix discutable** : ce
+  n'était pas explicitement demandé, à ajuster si le client préfère tout
+  fermé par défaut pour une cohérence stricte avec Rapports.
+- **Rapports, section Terrain** : les 3 blocs (heatmap, activité par jour,
+  orientations) étaient seulement séparés par un `<h3>` — chacun
+  encapsulé dans sa propre Card, comme le reste de l'app.
+- **Repas, absence de rôle Cuisinier** : affichait un simple silence (le
+  formulaire "Ajouter un repas" disparaissait sans explication) —
+  remplacé par un message "Seul un Cuisinier peut ajouter un repas." à
+  l'intérieur de la Card, toujours visible.
+- **Non traité, signalé plutôt que décidé seul** : la demande nommait une
+  page "`/dashboard/maraudes/[id]`" pour le regroupement Terrain/Équipe/
+  Logistique — cette route n'existe pas (les maraudes sont des cartes sur
+  la liste `/dashboard/maraudes`, jamais une page de détail dédiée). Le
+  regroupement a été appliqué directement sur chaque carte de la liste
+  plutôt que sur une page qui n'existe pas.
+
+**Testé en conditions réelles** (compte Admin+Manager de test créé puis
+supprimé, vérification explicite de l'erreur de suppression) : les 3
+sections de Configuration s'ouvrent et affichent les vraies données
+existantes (type "Maraude classique", sa série, aucun commerçant) ;
+création d'un type de test confirmée en base (`cree_par` correct) après
+migration de l'action ; groupes Terrain/Équipe/Logistique vérifiés sur
+plusieurs maraudes, lien "Points de passage" suivi jusqu'à la vraie page ;
+Stocks (totaux + 2 sections fermées) et message "Seul un Cuisinier..." sur
+Repas vérifiés à l'écran ; section "Zones d'activité" de Rapports
+confirmée encapsulée dans une Card après ouverture. Build + `tsc --noEmit`
+propres après nettoyage du cache `.next` (routes supprimées).
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le

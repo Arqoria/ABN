@@ -82,16 +82,20 @@ export function RepasClient() {
         </p>
       </div>
 
-      {profile.roles.includes("cuisinier") && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ajouter un repas</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Ajouter un repas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {profile.roles.includes("cuisinier") ? (
             <RepasForm maraudeId={maraudeId} />
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Seul un Cuisinier peut ajouter un repas.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {repas.length === 0 ? (
         <Card>

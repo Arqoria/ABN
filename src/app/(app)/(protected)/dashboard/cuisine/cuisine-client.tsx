@@ -149,7 +149,7 @@ export function CuisineClient() {
         </div>
         {isAdmin && (
           <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/cuisine/commercants" prefetch={false}>
+            <Link href="/dashboard/configuration" prefetch={false}>
               Commerçants partenaires
             </Link>
           </Button>
