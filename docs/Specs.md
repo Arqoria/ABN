@@ -114,6 +114,74 @@ cuisinés + dons reçus), pas juste la traçabilité globale de tous les dons.
   client), soit saisi librement — pour ne jamais casser l'affichage
   existant qui lit cette colonne.
 
+## Checklist de départ, présence confirmée & parcours réel (24/09)
+
+Trois écrans regroupés autour du moment du départ en maraude.
+
+### Checklist de départ (`/dashboard/maraudes/[id]/depart`)
+
+Trois origines de lignes (`checklist_depart_items.source`) :
+- **`stock`** : régénérée automatiquement à CHAQUE ouverture de la page
+  (idempotent — jamais de doublon, jamais de ligne déjà cochée touchée)
+  depuis les totaux actuels de `stock_materiel_mouvements`/
+  `stock_denrees_mouvements` (uniquement les catégories/denrées au stock
+  positif). Le texte de la ligne (quantité) se met à jour à chaque
+  régénération tant qu'elle n'est pas cochée.
+- **`don`** : une ligne par don ponctuel enregistré pour cette maraude
+  (`dons_ponctuels`), même principe de régénération idempotente.
+- **`libre`** : ajoutée à la main par un Manager/Admin/bénévole affecté —
+  "c'est une association, tout n'est pas dans le stock formel" (décision
+  explicite du Chef de Produit). Jamais touchée par la régénération.
+
+Écriture (cocher/décocher, ajouter une ligne libre) : Manager de cette
+maraude, Admin, ou tout bénévole affecté à cette maraude
+(`affectations_maraude`) — décision du Chef de Produit. Suppression d'une
+ligne : Admin ou Manager de cette maraude uniquement.
+
+### Présence confirmée
+
+`inscriptions_maraude.presence_confirmee` (+ `confirmee_par`/`confirmee_le`
+forcés côté serveur) — distincte de l'inscription elle-même. Écran dédié
+(même page `/depart`) réservé au Manager de la maraude et à l'Admin.
+
+**Dépendance documentée pour plus tard** : aucune alerte d'effectif minimum
+n'existe encore dans l'application. Le jour où elle sera construite, elle
+devra se recalculer sur `presence_confirmee` (qui a réellement été compté
+présent) plutôt que sur le nombre d'inscrits (qui a seulement réservé sa
+place, sans garantie de présence réelle) — décision déjà actée, à respecter
+au moment de construire cette alerte.
+
+### Parcours réel — "chrono" (`/dashboard/maraudes/[id]/parcours`)
+
+Distinct des points d'action ponctuels de `points_passage` : le Manager (ou
+l'Admin) démarre un enregistrement de position en direct pendant la marche
+(`parcours_reels` + `parcours_reels_points`), pour que la heatmap reflète le
+territoire réellement couvert, pas seulement les arrêts où une action a été
+enregistrée. Un seul parcours `en_cours` à la fois par maraude.
+
+- Capture côté client via `watchPosition`, throttlée au plus tôt de **~30s
+  ou ~20m de déplacement** (évite de saturer le réseau tout en restant
+  réactif).
+- Réutilise **exactement** le même trigger d'anonymisation géographique
+  (`force_geo_arrondi`, grille ~100m) que `points_passage` — attaché tel
+  quel à la nouvelle table, aucun nouveau code d'arrondi.
+- Refus de permission géolocalisation géré sans planter l'app (message
+  inline, le bouton "Terminer" reste utilisable).
+- **⚠️ Limite assumée, PWA** : la capture s'interrompt si l'écran se
+  verrouille ou que l'app passe en arrière-plan (particulièrement sur
+  iPhone) — message discret affiché dans l'écran, le Manager doit garder
+  l'app ouverte pendant la marche. Pas de file d'attente offline pour ce
+  flux (contrairement aux saisies terrain de l'Étape 8) : non demandé,
+  la capture continue suppose une connexion disponible pendant la marche.
+  Un rechargement de page en cours de parcours ne peut pas reprendre la
+  capture locale automatiquement (seul le bouton "Terminer" reste
+  disponible) — limite du même ordre, assumée pour cette première version.
+- **Fusion dans la heatmap** : `parcours_reels_points` est agrégé dans la
+  MÊME couche de densité (fond de carte) que `points_passage` sur la carte
+  par maraude (`/dashboard/maraudes/[id]/carte`) — simple couche de fond
+  sans type d'action associé, distincte du "circuit réel" (tracé coloré par
+  type d'action), qui reste basé uniquement sur `points_passage`.
+
 ## Suivi terrain & cartographie
 - Capture automatique d'un "point de passage" à chaque action clé (ex. repas distribué) :
   géolocalisation du téléphone + horodatage, en un tap, fonctionne offline (mise en file, synchro au retour réseau)

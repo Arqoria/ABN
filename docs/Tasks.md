@@ -1301,6 +1301,92 @@ horodatages de requêtes, pas le chiffre total.
     en interne sur les projets/contenu à mettre — pas de matière pour
     l'instant, attendre son retour avant d'attaquer cette page
 
+## ✅ Checklist de départ + présence confirmée + parcours réel (24/09)
+
+Trois ajouts liés au moment du départ en maraude, cadrés avec le Chef de
+Produit puis construits et testés dans la foulée.
+
+**Partie A — Checklist de départ** (`checklist_depart_items`,
+`/dashboard/maraudes/[id]/depart`)
+- Trois origines : `stock` et `don` régénérées automatiquement et de façon
+  idempotente à chaque ouverture de page (depuis les totaux actuels de
+  stock et les dons ponctuels de la maraude — jamais de doublon, jamais de
+  ligne déjà cochée touchée), `libre` ajoutée à la main par le Manager —
+  "c'est une association, tout n'est pas dans le stock formel".
+- **Choix de formulation RLS signalé (point 4 de la demande)** : écriture
+  (cocher/ajouter) = Manager de cette maraude, Admin, ou tout bénévole
+  **affecté** à cette maraude (`affectations_maraude`) — interprété au
+  sens littéral d'"affecté" (a une fonction cuisinier/maraudeur sur CETTE
+  maraude), pas au sens large de "simplement inscrit". Suppression d'une
+  ligne (corriger une ligne libre ajoutée par erreur) : Admin/Manager
+  seulement, pas ouvert aux affectés.
+- `reference_id` des lignes `stock` est un UUID **déterministe** (dérivé
+  de `maraude_id` + catégorie/denrée via md5) plutôt qu'une vraie clé
+  étrangère — il n'existe pas de ligne unique représentant "le stock actuel
+  d'une catégorie" (c'est une somme de mouvements). Sert uniquement de clé
+  stable pour l'index unique anti-doublon à la régénération.
+
+**Partie B — Présence confirmée**
+- `inscriptions_maraude.presence_confirmee` (+ `confirmee_par`/
+  `confirmee_le` forcés par trigger) — case à cocher, écran Manager, sur la
+  même page `/depart`. Aucune nouvelle policy RLS nécessaire : la policy
+  `inscriptions_update_admin_manager` (déjà en place depuis l'Étape 3,
+  tout Manager global) couvrait déjà ce besoin ; l'écran restreint
+  seulement l'affichage au Manager de CETTE maraude + Admin, cohérent avec
+  le reste du dashboard.
+- Documenté dans Specs.md : le jour où une alerte d'effectif minimum sera
+  construite (pas encore le cas), elle devra utiliser cette colonne plutôt
+  que le nombre d'inscrits.
+
+**Partie C — Parcours réel** (`parcours_reels` + `parcours_reels_points`,
+`/dashboard/maraudes/[id]/parcours`)
+- Bouton Démarrer/Terminer (Manager/Admin de cette maraude uniquement, un
+  seul parcours `en_cours` à la fois par maraude — index unique partiel).
+  Capture continue via `watchPosition`, throttlée côté client au plus tôt
+  de ~30s ou ~20m de déplacement.
+- Réutilise **tel quel** le trigger `force_geo_arrondi` déjà créé pour
+  `points_passage` (Étape 6) — simplement attaché à la nouvelle table,
+  aucun nouveau code d'arrondi, comme demandé.
+- Refus de permission géolocalisation géré sans planter l'app (message
+  inline). Notice explicite "gardez l'écran allumé" affichée.
+- Fusionné dans la heatmap de densité de `/dashboard/maraudes/[id]/carte`
+  (couche de fond commune avec `points_passage`, via une nouvelle vue
+  `parcours_reels_points_geo`) — décision de placement : uniquement la
+  heatmap de densité de la carte par maraude, PAS le "circuit réel" tracé
+  par type d'action (qui reste basé uniquement sur `points_passage`, un
+  parcours chrono n'a pas de type d'action associé) ni le graphique
+  "Terrain" de `/dashboard/rapports` (filtrable par type d'action, un
+  ajout non typé y casserait la sémantique du filtre — laissé de côté,
+  à reprendre séparément si besoin).
+
+⚠️ **Bug trouvé et corrigé en testant (avant tout déploiement)** : l'index
+unique anti-doublon de la checklist était initialement un index **partiel**
+(`where source in ('stock','don')`) — l'upsert PostgREST (`ON CONFLICT
+(colonnes)` sans prédicat) ne peut pas cibler un index partiel, erreur
+Postgres 42P10. Corrigé par un index unique non partiel (migration
+`20260924100100`) : fonctionne quand même pour les lignes `libre`
+puisque Postgres ne considère jamais deux `NULL` comme égaux dans un index
+unique (`reference_table`/`reference_id` toujours NULL pour ces lignes).
+
+**Testé en conditions réelles** (deux comptes de test créés puis
+supprimés, vérification explicite de l'erreur à chaque suppression — un
+Admin+Manager+Maraudeur+Cuisinier de test, et un Maraudeur simple sans
+affectation) :
+- Checklist auto-générée correctement depuis stock (matériel + denrées) et
+  un don ponctuel réels ; régénération confirmée idempotente (texte de
+  quantité mis à jour, ligne déjà cochée intacte, ligne libre intacte) ;
+  ajout de ligne libre confirmé en base.
+- RLS confirmée dans les deux sens : le Maraudeur simple (inscrit, pas
+  affecté) lit la checklist mais ne peut ni cocher ni confirmer sa propre
+  présence (0 ligne modifiée / erreur RLS explicite) ; après
+  auto-affectation `maraudeur` sur cette maraude, l'écriture checklist
+  fonctionne.
+- Parcours réel : chrono démarré/arrêté (position simulée), 3 points
+  capturés avec la position bien recalée sur la grille ~100m (vérifié
+  différente de la position brute envoyée) ; tentative de démarrage par un
+  profil non-Manager/Admin refusée par RLS ; heatmap de la carte par
+  maraude vérifiée sans erreur console après la fusion.
+
 ## État des lieux — renommage `maraudes` (22/09, mission lecture seule)
 
 Demande du Chef de Produit avant de généraliser le concept de maraude :

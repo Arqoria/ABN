@@ -84,7 +84,7 @@ async function fetchCarte(
     }
   }
 
-  const [{ data: pointsReel }, { data: pointsHeat }, { data: circuitPlanifie }] =
+  const [{ data: pointsReel }, { data: pointsHeat }, { data: pointsParcours }, { data: circuitPlanifie }] =
     await Promise.all([
       supabase
         .from("points_passage_geo")
@@ -92,6 +92,11 @@ async function fetchCarte(
         .eq("maraude_id", maraudeId)
         .order("horodatage", { ascending: true }),
       supabase.from("points_passage_geo").select("lat, lng").limit(5000),
+      // Parcours réel (chrono, 24/09) : agrégé dans la MÊME heatmap de
+      // densité que points_passage — simple couche de fond, pas de type
+      // d'action associé (contrairement à circuitReel ci-dessus, qui reste
+      // uniquement basé sur points_passage). Voir docs/Specs.md.
+      supabase.from("parcours_reels_points_geo").select("lat, lng").limit(5000),
       supabase
         .from("circuits_planifies")
         .select("points, geometrie_reelle")
@@ -108,7 +113,7 @@ async function fetchCarte(
     orientationVersAutre: p.orientation_vers_autre as string | null,
   }));
 
-  const heatPoints = (pointsHeat ?? []).map((p) => ({
+  const heatPoints = [...(pointsHeat ?? []), ...(pointsParcours ?? [])].map((p) => ({
     lat: p.lat as number,
     lng: p.lng as number,
   }));
