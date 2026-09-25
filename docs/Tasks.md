@@ -2058,12 +2058,18 @@ même) :
 3. Éventuellement une carte (perso ou virtuelle N26/Revolut à plafond bas)
    si la vérification anti-fraude Google/Microsoft revient
 
-## Chantier RGPD (25/09, backlog structuré — rien construit)
+## Chantier RGPD — ⚠️ Cadrage initial (à consolider et confirmer)
+
+> Statut : premier cadrage issu d'une session de réflexion, non validé
+> par ABN. Toutes les décisions ci-dessous (données collectées, durées de
+> conservation, accès, module permanence) restent à confirmer avec ABN
+> avant développement et avant rédaction définitive des documents.
 
 Liste transmise par le Chef de Produit, consignée telle quelle en backlog
 à la demande explicite ("consigne dans Tasks.md, ne code rien") — **aucun
 code, aucune migration, aucun document produit à ce stade**. Sert de base
-pour découper ce chantier en tickets séparés plus tard.
+pour découper ce chantier en tickets séparés plus tard, une fois validée
+par ABN.
 
 ### ⚠️ Point à trancher avant de scoper le module Usagers
 
@@ -2071,16 +2077,16 @@ Le point "Usagers" ci-dessous (identifiant de fiche auto, reconnu à
 travers plusieurs maraudes) **contredit la règle actuelle de
 `docs/Specs.md`** ("Anonymat des personnes aidées : Aucune fiche
 individuelle, aucun nom, aucune donnée identifiante... Uniquement des
-compteurs agrégés"). Clarifié avec le Chef de Produit (25/09) : le besoin
-réel est bien de **reconnaître la même personne dans le temps** (ex. "déjà
-orientée vers la CCAS le mois dernier"), pas juste une fiche par
-rencontre sans lien garanti — donc une vraie identité persistante, même
-minimaliste (surnom/signe distinctif, pas de nom obligatoire), au lieu des
-compteurs anonymes actuels. **Decision de principe actée, mais
-`docs/Specs.md` et `CLAUDE.md` (qui répètent tous deux la règle
-"anonymat strict") ne sont volontairement pas encore mis à jour** — à
-faire au moment de scoper réellement ce module, pas en même temps qu'une
-simple consignation de backlog.
+compteurs agrégés"). Clarifié avec le Chef de Produit (25/09, dans le
+cadre de ce premier cadrage non validé par ABN — voir bandeau en tête de
+section) : l'intention est bien de **reconnaître la même personne dans le
+temps** (ex. "déjà orientée vers la CCAS le mois dernier"), pas juste une
+fiche par rencontre sans lien garanti — donc une vraie identité
+persistante, même minimaliste (surnom/signe distinctif, pas de nom
+obligatoire), au lieu des compteurs anonymes actuels. **Intention notée,
+mais rien n'est acté tant qu'ABN ne l'a pas confirmé** —
+`docs/Specs.md`/`CLAUDE.md` (qui répètent la règle "anonymat strict") ne
+sont volontairement pas modifiés à ce stade.
 
 ### App V1
 - ⬜ Membres : photo facultative (initiales par défaut, consentement
