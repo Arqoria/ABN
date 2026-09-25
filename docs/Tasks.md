@@ -2057,3 +2057,80 @@ même) :
    Microsoft) — à obtenir avant la session, pas pendant
 3. Éventuellement une carte (perso ou virtuelle N26/Revolut à plafond bas)
    si la vérification anti-fraude Google/Microsoft revient
+
+## Chantier RGPD (25/09, backlog structuré — rien construit)
+
+Liste transmise par le Chef de Produit, consignée telle quelle en backlog
+à la demande explicite ("consigne dans Tasks.md, ne code rien") — **aucun
+code, aucune migration, aucun document produit à ce stade**. Sert de base
+pour découper ce chantier en tickets séparés plus tard.
+
+### ⚠️ Point à trancher avant de scoper le module Usagers
+
+Le point "Usagers" ci-dessous (identifiant de fiche auto, reconnu à
+travers plusieurs maraudes) **contredit la règle actuelle de
+`docs/Specs.md`** ("Anonymat des personnes aidées : Aucune fiche
+individuelle, aucun nom, aucune donnée identifiante... Uniquement des
+compteurs agrégés"). Clarifié avec le Chef de Produit (25/09) : le besoin
+réel est bien de **reconnaître la même personne dans le temps** (ex. "déjà
+orientée vers la CCAS le mois dernier"), pas juste une fiche par
+rencontre sans lien garanti — donc une vraie identité persistante, même
+minimaliste (surnom/signe distinctif, pas de nom obligatoire), au lieu des
+compteurs anonymes actuels. **Decision de principe actée, mais
+`docs/Specs.md` et `CLAUDE.md` (qui répètent tous deux la règle
+"anonymat strict") ne sont volontairement pas encore mis à jour** — à
+faire au moment de scoper réellement ce module, pas en même temps qu'une
+simple consignation de backlog.
+
+### App V1
+- ⬜ Membres : photo facultative (initiales par défaut, consentement
+  explicite par case NON précochée, retrait possible)
+- ⬜ Membres : adresse obligatoire uniquement pour le rôle Cuisinier,
+  visible Managers/Admins, supprimée si le rôle est retiré
+- ⬜ Usagers : identifiant de fiche auto, nom/prénom facultatifs (option
+  surnom), lieu habituel de rencontre (pas d'adresse ni GPS) — voir point
+  à trancher ci-dessus avant de scoper
+- ⬜ Besoins : liste fermée + taille + statut (remonté/préparé/remis),
+  détachés du nom une fois remis
+- ⬜ Orientations : catégorie générique, date, statut, niveau
+  d'accompagnement (autonome/rappel/accompagnement physique), case
+  "accord donné le…" ; aucun texte libre
+- ⬜ RLS : orientations visibles uniquement par Managers et Admins
+- ⬜ Journal des consultations (fiches usagers + orientations)
+- ⬜ Purges automatiques : anonymisation usager après 24 mois sans
+  contact ; suppression membre 1 an après départ (hors pièces
+  comptables)
+- ⬜ Stats calculées sur données anonymisées
+- ⬜ Sécurité : comptes individuels, déconnexion auto sur mobile,
+  désactivation du compte au départ d'un bénévole
+- ⬜ Vérifier région UE + DPA pour Supabase et Vercel — **partiellement
+  déjà répondu par cette session** : région Supabase confirmée
+  `eu-west-3` (Paris) et région Vercel confirmée `cdg1` (Paris), voir le
+  diagnostic perf du 15-16/09 plus haut dans ce document. Reste à
+  vérifier : les DPA (Data Processing Agreement) eux-mêmes, pas juste la
+  localisation des données.
+
+### Module permanence/tutorat (construit mais désactivé)
+- ⬜ Interrupteur Admin : aucun champ visible ni enregistré quand éteint,
+  aucune donnée réelle en base
+- ⬜ Activation conditionnée à : référent nommé, formation faite, mise à
+  jour AIPD + registre + flyer
+
+### Documents (validés et signés par ABN — hors périmètre technique)
+- ⬜ Lettre de mission V1 Arqoria/ABN
+- ⬜ Contrat de sous-traitance (art. 28)
+- ⬜ Registre des traitements : bénévoles, maraude, permanence (traitement
+  prévu)
+- ⬜ Mentions d'information membres + flyer usagers
+- ⬜ Charte de confidentialité Managers/Admins (règle : la contrainte,
+  jamais le mal)
+- ⬜ AIPD via l'outil PIA de la CNIL
+- ⬜ Procédures écrites : exercice des droits, violation de données (CNIL
+  sous 72h), revue des accès au départ d'un bénévole
+
+### Hors app (aucune action possible de l'assistant)
+- ⬜ Module RGPD (30-45 min) dans la mini-formation + feuille d'émargement
+  (côté ABN)
+- ⬜ Vérifier que la RC pro de l'association couvre l'activité avant mise
+  en production
+- ⬜ Relecture juridique externe (optionnelle, recommandée)
