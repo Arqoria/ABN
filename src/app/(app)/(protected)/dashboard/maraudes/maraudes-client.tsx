@@ -1,30 +1,25 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
 import { CollapsibleSection } from "@/components/collapsible-section";
-import { CalendarPlus, MapPin, Users, Package } from "lucide-react";
+import { CalendarPlus, ArrowLeft } from "lucide-react";
 import { CreerEvenementForm } from "./creer-evenement-form";
-import { InscriptionForm } from "./inscription-form";
-import { MeteoForm } from "./meteo-form";
+import { MaraudeCard, type MaraudeCardData } from "./maraude-card";
+import { MaraudeDetailPanel } from "./maraude-detail-panel";
 
 type Inscription = {
   id: string;
   maraude_id: string;
   user_id: string;
   statut: "inscrit" | "liste_attente" | "desiste";
+  inscrit_le: string;
+  profil: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
 type Manager = { id: string; full_name: string | null };
@@ -42,11 +37,19 @@ type Maraude = {
   inscriptions_maraude: Inscription[];
 };
 
-type Payload = { managers: Manager[]; typesEvenement: TypeEvenement[]; maraudes: Maraude[] };
+type Payload = {
+  managers: Manager[];
+  typesEvenement: TypeEvenement[];
+  maraudes: Maraude[];
+  mesAffectations: string[];
+};
 
 // Lecture directe Supabase depuis le navigateur (RLS comme seule
-// barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)".
-async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
+// barrière) — voir docs/Tasks.md, "Chantier lancé, suite (16/09)". Étendu
+// (25/09, refonte Master-Detail) : noms des inscrits (avatars à initiales)
+// et mes propres affectations toutes maraudes confondues (filtre "Mes
+// maraudes").
+async function fetchMaraudes(profileId: string, isAdminOrManager: boolean): Promise<Payload> {
   const supabase = createClient();
 
   async function chargerManagers() {
@@ -67,7 +70,7 @@ async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
     const { data } = await supabase
       .from("maraudes")
       .select(
-        "id, date_heure, statut, manager_id, max_participants, serie_id, manager:manager_id(full_name), type_evenement:type_evenement_id(nom), inscriptions_maraude(id, maraude_id, user_id, statut)",
+        "id, date_heure, statut, manager_id, max_participants, serie_id, manager:manager_id(full_name), type_evenement:type_evenement_id(nom), inscriptions_maraude(id, maraude_id, user_id, statut, inscrit_le, profil:user_id(full_name))",
       )
       .order("date_heure", { ascending: true });
     return (data ?? []) as unknown as Maraude[];
@@ -83,43 +86,108 @@ async function fetchMaraudes(isAdminOrManager: boolean): Promise<Payload> {
     return data ?? [];
   }
 
-  const [managers, typesEvenement, maraudes] = await Promise.all([
+  async function chargerMesAffectations() {
+    const { data } = await supabase
+      .from("affectations_maraude")
+      .select("maraude_id")
+      .eq("user_id", profileId);
+    return (data ?? []).map((a) => a.maraude_id as string);
+  }
+
+  const [managers, typesEvenement, maraudes, mesAffectations] = await Promise.all([
     chargerManagers(),
     chargerTypesEvenement(),
     chargerMaraudesAvecInscriptions(),
+    chargerMesAffectations(),
   ]);
 
-  return { managers, typesEvenement, maraudes };
+  return { managers, typesEvenement, maraudes, mesAffectations };
 }
 
-// Page pilote du chantier "rapprocher ABN du pattern Probalia" (voir
-// docs/Tasks.md, Diagnostic perf webapp). Plus de getCurrentProfile()
-// appelé ici : l'identité vient de useSession() (contexte hydraté une fois
-// par le layout serveur, voir session-provider.tsx).
-//
-// Vérification de statut : centralisée dans dashboard/layout.tsx (redirect
-// serveur si pas "actif") — plus besoin de la refaire ici.
-//
-// prefetch={false} sur les liens d'action ci-dessous : le préchargement
-// déclenche le middleware (rafraîchissement de session) pour chaque lien
-// visible à l'écran, sans bénéfice réel sur nos pages client désormais
-// légères — en cause dans un cas de déconnexion malgré "Se souvenir de
-// moi" (16/09, voir docs/Tasks.md).
-//
-// Étape 10bis (24/09) : les 9 boutons d'action par maraude, auparavant à
-// plat, sont regroupés en 3 sections repliables (Terrain/Équipe/
-// Logistique) — même pattern CollapsibleSection que le reste du dashboard.
-// Chaque bouton garde EXACTEMENT sa condition d'affichage d'origine (aucun
-// changement de permission) ; seul le regroupement visuel change.
+type Onglet = "a_venir" | "historique";
+type Filtre = "toutes" | "mes" | "a_completer";
+
+const FILTRES: { value: Filtre; label: string }[] = [
+  { value: "toutes", label: "Toutes" },
+  { value: "mes", label: "Mes maraudes" },
+  { value: "a_completer", label: "⚠️ À compléter" },
+];
+
+// Refonte Master-Detail (25/09, Étape 10bis) — remplace la liste verticale
+// à plat par une mise en page liste/détail. Voir docs/Tasks.md pour le
+// détail du chantier et les 3 points explicitement retirés de cette
+// itération (lieu, téléphone, Modifier/Annuler — aucun n'existe dans le
+// modèle de données actuel).
 export function MaraudesClient() {
   const profile = useSession();
-  const isAdminOrManagerForQuery =
-    profile.roles.includes("admin") || profile.roles.includes("manager");
+  const isAdmin = profile.roles.includes("admin");
+  const isAdminOrManagerForQuery = isAdmin || profile.roles.includes("manager");
+
+  const [onglet, setOnglet] = useState<Onglet>("a_venir");
+  const [filtre, setFiltre] = useState<Filtre>("toutes");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["maraudes", isAdminOrManagerForQuery],
-    queryFn: () => fetchMaraudes(isAdminOrManagerForQuery),
+    queryKey: ["maraudes", profile.id, isAdminOrManagerForQuery],
+    queryFn: () => fetchMaraudes(profile.id, isAdminOrManagerForQuery),
   });
+
+  const cards: (MaraudeCardData & {
+    raw: Maraude;
+    managerNom: string | null;
+    isOwnManager: boolean;
+    isPassee: boolean;
+  })[] = useMemo(() => {
+    if (!data) return [];
+    return data.maraudes.map((m) => {
+      const mesInscriptions = m.inscriptions_maraude ?? [];
+      const inscrits = mesInscriptions
+        .filter((i) => i.statut === "inscrit")
+        .sort((a, b) => a.inscrit_le.localeCompare(b.inscrit_le));
+      const listeAttente = mesInscriptions.filter((i) => i.statut === "liste_attente");
+      const mine = mesInscriptions.find((i) => i.user_id === profile.id);
+      const managerRow = Array.isArray(m.manager) ? m.manager[0] : m.manager;
+      const typeRow = Array.isArray(m.type_evenement) ? m.type_evenement[0] : m.type_evenement;
+
+      return {
+        id: m.id,
+        raw: m,
+        dateHeure: m.date_heure,
+        typeNom: typeRow?.nom ?? null,
+        serieId: m.serie_id,
+        maxParticipants: m.max_participants,
+        inscritsCount: inscrits.length,
+        listeAttenteCount: listeAttente.length,
+        premiersInscrits: inscrits
+          .map((i) => {
+            const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
+            return p?.full_name ?? "?";
+          }),
+        mineId: mine?.id,
+        mineStatut: mine?.statut,
+        managerNom: managerRow?.full_name ?? null,
+        isOwnManager: m.manager_id === profile.id,
+        isPassee: new Date(m.date_heure).getTime() < Date.now(),
+      };
+    });
+  }, [data, profile.id]);
+
+  const filteredCards = useMemo(() => {
+    const parOnglet = cards.filter((c) => (onglet === "a_venir" ? !c.isPassee : c.isPassee));
+    const trie = onglet === "a_venir" ? parOnglet : [...parOnglet].reverse();
+    const mesAffectations = new Set(data?.mesAffectations ?? []);
+
+    if (filtre === "mes") {
+      return trie.filter((c) => c.isOwnManager || mesAffectations.has(c.id));
+    }
+    if (filtre === "a_completer") {
+      return trie.filter((c) => c.inscritsCount < c.maxParticipants);
+    }
+    return trie;
+  }, [cards, onglet, filtre, data?.mesAffectations]);
+
+  const selected = filteredCards.find((c) => c.id === selectedId) ?? filteredCards[0] ?? null;
 
   if (isLoading) {
     return <CardListSkeleton />;
@@ -127,7 +195,7 @@ export function MaraudesClient() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
         <p className="text-sm text-muted-foreground">
           Impossible de charger les maraudes pour l&apos;instant.
         </p>
@@ -135,12 +203,24 @@ export function MaraudesClient() {
     );
   }
 
-  const { managers, typesEvenement, maraudes } = data;
-  const isAdminOrManager =
-    profile.roles.includes("admin") || profile.roles.includes("manager");
+  const { managers, typesEvenement } = data;
+
+  function selectionner(id: string) {
+    setSelectedId(id);
+    setMobileDetailOpen(true);
+  }
+
+  const messageListeVide =
+    filtre === "mes"
+      ? "Aucune maraude où vous êtes manager ou affecté, sur cet onglet."
+      : filtre === "a_completer"
+        ? "Aucune maraude à compléter — toutes les places sont prises (ou aucune maraude sur cet onglet)."
+        : onglet === "a_venir"
+          ? "Aucune maraude à venir."
+          : "Aucun historique pour l'instant.";
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
         <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -148,7 +228,7 @@ export function MaraudesClient() {
         </p>
       </div>
 
-      {isAdminOrManager && (
+      {isAdminOrManagerForQuery && (
         <CollapsibleSection
           title="Créer un événement"
           description="Ponctuel ou série récurrente."
@@ -158,155 +238,95 @@ export function MaraudesClient() {
         </CollapsibleSection>
       )}
 
-      {!maraudes || maraudes.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Aucune maraude planifiée.
-          </CardContent>
-        </Card>
-      ) : (
-        maraudes.map((maraude) => {
-          const mesInscriptions = maraude.inscriptions_maraude ?? [];
-          const inscritsCount = mesInscriptions.filter(
-            (i) => i.statut === "inscrit",
-          ).length;
-          const listeAttenteCount = mesInscriptions.filter(
-            (i) => i.statut === "liste_attente",
-          ).length;
-          const mine = mesInscriptions.find((i) => i.user_id === profile.id);
-          const managerRow = Array.isArray(maraude.manager)
-            ? maraude.manager[0]
-            : maraude.manager;
-          const typeRow = Array.isArray(maraude.type_evenement)
-            ? maraude.type_evenement[0]
-            : maraude.type_evenement;
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex h-10 w-fit items-center justify-center rounded-lg bg-brand-pastel p-1 text-brand-navy">
+          {(["a_venir", "historique"] as const).map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => setOnglet(o)}
+              className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                onglet === o ? "bg-brand-navy text-white shadow-sm" : ""
+              }`}
+            >
+              {o === "a_venir" ? "À venir" : "Historique"}
+            </button>
+          ))}
+        </div>
 
-          const estInscrit = mine?.statut === "inscrit";
-          const isAdmin = profile.roles.includes("admin");
-          const isOwnManager = maraude.manager_id === profile.id;
+        <div className="flex flex-wrap gap-2">
+          {FILTRES.map((f) => (
+            <Button
+              key={f.value}
+              type="button"
+              size="sm"
+              variant={filtre === f.value ? "default" : "outline"}
+              onClick={() => setFiltre(f.value)}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-          // Union des conditions des boutons d'origine de chaque groupe —
-          // n'affiche la section que si au moins un de ses boutons le
-          // serait avant regroupement.
-          const voitTerrain = estInscrit || isAdmin || isOwnManager;
-          const voitEquipe = estInscrit || isAdmin || isOwnManager;
-          const voitMeteoEquipe = isAdmin || isOwnManager;
-          const voitBesoins = estInscrit || isAdmin || profile.roles.includes("manager");
-
-          return (
-            <Card key={maraude.id}>
-              <CardHeader>
-                <CardTitle className="flex flex-wrap items-center gap-2">
-                  {new Date(maraude.date_heure).toLocaleString("fr-FR", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                  {typeRow?.nom && <Badge variant="secondary">{typeRow.nom}</Badge>}
-                  {maraude.serie_id && <Badge variant="outline">Généré par série</Badge>}
-                </CardTitle>
-                <CardDescription>
-                  {inscritsCount}/{maraude.max_participants} inscrits
-                  {listeAttenteCount > 0
-                    ? ` · ${listeAttenteCount} en liste d'attente`
-                    : ""}
-                  {" · "}Manager : {managerRow?.full_name ?? "—"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <InscriptionForm
-                  maraudeId={maraude.id}
-                  inscriptionId={mine?.id}
-                  statut={mine?.statut}
-                />
-                {estInscrit && <MeteoForm maraudeId={maraude.id} userId={profile.id} />}
-
-                {voitTerrain && (
-                  <CollapsibleSection
-                    title="Terrain"
-                    description="Points de passage, carte, parcours réel."
-                    icon={MapPin}
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/points`} prefetch={false}>
-                          Points de passage
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/carte`} prefetch={false}>
-                          Carte
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/parcours`} prefetch={false}>
-                          Parcours réel
-                        </Link>
-                      </Button>
-                    </div>
-                  </CollapsibleSection>
-                )}
-
-                {voitEquipe && (
-                  <CollapsibleSection
-                    title="Équipe"
-                    description="Composition, météo équipe, avant le départ."
-                    icon={Users}
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/equipe`} prefetch={false}>
-                          Équipe
-                        </Link>
-                      </Button>
-                      {voitMeteoEquipe && (
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/dashboard/maraudes/${maraude.id}/meteo`} prefetch={false}>
-                            Météo équipe
-                          </Link>
-                        </Button>
-                      )}
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/depart`} prefetch={false}>
-                          Avant le départ
-                        </Link>
-                      </Button>
-                    </div>
-                  </CollapsibleSection>
-                )}
-
-                <CollapsibleSection
-                  title="Logistique"
-                  description="Repas, tickets de dépense, besoins."
-                  icon={Package}
-                >
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/repas`} prefetch={false}>
-                        Repas
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/maraudes/${maraude.id}/tickets`} prefetch={false}>
-                        Tickets de dépense
-                      </Link>
-                    </Button>
-                    {voitBesoins && (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/maraudes/${maraude.id}/besoins`} prefetch={false}>
-                          Besoins
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </CollapsibleSection>
+      <div className="lg:grid lg:grid-cols-12 lg:gap-6">
+        <div
+          className={`flex-col gap-2 lg:col-span-5 lg:flex ${mobileDetailOpen ? "hidden" : "flex"}`}
+        >
+          {filteredCards.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                {messageListeVide}
               </CardContent>
             </Card>
-          );
-        })
-      )}
+          ) : (
+            filteredCards.map((c) => (
+              <MaraudeCard
+                key={c.id}
+                maraude={c}
+                isSelected={selected?.id === c.id}
+                onSelect={() => selectionner(c.id)}
+              />
+            ))
+          )}
+        </div>
+
+        <div
+          className={`lg:relative lg:inset-auto lg:z-auto lg:col-span-7 lg:block lg:overflow-visible lg:bg-transparent lg:p-0 ${
+            mobileDetailOpen ? "fixed inset-0 z-50 overflow-y-auto bg-background p-4" : "hidden"
+          }`}
+        >
+          {mobileDetailOpen && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mb-3 lg:hidden"
+              onClick={() => setMobileDetailOpen(false)}
+            >
+              <ArrowLeft className="size-4" /> Retour
+            </Button>
+          )}
+
+          {selected ? (
+            <MaraudeDetailPanel
+              maraude={selected}
+              statut={selected.raw.statut}
+              managerNom={selected.managerNom}
+              profileId={profile.id}
+              isAdmin={isAdmin}
+              isOwnManager={selected.isOwnManager}
+              estPassee={selected.isPassee}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                Sélectionnez une maraude.
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

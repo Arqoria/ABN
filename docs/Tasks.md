@@ -1392,6 +1392,126 @@ sections "Types d'événements" et "Commerçants partenaires" de Configuration
 ouvertes — plus aucune répétition, uniquement l'information nouvelle
 affichée sous la description. Build + `tsc --noEmit` propres.
 
+### ✅ Refonte Master-Detail — `/dashboard/maraudes` (25/09)
+
+Remplace la liste verticale à plat par une mise en page liste/détail
+moderne, commune à tous les rôles (pas seulement Admin) — réagencement
+visuel, aucune nouvelle fonctionnalité, aucun nouveau champ de données,
+sauf l'ajustement RLS météo explicitement demandé (voir plus bas).
+
+**3 points bloquants trouvés en vérifiant le modèle de données avant de
+coder — signalés puis tranchés par le Chef de Produit avant toute ligne de
+code**, exactement comme demandé ("si un point n'est pas clair, arrête-toi
+et demande") :
+- **Champ "lieu"** demandé sur la carte de maraude — n'existe nulle part
+  dans le modèle. **Décision : retiré de la carte** (pas de nouvelle
+  colonne).
+- **`profiles.phone`** pour le bouton d'appel de l'onglet Équipe —
+  n'existe pas non plus sur `profiles`. **Décision : bouton retiré de
+  cette itération**, comme les coordonnées d'urgence déjà écartées dans
+  la même demande — sujet à reprendre en session dédiée une fois décidé
+  comment collecter ce numéro.
+- **Actions "Modifier"/"Annuler" existantes** pour l'en-tête du panneau de
+  détail — n'existent nulle part (pas de formulaire d'édition de maraude,
+  pas d'action d'annulation, même si l'enum `maraude_statut` a bien une
+  valeur `annulee` jamais utilisée par aucune UI). **Décision : retirées
+  de cette itération** plutôt que construites (aurait été une vraie
+  nouvelle fonctionnalité serveur, hors du périmètre visuel annoncé).
+
+**Layout** :
+- Conteneur `max-w-7xl` (au lieu de `max-w-2xl`), grid 12 colonnes en
+  desktop (`lg:col-span-5` liste / `lg:col-span-7` détail).
+- Onglets **À venir/Historique** (comparaison `date_heure` au moment du
+  rendu) + 3 filtres **Toutes/Mes maraudes (manager ou affecté)/⚠️ À
+  compléter (inscrits < capacité)** — calculés côté client à partir des
+  données déjà chargées, aucune requête supplémentaire pour les filtres
+  eux-mêmes (une seule requête additionnelle légère pour "mes
+  affectations" toutes maraudes confondues).
+- **Historique trié du plus récent au plus ancien** (inverse de "À
+  venir") — choix non précisé dans la demande, logique la plus naturelle
+  pour consulter un historique.
+- Carte compacte : badge date (mois/jour/heure), badges type/série, jauge
+  de progression à 3 couleurs, avatars à initiales des premiers inscrits
+  (triés par date d'inscription), bouton compact S'inscrire/Inscrit
+  (variante `compact` ajoutée à `InscriptionForm` existant, pas de
+  duplication de la logique des 2 Server Actions).
+  - **Seuils de la jauge, non précisés dans la demande** : vert = complet
+    (inscrits ≥ capacité), rouge = critique (0 inscrit), orange entre les
+    deux.
+  - **Le vert n'appartient pas à la charte graphique** (qui n'en définit
+    aucun) — exception nécessaire pour un indicateur à 3 couleurs de type
+    feu tricolore, le reste de l'UI (jauge orange, onglets, badges) utilise
+    exclusivement les couleurs de la charte (`brand-navy`/`brand-blue`/
+    `brand-coral`/`brand-pastel`, déjà les tokens Tailwind du projet).
+- Panneau de détail : en-tête (titre/statut/type/manager, sans
+  Modifier/Annuler — voir plus haut) + 3 sous-onglets :
+  - **Parcours & Terrain** : inchangé, mêmes 3 liens qu'avant (Points de
+    passage, Carte, Parcours réel) vers les pages dédiées existantes.
+  - **Équipe** : fusionne le contenu des anciennes pages `/equipe` et
+    `/meteo` dans un seul sous-onglet (roster + fonctions/affectations +
+    météo). **Les 2 pages dédiées `/equipe` et `/meteo` ne sont PAS
+    supprimées** (pas demandé cette fois, contrairement au chantier
+    Configuration du 24/09) — elles restent fonctionnelles à leur URL,
+    simplement plus liées depuis la liste principale.
+  - **Logistique/Bilan** : compteurs (repas, tickets, besoins, checklist
+    coché/total) calculés à partir des tables existantes, avec un lien
+    vers chaque page dédiée — aucun nouveau formulaire de bilan, conforme
+    à la demande. Libellé de l'onglet passe à "Bilan" pour une maraude
+    passée (même contenu affiché dans les deux cas).
+- **Sélection par défaut** : 1ère maraude de la liste filtrée
+  auto-sélectionnée ; état vide "Sélectionnez une maraude" si la liste est
+  vide après filtrage.
+- **État vide sur filtre/onglet sans résultat** : message contextuel dans
+  la colonne de liste (ex. "Aucune maraude où vous êtes manager ou
+  affecté, sur cet onglet.") plutôt qu'un espace blanc.
+- **Mobile** : liste pleine largeur ; au tap, transition plein écran
+  (choix fait entre plein écran et bottom sheet — plein écran retenu,
+  cohérent avec la navigation par page déjà utilisée partout ailleurs
+  dans l'app plutôt qu'un nouveau pattern de panneau glissant) avec bouton
+  "← Retour". Purement en CSS (classes `hidden`/`lg:flex` conditionnées
+  par un état `mobileDetailOpen`), aucune détection de largeur d'écran en
+  JS.
+- Nouveau composant `src/components/ui/tabs.tsx` (wrapper shadcn standard
+  autour de `radix-ui`, déjà une dépendance du projet — pas de nouvelle
+  dépendance ajoutée) : les onglets À venir/Historique et les 3
+  sous-onglets du détail sont les premiers vrais onglets exclusifs de
+  l'app (`CollapsibleSection` reste pour du contenu qui peut coexister
+  ouvert, pattern différent, conservé ailleurs sans changement).
+
+**Météo — self-service retiré (migration `20260925100000`)** : la policy
+RLS `meteo_insert_self_or_admin_manager` autorisait encore un bénévole à
+insérer sa propre ligne météo — clause retirée, seuls Admin/Manager de la
+maraude peuvent désormais écrire une météo (saisie initiale ou
+correction), pour n'importe quel membre de l'équipe, depuis le sélecteur
+du sous-onglet Équipe. Lecture inchangée (toujours réservée à Admin/
+Manager, jamais le bénévole concerné).
+
+**Testé en conditions réelles** (2 comptes de test — Admin+Manager et
+Maraudeur simple non affecté — + une maraude future et une maraude
+passée, tous créés puis supprimés avec vérification explicite de l'erreur
+de suppression) :
+- Onglets À venir/Historique et les 3 filtres vérifiés, y compris l'état
+  vide réel ("Mes maraudes" pour le Maraudeur simple, qui n'est manager
+  ni affecté nulle part) dans les deux colonnes.
+- Sélection automatique de la 1ère maraude confirmée au chargement.
+- Météo saisie par l'Admin sur le profil d'un autre bénévole confirmée en
+  base (`saisi_par` forcé au bon compte) ; tentative d'insertion
+  self-service par le bénévole confirmée refusée par RLS (avant
+  correctif, la même tentative aurait réussi).
+- Sous-onglet Équipe confirmé restreint (message explicite) pour un
+  profil non-Admin/Manager/inscrit sur une maraude qui ne le concerne pas.
+- Bilan logistique d'une maraude passée vérifié avec des données réelles
+  (repas et besoin seedés, compteurs corrects, libellé "Bilan").
+- Comportement mobile vérifié à 375px : liste seule au chargement,
+  transition plein écran au tap avec conservation de la sélection, retour
+  fonctionnel.
+- Build + `tsc --noEmit` propres.
+
+⬜ **Piste notée, pas engagée** : bouton d'appel (`profiles.phone`) et
+actions Modifier/Annuler d'une maraude, toutes deux retirées de cette
+itération faute de champ/fonctionnalité existants — à reprendre en
+session dédiée si le besoin est confirmé.
+
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le
@@ -1769,6 +1889,16 @@ déjà dans `src/lib/roles.ts` mais n'a aujourd'hui **aucun contenu dédié**
   (avec le dashboard Adhérent comme point de départ) ?
 - Lien avec le chantier notifications push (Étape 11, ci-dessous) — une
   nouvelle note déclenche-t-elle une notification ?
+
+**Ajout (25/09, pas scopé ni construit)** : diffusion des notes de service
+par **notification** et/ou **lien WhatsApp pré-rempli** (`wa.me/<numéro>?
+text=<message encodé>`) — permet de joindre un bénévole sans qu'il ait
+installé l'app ni créé de compte WhatsApp Business, un clic généré par
+note et par destinataire, aucun service payant (contrairement à l'API
+WhatsApp Business officielle). Dépend du même besoin de numéro de
+téléphone déjà identifié et écarté cette session (voir refonte
+Master-Detail Maraudes, 25/09) — nécessiterait `profiles.phone` pour
+générer les liens par destinataire.
 
 ## Étape 11 — Notifications & natif (reporté)
 - ⬜ Firebase Cloud Messaging (web push Android)

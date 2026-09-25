@@ -23,12 +23,18 @@ export function AffectationToggle({
   fonction,
   assigned,
   canToggle,
+  invalidateKey,
 }: {
   maraudeId: string;
   userId: string;
   fonction: FonctionMaraude;
   assigned: boolean;
   canToggle: boolean;
+  // Clé react-query à invalidater après le toggle — par défaut celle de la
+  // page dédiée /equipe. Le nouveau sous-onglet Équipe du panneau de détail
+  // (refonte Master-Detail, 25/09) passe sa propre clé pour rafraîchir SON
+  // cache, distinct de celui de la page dédiée qui reste inchangée.
+  invalidateKey?: unknown[];
 }) {
   const [pending, startTransition] = useTransition();
   const queryClient = useQueryClient();
@@ -52,7 +58,7 @@ export function AffectationToggle({
         formData.set("fonction", fonction);
         await affecterFonction(undefined, formData);
       }
-      queryClient.invalidateQueries({ queryKey: ["equipe", maraudeId] });
+      queryClient.invalidateQueries({ queryKey: invalidateKey ?? ["equipe", maraudeId] });
     });
   }
 
