@@ -67,7 +67,7 @@ export function MaraudeDetailPanel({
           <TabsTrigger value="logistique">{estPassee ? "Bilan" : "Logistique"}</TabsTrigger>
         </TabsList>
         <TabsContent value="terrain" className="pt-3">
-          <TerrainTab maraudeId={maraude.id} />
+          <TerrainTab maraudeId={maraude.id} estPassee={estPassee} />
         </TabsContent>
         <TabsContent value="equipe" className="pt-3">
           <EquipeTab

@@ -1512,6 +1512,31 @@ actions Modifier/Annuler d'une maraude, toutes deux retirées de cette
 itération faute de champ/fonctionnalité existants — à reprendre en
 session dédiée si le besoin est confirmé.
 
+**✅ Correctif (25/09, suite)** — précision demandée sur le sous-onglet
+Parcours & Terrain : le circuit RÉEL (`parcours_reels`, bouton Démarrer/
+Terminer) n'a de sens qu'une fois la maraude passée — pas de bouton
+"Démarrer" ni de carte de parcours réel vide sur un événement qui n'a pas
+encore eu lieu. Pour une maraude à venir, seul le circuit PRÉVU
+(`circuits_planifies`, préparé à l'avance sur la page Carte) est
+pertinent.
+- `TerrainTab` reçoit désormais `estPassee` : le lien "Parcours réel
+  (chrono)" n'est affiché QUE pour l'onglet Historique. Le lien "Carte"
+  reste affiché dans les deux cas (label ajusté : "circuit planifié"
+  seul pour une maraude à venir, "circuit réel, circuit planifié" pour
+  l'historique) — la page Carte elle-même gère déjà l'absence de circuit
+  réel sans erreur. "Points de passage" reste inchangé dans les deux
+  onglets, non concerné par cette demande.
+- Le découpage À venir/Historique par simple comparaison de `date_heure`
+  fait que le lien chrono apparaît exactement au moment où l'heure prévue
+  est dépassée (la maraude bascule alors en Historique) — cohérent avec
+  l'usage réel : le Manager démarre le chrono au moment du départ, pas
+  avant.
+- **Testé en conditions réelles** (compte de test + une maraude future et
+  une maraude passée, créés puis supprimés, suppression du compte
+  vérifiée) : onglet À venir → seulement Points de passage + Carte
+  (circuit planifié) ; onglet Historique → les 3 liens, dont Parcours réel
+  (chrono).
+
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le
