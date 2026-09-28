@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TerrainTab } from "./terrain-tab";
 import { EquipeTab } from "./equipe-tab";
 import { LogistiqueTab } from "./logistique-tab";
-import { InscriptionForm, patcherMesAffectations } from "./inscription-form";
+import { InscriptionForm, patcherMesFonctions } from "./inscription-form";
 import type { MaraudeCardData } from "./maraude-card";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -44,7 +44,7 @@ function ChoixRoleBandeau({ maraudeId }: { maraudeId: string }) {
 
   function choisir(fonction: FonctionMaraude) {
     setErreur(null);
-    patcherMesAffectations(queryClient, maraudeId, true);
+    patcherMesFonctions(queryClient, maraudeId, [fonction], "ajouter");
     const formData = new FormData();
     formData.set("maraudeId", maraudeId);
     formData.set("userId", profile.id);
@@ -54,7 +54,8 @@ function ChoixRoleBandeau({ maraudeId }: { maraudeId: string }) {
         error: "Connexion indisponible, réessayez.",
       }));
       if (resultat?.error) {
-        patcherMesAffectations(queryClient, maraudeId, false);
+        // Le bandeau n'apparaît que sans aucune affectation : retour à "aucune".
+        patcherMesFonctions(queryClient, maraudeId, []);
         setErreur(resultat.error);
         return;
       }
@@ -144,6 +145,7 @@ export function MaraudeDetailPanel({
             maraudeId={maraude.id}
             inscriptionId={maraude.mineId}
             statut={maraude.mineStatut}
+            fonctions={maraude.mesFonctions}
           />
         </div>
       </div>

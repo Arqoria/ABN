@@ -16,12 +16,14 @@ export function PresenceToggle({
   nom,
   presenceConfirmee,
   canWrite,
+  compact = false,
 }: {
   maraudeId: string;
   inscriptionId: string;
   nom: string;
   presenceConfirmee: boolean;
   canWrite: boolean;
+  compact?: boolean;
 }) {
   const [, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
@@ -44,6 +46,27 @@ export function PresenceToggle({
         ),
       );
     });
+  }
+
+  // compact (émargement de l'onglet Logistique, 28/09) : case seule, le nom
+  // est déjà affiché sur la carte du bénévole — conservé en aria-label.
+  if (compact) {
+    return (
+      <div className="flex shrink-0 flex-col items-end">
+        <Checkbox
+          aria-label={`Présence de ${nom}`}
+          className="size-7"
+          checked={presenceConfirmee}
+          disabled={!canWrite}
+          onCheckedChange={toggle}
+        />
+        {erreur && (
+          <p role="alert" className="text-xs text-destructive">
+            {erreur}
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (

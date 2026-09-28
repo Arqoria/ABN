@@ -1902,6 +1902,77 @@ trigger de qualification avant la policy, avec un message trompeur ("ne
 détient pas le rôle", car il ne peut pas lire les rôles d'autrui) — refus
 correct, message à améliorer si besoin.
 
+### ✅ Réactivité du rôle, Logistique réorganisée, menu repas, besoins détaillés (28/09)
+
+Deux points tranchés par le Chef de Produit avant de coder :
+- **Liste de repas** : n'existe pas (ni table, ni enum, ni constante —
+  vérifié) → cas "valeurs déjà saisies dans `repas.quoi` + Autre". La
+  ligne "Sandwichs (test offline)" (test de l'Étape 8, même auteur, 12/09)
+  a été supprimée après vérification, sur décision explicite.
+- **Chaussures** : vraie catégorie (et non un raccourci dans Vêtements).
+
+**1. Rôle à l'inscription — réactivité**
+- Au tap : la modale se ferme, le rôle choisi s'affiche immédiatement
+  (icônes sur la carte, badges dans le détail, texte de la barre mobile) ;
+  le statut n'est **jamais supposé** : "Inscription en cours…" (état
+  transitoire côté client uniquement, jamais écrit en base ni compté comme
+  inscrit) jusqu'à la réponse du serveur, qui donne le statut réel.
+- Statut réel différent de ce que laissaient prévoir les places affichées →
+  message : "La dernière place vient d'être prise : vous êtes en liste
+  d'attente…" (badge de rôle retiré : pas d'affectation en attente), ou
+  "Une place s'est libérée entre-temps : vous êtes inscrit(e)". Erreur ou
+  réseau coupé → retour à l'état précédent + message.
+- Seul l'état de la maraude concernée est modifié : plus de rechargement de
+  toute la liste des maraudes après un désistement (relecture des seules
+  inscriptions de CETTE maraude, pour voir une promotion) ni après le
+  changement de son propre rôle dans l'onglet Équipe. `mesFonctions`
+  (mes rôles par maraude) ajouté au cache de la liste — même requête
+  qu'avant, colonne `fonction` en plus.
+- Mesuré en build de production : clic 2 ms, rôle affiché **~80 ms** (aucune
+  tâche longue), statut réel ~0,7 s (local).
+
+**2. Présences vs Matériel** : deux blocs distincts. "👥 Présences au
+départ" : une carte par bénévole (initiales, nom, fonction(s) sur la
+maraude) ; case cochable uniquement pour le Manager de la maraude/Admin
+(RLS inchangée), **lecture seule** pour les autres (pastille "✓ Présent" /
+"En attente", jamais une case désactivée). "📦 Matériel & dons à charger" :
+règle existante inchangée (stock/don régénérés, corbeille Manager/Admin sur
+les lignes libres/par défaut) ; lignes par défaut jamais recréées.
+
+**3. Logistique sur PC** : 2 colonnes thématiques indépendantes (gauche :
+Repas, Matériel ; droite : Présences, Besoins, Tickets) au lieu d'une grille
+2x2 qui alignait chaque ligne sur son bloc le plus haut — mesuré à 1280px :
+680 px / 774 px de hauteur, plus de vide sous Repas. Mobile : empilement
+dans le même ordre. Présences en une seule colonne (noms tronqués sinon
+dans la colonne étroite).
+
+**4. Repas** : `<select>` natif des plats déjà saisis (les plus fréquents
+d'abord) + "Autre…" → champ libre ; un nouveau plat rejoint la liste. Aucun
+plat encore saisi → champ libre directement. Aucune table ni colonne.
+
+**5. Besoins**
+- Correctif CSS : les boutons (whitespace-nowrap) débordaient et se
+  chevauchaient sur les libellés longs — grille 2 colonnes, hauteur libre.
+- **Nouvelle catégorie "Chaussures"** (migration
+  `20260928130000_categorie_besoin_chaussures.sql`, valeur ajoutée à l'enum
+  `categorie_besoin` — partagé avec le stock matériel, où elle apparaît
+  aussi). Libellé, icône (`Footprints`) et exemple ajoutés.
+- Raccourcis (tous facultatifs) composés dans le texte existant : Vêtements
+  (types + tailles S–XXL), Chaussures (pointures 36–47), Hygiène (4 types).
+  Ex. envoyé : "Jean/Pantalon - Taille L". Texte libre toujours possible en
+  complément. Aperçu de la précision avant envoi.
+- Vérifié avec de vrais signalements : site vitrine (/dons : "Chaussures —
+  pointures 36 à 47 — 1 signalement", accueil : icône) et rapports
+  (graphique Besoins matériels) affichent la nouvelle catégorie ; les
+  précisions n'y apparaissent pas (agrégat par catégorie).
+
+**Testé en conditions réelles** (Admin+Manager+Cuisinier+Maraudeur et
+Maraudeur simple, créés puis supprimés, suppression vérifiée ; toutes les
+données de test supprimées) : dernière place prise côté serveur pendant que
+l'écran affichait 0/1 → "Inscription en cours…" puis liste d'attente +
+message ; présences en lecture seule pour le Maraudeur ; ordre mobile ;
+menu repas + "Autre" ; 3 besoins composés ; aucun débordement à 375px.
+
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 
 Bouton d'appel `tel:` (onglet Équipe) et lien `[💬 Ouvrir le groupe

@@ -12,6 +12,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChecklistItemToggle } from "./checklist-item-toggle";
 import { AjouterLigneLibreForm } from "./ajouter-ligne-libre-form";
 import { PresenceToggle } from "./presence-toggle";
+import { initiales } from "../../maraude-card";
+import {
+  FONCTION_MARAUDE_ICONES,
+  FONCTION_MARAUDE_LABELS,
+  type FonctionMaraude,
+} from "@/lib/fonction-maraude";
 
 type ChecklistItem = { id: string; libelle: string; source: string; coche: boolean };
 type Inscrit = {
@@ -23,6 +29,8 @@ type Inscrit = {
 export type DepartPayload = {
   items: ChecklistItem[];
   inscrits: Inscrit[];
+  // Fonctions de chacun sur cette maraude (badges de l'émargement).
+  affectations: { user_id: string; fonction: string }[];
   canWriteChecklist: boolean;
   canWritePresence: boolean;
   // Suppression d'une ligne (corbeille) : Admin ou Manager de CETTE maraude,
@@ -45,7 +53,7 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
     .single();
 
   if (!maraude) {
-    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
+    return { items: [], inscrits: [], affectations: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
   }
 
   const isOwnManager = maraude.manager_id === profileId;
@@ -56,14 +64,14 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
       .select("id, user_id, presence_confirmee, profil:user_id(full_name)")
       .eq("maraude_id", maraudeId)
       .eq("statut", "inscrit"),
-    supabase.from("affectations_maraude").select("user_id").eq("maraude_id", maraudeId),
+    supabase.from("affectations_maraude").select("user_id, fonction").eq("maraude_id", maraudeId),
   ]);
 
   const estInscrit = (inscrits ?? []).some((i) => i.user_id === profileId);
   const estAffecte = (affectations ?? []).some((a) => a.user_id === profileId);
 
   if (!isAdmin && !isOwnManager && !estInscrit) {
-    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
+    return { items: [], inscrits: [], affectations: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
   }
 
   const canWriteChecklist = isAdmin || isOwnManager || estAffecte;
@@ -87,6 +95,7 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
   return {
     items: items ?? [],
     inscrits: inscrits ?? [],
+    affectations: affectations ?? [],
     canWriteChecklist,
     canWritePresence,
     canDeleteLibre: isAdmin || isOwnManager,
@@ -151,75 +160,110 @@ export function ChecklistDepart({ maraudeId, data }: { maraudeId: string; data: 
   );
 }
 
+// Émargement de l'équipe (28/09) : une carte par bénévole inscrit — initiales,
+// nom, fonction(s) sur cette maraude, et présence. Cochable UNIQUEMENT par le
+// Manager de cette maraude ou un Admin (même règle que la RLS, inchangée) ;
+// pour tout autre profil, lecture seule : une pastille d'état, jamais une
+// case désactivée qui laisserait croire à une action possible.
 export function PresencesDepart({ maraudeId, data }: { maraudeId: string; data: DepartPayload }) {
-  const { inscrits, canWritePresence } = data;
+  const { inscrits, affectations, canWritePresence } = data;
+
+  if (inscrits.length === 0) {
+    return <p className="text-sm text-muted-foreground">Aucun inscrit.</p>;
+  }
+
+  const presents = inscrits.filter((i) => i.presence_confirmee).length;
 
   return (
-    <div className="flex flex-col">
-      {inscrits.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun inscrit.</p>
-      ) : (
-        inscrits.map((i) => {
+    <div className="flex flex-col gap-2">
+      <p className="text-xs text-muted-foreground">
+        {presents}/{inscrits.length} présent(s) confirmé(s)
+      </p>
+      {/* Une seule colonne : le bloc vit dans la colonne de droite (étroite)
+          de l'onglet Logistique sur PC — deux colonnes y tronquaient les noms. */}
+      <div className="flex flex-col gap-2">
+        {inscrits.map((i) => {
           const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
+          const nom = p?.full_name ?? "(sans nom)";
+          const fonctions = affectations
+            .filter((a) => a.user_id === i.user_id)
+            .map((a) => a.fonction as FonctionMaraude);
           return (
-            <PresenceToggle
+            <div
               key={i.id}
-              maraudeId={maraudeId}
-              inscriptionId={i.id}
-              nom={p?.full_name ?? "(sans nom)"}
-              presenceConfirmee={i.presence_confirmee}
-              canWrite={canWritePresence}
-            />
+              className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${
+                i.presence_confirmee ? "border-green-500/50 bg-green-500/10" : "bg-card"
+              }`}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-blue text-xs font-semibold text-white">
+                {initiales(p?.full_name ?? "?")}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{nom}</p>
+                <p className="text-xs text-muted-foreground">
+                  {fonctions.length > 0
+                    ? fonctions.map((f) => `${FONCTION_MARAUDE_ICONES[f]} ${FONCTION_MARAUDE_LABELS[f]}`).join(" · ")
+                    : "Rôle non choisi"}
+                </p>
+              </div>
+              {canWritePresence ? (
+                <PresenceToggle
+                  maraudeId={maraudeId}
+                  inscriptionId={i.id}
+                  nom={nom}
+                  presenceConfirmee={i.presence_confirmee}
+                  canWrite
+                  compact
+                />
+              ) : (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    i.presence_confirmee
+                      ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {i.presence_confirmee ? "✓ Présent" : "En attente"}
+                </span>
+              )}
+            </div>
           );
-        })
-      )}
+        })}
+      </div>
       {!canWritePresence && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          Seul le Manager de cette maraude (ou un Admin) peut confirmer la présence.
+        <p className="text-xs text-muted-foreground">
+          Seul le Manager de cette maraude (ou un Admin) confirme les présences.
         </p>
       )}
     </div>
   );
 }
 
-// Bloc "Avant le départ" de l'onglet Logistique : présences + checklist sur
-// le même écran, cochables directement.
-export function AvantDepartBloc({ maraudeId }: { maraudeId: string }) {
-  const { data, isLoading, isError } = useDepart(maraudeId);
+// Onglet Logistique (28/09) : présences et matériel séparés en deux blocs
+// distincts (auparavant mélangés dans "Avant le départ"). Même requête
+// ["depart", id] partagée : un seul chargement pour les deux.
+function useBlocDepart(maraudeId: string) {
+  const requete = useDepart(maraudeId);
+  const etat = requete.isLoading ? (
+    <Skeleton className="h-24 w-full" />
+  ) : requete.isError || !requete.data ? (
+    <p className="text-sm text-muted-foreground">Impossible de charger la checklist.</p>
+  ) : requete.data.refuse ? (
+    <p className="text-sm text-muted-foreground">Réservé à l&apos;équipe inscrite sur cette maraude.</p>
+  ) : null;
+  return { data: requete.data, etat };
+}
 
-  if (isLoading) {
-    return <Skeleton className="h-24 w-full" />;
-  }
-  if (isError || !data) {
-    return <p className="text-sm text-muted-foreground">Impossible de charger la checklist.</p>;
-  }
-  if (data.refuse) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Réservé à l&apos;équipe inscrite sur cette maraude.
-      </p>
-    );
-  }
+export function PresencesBloc({ maraudeId }: { maraudeId: string }) {
+  const { data, etat } = useBlocDepart(maraudeId);
+  if (etat || !data) return etat;
+  return <PresencesDepart maraudeId={maraudeId} data={data} />;
+}
 
-  const presents = data.inscrits.filter((i) => i.presence_confirmee).length;
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-foreground">
-          Présences{" "}
-          <span className="font-normal text-muted-foreground">
-            ({presents}/{data.inscrits.length})
-          </span>
-        </p>
-        <PresencesDepart maraudeId={maraudeId} data={data} />
-      </div>
-      <div className="flex flex-col gap-1 border-t pt-3">
-        <p className="text-sm font-medium text-foreground">Matériel &amp; dons à charger</p>
-        <ChecklistDepart maraudeId={maraudeId} data={data} />
-      </div>
-    </div>
-  );
+export function MaterielBloc({ maraudeId }: { maraudeId: string }) {
+  const { data, etat } = useBlocDepart(maraudeId);
+  if (etat || !data) return etat;
+  return <ChecklistDepart maraudeId={maraudeId} data={data} />;
 }
 
 export function DepartClient() {

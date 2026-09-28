@@ -2,8 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { InscriptionForm } from "./inscription-form";
+import type { FonctionMaraude } from "@/lib/fonction-maraude";
 
-type Statut = "inscrit" | "liste_attente" | "desiste" | undefined;
+type Statut = "inscrit" | "liste_attente" | "desiste" | "en_cours" | undefined;
 
 export type MaraudeCardData = {
   id: string;
@@ -16,6 +17,8 @@ export type MaraudeCardData = {
   premiersInscrits: string[];
   mineId: string | undefined;
   mineStatut: Statut;
+  // Mes fonctions sur cette maraude (badges de rôle).
+  mesFonctions: FonctionMaraude[];
 };
 
 const MOIS_ABREGES = [
@@ -149,6 +152,7 @@ export function MaraudeCard({
             maraudeId={maraude.id}
             inscriptionId={maraude.mineId}
             statut={maraude.mineStatut}
+            fonctions={maraude.mesFonctions}
             compact
           />
           </div>

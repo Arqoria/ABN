@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { affecterFonction, retirerAffectation } from "@/lib/actions/affectations";
 import { avecOptimisme } from "@/lib/optimiste";
 import { useSession } from "@/components/session-provider";
+import { patcherMesFonctions } from "../../inscription-form";
 import { Button } from "@/components/ui/button";
 import {
   FONCTION_MARAUDE_ICONES,
@@ -81,11 +82,11 @@ export function AffectationToggle({
           },
       );
       setErreur(message);
-      // Sa propre affectation alimente le filtre "Mes maraudes" (et son
-      // compteur) et le bandeau "Choisissez votre rôle" : resynchronisés en
-      // arrière-plan, sans bloquer l'affichage.
+      // Sa propre affectation alimente les badges de rôle, le filtre "Mes
+      // maraudes" (et son compteur) et le bandeau "Choisissez votre rôle" :
+      // seul l'état de CETTE maraude est mis à jour, sans recharger la liste.
       if (!message && userId === profile.id) {
-        queryClient.invalidateQueries({ queryKey: ["maraudes"] });
+        patcherMesFonctions(queryClient, maraudeId, [fonction], assigned ? "retirer" : "ajouter");
       }
     });
   }

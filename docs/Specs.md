@@ -90,6 +90,17 @@ convertir en borne inclusive (DTEND − 1 jour) avant insertion.
 
 ## Logistique repas
 - Traçabilité : quoi, combien, préparé par qui (rattaché au Cuisinier et à la maraude du jour)
+- "Quoi" (28/09) : menu des plats déjà saisis (les plus fréquents d'abord) + "Autre" (saisie libre).
+  Pas de liste de repas figée dans le modèle : un plat saisi via "Autre" rejoint le menu ensuite.
+
+## Besoins signalés (28/09)
+- Catégories : Couvertures, Vêtements chauds, **Chaussures** (ajoutée le 28/09), Hygiène, Nourriture
+  spécifique, Autre — enum `categorie_besoin`, partagé avec le stock matériel.
+- Raccourcis de précision, composés dans le texte existant (`commentaire`, aucune colonne) :
+  Vêtements (Pull/Sweat, Jean/Pantalon, Doudoune/Manteau, T-shirt, Sous-vêtements, Chaussettes ;
+  tailles S à XXL), Chaussures (pointures 36 à 47), Hygiène (Kit dentaire, Savon/Douche, Rasoirs,
+  Protections féminines). Ex. "Jean/Pantalon - Taille L".
+- Le site vitrine (/dons, accueil) et les rapports agrègent par catégorie uniquement.
 - Upload de tickets de caisse (photo) pour remboursement par le Trésorier
 - Statut de remboursement suivi (en attente / remboursé)
 

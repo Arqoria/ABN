@@ -20,12 +20,20 @@ import { CreerEvenementForm } from "./creer-evenement-form";
 import { MaraudeCard, type MaraudeCardData } from "./maraude-card";
 import { MaraudeDetailPanel } from "./maraude-detail-panel";
 import { InscriptionForm } from "./inscription-form";
+import {
+  FONCTION_MARAUDE_ICONES,
+  FONCTION_MARAUDE_LABELS,
+  type FonctionMaraude,
+} from "@/lib/fonction-maraude";
 
 export type Inscription = {
   id: string;
   maraude_id: string;
   user_id: string;
-  statut: "inscrit" | "liste_attente" | "desiste";
+  // "en_cours" : état transitoire CÔTÉ CLIENT uniquement (28/09), le temps
+  // que le serveur réponde à une inscription — jamais écrit en base, jamais
+  // compté comme inscrit. Le statut réel vient toujours de la réponse.
+  statut: "inscrit" | "liste_attente" | "desiste" | "en_cours";
   inscrit_le: string;
   profil: { full_name: string | null } | { full_name: string | null }[] | null;
 };
@@ -50,6 +58,8 @@ export type MaraudesPayload = {
   typesEvenement: TypeEvenement[];
   maraudes: Maraude[];
   mesAffectations: string[];
+  // Mes fonctions par maraude (badges de rôle sur la carte et le détail).
+  mesFonctions: Record<string, FonctionMaraude[]>;
 };
 
 // Lecture directe Supabase depuis le navigateur (RLS comme seule
@@ -97,19 +107,24 @@ async function fetchMaraudes(profileId: string, isAdminOrManager: boolean): Prom
   async function chargerMesAffectations() {
     const { data } = await supabase
       .from("affectations_maraude")
-      .select("maraude_id")
+      .select("maraude_id, fonction")
       .eq("user_id", profileId);
-    return (data ?? []).map((a) => a.maraude_id as string);
+    const mesFonctions: Record<string, FonctionMaraude[]> = {};
+    for (const a of data ?? []) {
+      const id = a.maraude_id as string;
+      (mesFonctions[id] ??= []).push(a.fonction as FonctionMaraude);
+    }
+    return { mesAffectations: Object.keys(mesFonctions), mesFonctions };
   }
 
-  const [managers, typesEvenement, maraudes, mesAffectations] = await Promise.all([
+  const [managers, typesEvenement, maraudes, { mesAffectations, mesFonctions }] = await Promise.all([
     chargerManagers(),
     chargerTypesEvenement(),
     chargerMaraudesAvecInscriptions(),
     chargerMesAffectations(),
   ]);
 
-  return { managers, typesEvenement, maraudes, mesAffectations };
+  return { managers, typesEvenement, maraudes, mesAffectations, mesFonctions };
 }
 
 type Onglet = "a_venir" | "historique";
@@ -192,6 +207,7 @@ export function MaraudesClient() {
           }),
         mineId: mine?.id,
         mineStatut: mine?.statut,
+        mesFonctions: data.mesFonctions[m.id] ?? [],
         managerNom: managerRow?.full_name ?? null,
         isOwnManager: m.manager_id === profile.id,
         isPassee: date.getTime() < maintenant.getTime(),
@@ -279,16 +295,22 @@ export function MaraudesClient() {
           ? "Aucune maraude à venir."
           : "Aucun historique pour l'instant.";
 
-  const etatBenevole =
+  const mesRoles = (selected?.mesFonctions ?? [])
+    .map((f) => `${FONCTION_MARAUDE_ICONES[f]} ${FONCTION_MARAUDE_LABELS[f]}`)
+    .join(" · ");
+  const statutBenevole =
     selected?.mineStatut === "inscrit"
       ? "✅ Vous êtes inscrit(e)"
-      : selected?.mineStatut === "liste_attente"
-        ? "⏳ En liste d'attente"
-        : selected?.mineStatut === "desiste"
-          ? "Désisté(e)"
-          : selected
-            ? `${Math.max(0, selected.maxParticipants - selected.inscritsCount)} place(s) disponible(s)`
-            : "";
+      : selected?.mineStatut === "en_cours"
+        ? "⏳ Inscription en cours…"
+        : selected?.mineStatut === "liste_attente"
+          ? "⏳ En liste d'attente"
+          : selected?.mineStatut === "desiste"
+            ? "Désisté(e)"
+            : selected
+              ? `${Math.max(0, selected.maxParticipants - selected.inscritsCount)} place(s) disponible(s)`
+              : "";
+  const etatBenevole = mesRoles ? `${statutBenevole} · ${mesRoles}` : statutBenevole;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-6 pb-16 sm:px-6 lg:px-8 lg:pb-0">
