@@ -143,6 +143,8 @@ Trois origines de lignes (`checklist_depart_items.source`) :
   collations ; Sacs poubelle et serviettes ; Trousse de secours — créées une
   seule fois à la création de la maraude (manuelle ou par série/cron),
   jamais à l'ouverture de la page : une ligne supprimée ne revient pas.
+  Uniquement pour un événement de nature `maraude` : un événement à point
+  fixe (goûter, réunion, collecte…) démarre avec une checklist vide.
 
 Écriture (cocher/décocher, ajouter une ligne libre) : Manager de cette
 maraude, Admin, ou tout bénévole affecté à cette maraude

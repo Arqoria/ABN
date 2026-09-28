@@ -1864,9 +1864,19 @@ collations ; Sacs poubelle et serviettes ; Trousse de secours.
   les denrées sont en texte libre ("Pain", "Sucre", "Café"… feraient
   doublon avec "Pain et collations", "Sucre, touillettes et gobelets",
   "Thermos de café"). "Barquettes repas chauds" recoupe aussi le bloc Repas.
-- ⚠️ À noter : les lignes par défaut s'appliquent à **tous** les types
-  d'événement, y compris à point fixe (goûter) — à restreindre par nature
-  si besoin.
+  **Arbitrage Chef de Produit : on garde ce comportement sans surcouche**
+  (stocks vides, corbeille disponible pour retirer un doublon).
+- ✅ **Réservé aux maraudes** (arbitrage Chef de Produit, migration
+  `20260928120000`) : les 6 lignes ne sont créées que si le type de
+  l'événement est de **nature `maraude`** ; tout autre événement (point
+  fixe : goûter, réunion, collecte…) démarre avec une checklist vide.
+  Critère = `types_evenement.nature` (enum fixe, non éditable) plutôt que
+  le nom du type, modifiable par un Admin. Aucun nettoyage nécessaire : les
+  deux seuls types existants ("Maraude classique", "Maraude des enfants")
+  sont de nature `maraude`. Testé (type `evenement_fixe` de test, supprimé
+  ensuite) : point fixe → 0 ligne, maraude → 6 lignes, dans les deux cas
+  aussi bien créé comme le cron (clé service) que via le formulaire
+  (session Admin/Manager).
 
 **Testé en conditions réelles** (2 comptes de test — Admin+Manager+
 Cuisinier+Maraudeur et Maraudeur simple — créés puis supprimés,
