@@ -14,11 +14,12 @@ import { CapturePointForm } from "./[maraudeId]/points/capture-point-form";
 // - carte Leaflet intégrée (circuit planifié + édition pour Admin/Manager
 //   de la maraude). Le circuit RÉEL n'apparaît que pour une maraude de
 //   l'onglet Historique (correctif 25/09 conservé) ;
-// - chrono Démarrer/Terminer : Admin/Manager de CETTE maraude, le jour J
-//   uniquement (quel que soit l'onglet — une maraude du jour bascule en
-//   Historique dès son heure de départ dépassée) ;
-// - 4 boutons de pointage géolocalisé : maraude du jour uniquement (ni
-//   future, ni passée), mêmes règles d'accès que la page Points de passage.
+// - chrono Démarrer/Terminer : Admin/Manager de CETTE maraude, pendant la
+//   fenêtre "jour J" uniquement (00:00 le jour de la maraude → lendemain
+//   06:00, voir maraudes-client.tsx), quel que soit l'onglet — une maraude
+//   bascule en Historique dès son heure de départ dépassée ;
+// - 4 boutons de pointage géolocalisé : même fenêtre "jour J" (ni avant, ni
+//   après), mêmes règles d'accès que la page Points de passage.
 // Les pages dédiées (/carte, /parcours, /points) restent accessibles à leur
 // URL, simplement plus liées d'ici.
 export function TerrainTab({

@@ -57,7 +57,9 @@ export function MaraudeDetailPanel({
                 minute: "2-digit",
               })}
             </h2>
-            {estJourJ && <Badge className="bg-brand-coral text-white">Aujourd&apos;hui</Badge>}
+            {/* "Jour J" plutôt qu'"Aujourd'hui" : après minuit, la maraude
+                de la veille reste active jusqu'à 06:00. */}
+            {estJourJ && <Badge className="bg-brand-coral text-white">Jour J</Badge>}
             <Badge variant="outline">{STATUT_LABELS[statut] ?? statut}</Badge>
             {maraude.typeNom && <Badge variant="secondary">{maraude.typeNom}</Badge>}
           </div>

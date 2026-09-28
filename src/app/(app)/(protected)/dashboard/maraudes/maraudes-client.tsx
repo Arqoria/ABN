@@ -121,12 +121,19 @@ const FILTRES: { value: Filtre; label: string }[] = [
   { value: "a_completer", label: "⚠️ À compléter" },
 ];
 
-function memeJour(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+// Fenêtre "jour J" (décision Chef de Produit, 28/09) : une maraude est
+// active — chrono et boutons de pointage terrain — depuis 00:00 le jour de
+// sa date jusqu'au lendemain 06:00, pour que le passage de minuit ne coupe
+// pas une maraude du soir en cours. Heure locale de l'appareil.
+const FIN_JOUR_J_LENDEMAIN_HEURE = 6;
+
+function estDansFenetreJourJ(dateMaraude: Date, maintenant: Date): boolean {
+  const debut = new Date(dateMaraude);
+  debut.setHours(0, 0, 0, 0);
+  const fin = new Date(debut);
+  fin.setDate(fin.getDate() + 1);
+  fin.setHours(FIN_JOUR_J_LENDEMAIN_HEURE, 0, 0, 0);
+  return maintenant >= debut && maintenant < fin;
 }
 
 // Refonte Master-Detail (25/09, Étape 10bis), reprise ergonomique (28/09) —
@@ -188,9 +195,8 @@ export function MaraudesClient() {
         managerNom: managerRow?.full_name ?? null,
         isOwnManager: m.manager_id === profile.id,
         isPassee: date.getTime() < maintenant.getTime(),
-        // Jour J = même date calendaire (heure locale de l'appareil) —
-        // conditionne le chrono et les 4 boutons de pointage terrain.
-        isJourJ: memeJour(date, maintenant),
+        // Conditionne le chrono et les 4 boutons de pointage terrain.
+        isJourJ: estDansFenetreJourJ(date, maintenant),
       };
     });
   }, [data, profile.id]);

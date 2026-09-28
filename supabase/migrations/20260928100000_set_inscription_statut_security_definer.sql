@@ -1,0 +1,24 @@
+-- =============================================================================
+-- Correctif (28/09) — inscription d'un bénévole simple toujours placée en
+-- liste d'attente, même sur une maraude à 0/6.
+--
+-- Cause : depuis 20260922100000_types_evenement.sql, set_inscription_statut
+-- lit la capacité via `select max_participants ... for update` et s'exécute
+-- avec les droits de l'appelant (security invoker). Un Maraudeur/Cuisinier
+-- sans droit UPDATE sur public.maraudes ne récupère aucune ligne sous RLS
+-- (un SELECT ... FOR UPDATE applique aussi les policies UPDATE) → capacite
+-- = NULL → `nb_inscrits < NULL` n'est jamais vrai → 'liste_attente'. Le
+-- count(*) des inscrits était lui aussi soumis à la RLS de l'appelant (il
+-- ne voyait pas forcément les inscriptions des autres).
+--
+-- Correctif : security definer, même principe que current_user_role() /
+-- current_user_status(). La fonction ne fait que lire la capacité, compter
+-- les inscrits et forcer new.statut — elle ne prend aucune entrée du client
+-- au-delà de new.maraude_id (la ligne insérée elle-même, déjà soumise aux
+-- policies INSERT de inscriptions_maraude). search_path déjà figé à public.
+-- Logique inchangée (comparaison stricte, verrou FOR UPDATE).
+-- =============================================================================
+
+-- Pas de revoke EXECUTE nécessaire : une fonction `returns trigger` ne peut
+-- de toute façon pas être appelée directement (seulement par le trigger).
+alter function public.set_inscription_statut() security definer;

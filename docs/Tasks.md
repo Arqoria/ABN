@@ -1646,20 +1646,31 @@ photo de ticket dans Storage, suppression de chaque compte vérifiée) :
   `+ Créer`, ni chrono, ni édition de circuit, ni météo.
 - Dark mode vérifié. Build + `tsc --noEmit` + ESLint propres.
 
-⚠️ **Bug pré-existant découvert en testant — NON corrigé (hors périmètre :
-modification BDD)** : depuis la migration `20260922100000`,
-`set_inscription_statut` lit la capacité via `select max_participants …
-for update` **sans `security definer`**. Un bénévole sans droit UPDATE sur
-`maraudes` (Maraudeur/Cuisinier simple) ne récupère aucune ligne →
-`capacite` = NULL → `nb_inscrits < NULL` est faux → **toute inscription
-d'un bénévole simple part en liste d'attente**, même à 0/6 (reproduit en
-test). Le `count(*)` des inscrits est lui aussi soumis à la RLS de
-l'appelant. Correctif proposé : passer la fonction en `security definer`
-(comme `current_user_role()`), à valider par le Chef de Produit.
+✅ **Bug pré-existant découvert en testant, corrigé après validation du
+Chef de Produit (migration `20260928100000`)** : depuis la migration
+`20260922100000`, `set_inscription_statut` lisait la capacité via `select
+max_participants … for update` **sans `security definer`**. Un bénévole
+sans droit UPDATE sur `maraudes` (Maraudeur/Cuisinier simple) ne
+récupérait aucune ligne → `capacite` = NULL → `nb_inscrits < NULL` faux →
+**toute inscription d'un bénévole simple partait en liste d'attente**,
+même à 0/6. Le `count(*)` des inscrits était lui aussi soumis à la RLS de
+l'appelant. Correctif : fonction passée en `security definer` (même
+principe que `current_user_role()`), logique inchangée. Appliquée via
+`supabase db push`. **Vérifié sur la base de production** avec un
+Maraudeur de test inscrit par sa propre session : avant → `liste_attente`
+à 0/6 ; après → `inscrit` à 0/6, et toujours `liste_attente` sur une
+maraude complète (1/1) — la limite de capacité est intacte. Revérifié de
+bout en bout dans l'UI (barre d'action mobile → "Vous êtes inscrit(e)",
+1/6). Comptes et maraudes de test supprimés, chaque suppression vérifiée.
 
-⚠️ **Limite à trancher** : "jour J" = date calendaire. Une maraude du
-soir qui dépasse minuit perd ses boutons de pointage et son chrono à
-00:00 — fenêtre élargie (ex. jusqu'à 6h le lendemain) à décider.
+✅ **Fenêtre "jour J" élargie (décision Chef de Produit, 28/09)** : une
+maraude est active (chrono + 4 boutons de pointage) de **00:00 le jour de
+sa date jusqu'au lendemain 06:00** — le passage de minuit ne coupe plus
+une maraude du soir en cours. Badge "Jour J" (au lieu d'"Aujourd'hui",
+faux après minuit). Bornes vérifiées (J-1 23:59 → non ; J 00:00, J+1
+00:30, J+1 05:59 → oui ; J+1 06:00 → non ; nuit de changement d'heure du
+25-26/10 → oui) et câblage vérifié dans l'UI (maraude du jour 8h et 21h
+actives, maraude de la veille 20h inactive à 11h).
 
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 

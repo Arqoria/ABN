@@ -194,6 +194,12 @@ enregistrée. Un seul parcours `en_cours` à la fois par maraude.
   qu'un recoupement de plusieurs maraudes ne révèle un lieu de vie identifiable
 - Visibilité : heatmap + circuits + compteurs détaillés réservés à Admin/Manager.
   Maraudeur/Cuisinier n'ont pas besoin de cette vue
+- **Fenêtre "jour J" (28/09)** : les boutons de pointage terrain et le chrono
+  (parcours réel) ne sont proposés que pendant la fenêtre active d'une
+  maraude — de 00:00 le jour de sa date jusqu'au lendemain 06:00 (heure
+  locale de l'appareil), pour qu'une maraude du soir ne soit pas coupée à
+  minuit. Ni avant, ni après. Circuit réel affiché uniquement une fois
+  l'heure de départ passée (onglet Historique).
 
 ### Circuit planifié — tracé réel suivant les rues (22/09)
 
