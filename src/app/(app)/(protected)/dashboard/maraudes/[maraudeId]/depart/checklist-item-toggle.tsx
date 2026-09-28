@@ -44,11 +44,12 @@ export function ChecklistItemToggle({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5">
-      <div className="flex items-center gap-2">
+    <div className="flex min-h-11 items-center justify-between gap-2 py-1">
+      <div className="flex min-h-11 items-center gap-3">
         <Checkbox
           id={`checklist-${itemId}`}
-          checked={coche}
+          className="size-6"
+        checked={coche}
           disabled={!canWrite || pending}
           onCheckedChange={toggle}
         />

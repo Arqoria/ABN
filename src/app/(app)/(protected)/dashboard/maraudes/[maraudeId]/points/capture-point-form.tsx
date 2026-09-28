@@ -155,13 +155,15 @@ export function CapturePointForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      {/* Grille 2x2 de gros boutons (refonte 28/09) : cibles larges au pouce,
+          utilisables avec des gants, les 4 actions visibles sans défiler. */}
+      <div className="grid grid-cols-2 gap-2">
         {OPTIONS_SIMPLES.map((o) => (
           <Button
             key={o.value}
             type="button"
             disabled={pending}
-            className="h-12"
+            className="h-16 text-base whitespace-normal"
             onClick={() => submit(o.value)}
           >
             {o.label}
@@ -171,7 +173,7 @@ export function CapturePointForm({
           type="button"
           variant={panelOuvert ? "secondary" : "default"}
           disabled={pending}
-          className="h-12"
+          className="h-16 text-base whitespace-normal"
           onClick={() => setPanelOuvert((v) => !v)}
         >
           🧭 Orientation sociale

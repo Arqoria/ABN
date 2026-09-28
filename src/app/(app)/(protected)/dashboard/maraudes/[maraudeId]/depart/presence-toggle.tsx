@@ -30,9 +30,10 @@ export function PresenceToggle({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-h-11 items-center gap-3">
       <Checkbox
         id={`presence-${inscriptionId}`}
+        className="size-6"
         checked={presenceConfirmee}
         disabled={!canWrite || pending}
         onCheckedChange={toggle}

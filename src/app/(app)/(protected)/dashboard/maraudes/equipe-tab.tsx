@@ -4,12 +4,12 @@ import { useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { saisirMeteo } from "@/lib/actions/meteo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FONCTIONS_MARAUDE, type FonctionMaraude } from "@/lib/fonction-maraude";
 import type { RoleName } from "@/lib/roles";
 import { AffectationToggle } from "./[maraudeId]/equipe/affectation-toggle";
+import { initiales } from "./maraude-card";
 
 type Inscription = {
   user_id: string;
@@ -110,7 +110,8 @@ function MeteoSelector({
   }
 
   return (
-    <div className="flex gap-1">
+    <div className="flex items-center gap-1 border-t pt-2">
+      <span className="mr-1 text-xs text-muted-foreground">Météo</span>
       {METEO_OPTIONS.map((o) => (
         <Button
           key={o.value}
@@ -128,16 +129,26 @@ function MeteoSelector({
   );
 }
 
+// Refonte 28/09 : grille de créneaux (max_participants de la maraude) —
+// créneaux occupés (avatar, nom, fonctions, météo pour Admin/Manager) puis
+// créneaux libres en pointillés, pour que l'écran ne soit jamais vide et
+// montre d'un coup d'œil ce qu'il manque. Bouton d'appel et lien WhatsApp
+// volontairement absents : ni profiles.phone ni configuration de groupe
+// n'existent dans le modèle (reportés, voir docs/Tasks.md).
 export function EquipeTab({
   maraudeId,
   profileId,
   isAdmin,
   isOwnManager,
+  maxParticipants,
+  listeAttenteCount,
 }: {
   maraudeId: string;
   profileId: string;
   isAdmin: boolean;
   isOwnManager: boolean;
+  maxParticipants: number;
+  listeAttenteCount: number;
 }) {
   const { data, isLoading } = useQuery({
     queryKey: invalidateKey(maraudeId),
@@ -146,17 +157,17 @@ export function EquipeTab({
 
   if (isLoading || !data) {
     return (
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
       </div>
     );
   }
 
   if (data.refuse) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Vous n&apos;avez pas accès à l&apos;équipe de cette maraude.
+      <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+        La composition de l&apos;équipe est visible une fois inscrit sur cette maraude.
       </p>
     );
   }
@@ -164,62 +175,86 @@ export function EquipeTab({
   const { inscriptions, affectations, roleRows, meteos } = data;
   const canManageOthers = isAdmin || isOwnManager;
   const meteoMap = new Map(meteos.map((m) => [m.user_id, m.valeur]));
-
-  if (inscriptions.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucun participant inscrit.</p>;
-  }
+  const placesLibres = Math.max(0, maxParticipants - inscriptions.length);
 
   return (
     <div className="flex flex-col gap-3">
-      {inscriptions.map((i) => {
-        const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
-        const nom = p?.full_name;
-        const userId = i.user_id;
-        const rolesDeCeParticipant = roleRows
-          .filter((r) => r.profile_id === userId)
-          .map((r) => r.role);
-        const peutModifierAffectation = userId === profileId || canManageOthers;
+      <p className="text-sm text-muted-foreground">
+        {inscriptions.length}/{maxParticipants} créneaux occupés
+        {listeAttenteCount > 0 ? ` · ${listeAttenteCount} en liste d'attente` : ""}
+        {canManageOthers ? " · météo 🟢🟡🔴 visible uniquement par le Manager et l'Admin" : ""}
+      </p>
 
-        const badges = FONCTIONS_MARAUDE.map((fonction) => {
-          const qualifie = rolesDeCeParticipant.includes(fonction);
-          const assigne = affectations.some(
-            (a) => a.user_id === userId && a.fonction === fonction,
-          );
-          if (!qualifie && !assigne) return null;
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {inscriptions.map((i) => {
+          const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
+          const nom = p?.full_name;
+          const userId = i.user_id;
+          const rolesDeCeParticipant = roleRows
+            .filter((r) => r.profile_id === userId)
+            .map((r) => r.role);
+          const peutModifierAffectation = userId === profileId || canManageOthers;
+
+          const badges = FONCTIONS_MARAUDE.map((fonction) => {
+            const qualifie = rolesDeCeParticipant.includes(fonction);
+            const assigne = affectations.some(
+              (a) => a.user_id === userId && a.fonction === fonction,
+            );
+            if (!qualifie && !assigne) return null;
+            return (
+              <AffectationToggle
+                key={fonction}
+                maraudeId={maraudeId}
+                userId={userId}
+                fonction={fonction as FonctionMaraude}
+                assigned={assigne}
+                canToggle={peutModifierAffectation && qualifie}
+                invalidateKey={invalidateKey(maraudeId)}
+              />
+            );
+          });
+          const aucuneFonctionApplicable = badges.every((b) => b === null);
+
           return (
-            <AffectationToggle
-              key={fonction}
-              maraudeId={maraudeId}
-              userId={userId}
-              fonction={fonction as FonctionMaraude}
-              assigned={assigne}
-              canToggle={peutModifierAffectation && qualifie}
-              invalidateKey={invalidateKey(maraudeId)}
-            />
-          );
-        });
-        const aucuneFonctionApplicable = badges.every((b) => b === null);
-
-        return (
-          <Card key={userId}>
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-              <CardTitle className="text-base">{nom ?? "(sans nom)"}</CardTitle>
+            <div key={userId} className="flex flex-col gap-3 rounded-lg border bg-card p-3">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-blue text-sm font-semibold text-white">
+                  {initiales(nom ?? "?")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">
+                    {nom ?? "(sans nom)"}
+                    {userId === profileId && (
+                      <span className="font-normal text-muted-foreground"> (vous)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {aucuneFonctionApplicable ? (
+                  <p className="text-xs text-muted-foreground">
+                    Aucun rôle cuisinier/maraudeur détenu pour l&apos;instant.
+                  </p>
+                ) : (
+                  badges
+                )}
+              </div>
               {canManageOthers && (
                 <MeteoSelector maraudeId={maraudeId} userId={userId} valeur={meteoMap.get(userId)} />
               )}
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {aucuneFonctionApplicable ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun rôle cuisinier/maraudeur détenu pour l&apos;instant.
-                </p>
-              ) : (
-                badges
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+          );
+        })}
+
+        {Array.from({ length: placesLibres }, (_, n) => (
+          <div
+            key={`libre-${n}`}
+            className="flex min-h-24 items-center justify-center rounded-lg border-2 border-dashed border-brand-blue/30 p-3 text-sm text-muted-foreground"
+          >
+            ➕ Place disponible
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

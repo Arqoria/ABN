@@ -10,7 +10,7 @@ const MaraudeCarte = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[420px] w-full items-center justify-center rounded-lg border text-sm text-muted-foreground">
+      <div className="flex h-[260px] w-full lg:h-[360px] items-center justify-center rounded-lg border text-sm text-muted-foreground">
         Chargement de la carte…
       </div>
     ),

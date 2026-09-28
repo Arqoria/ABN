@@ -7,11 +7,19 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
-import { CollapsibleSection } from "@/components/collapsible-section";
-import { CalendarPlus, ArrowLeft } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus, ArrowLeft } from "lucide-react";
 import { CreerEvenementForm } from "./creer-evenement-form";
 import { MaraudeCard, type MaraudeCardData } from "./maraude-card";
 import { MaraudeDetailPanel } from "./maraude-detail-panel";
+import { InscriptionForm } from "./inscription-form";
 
 type Inscription = {
   id: string;
@@ -113,11 +121,18 @@ const FILTRES: { value: Filtre; label: string }[] = [
   { value: "a_completer", label: "⚠️ À compléter" },
 ];
 
-// Refonte Master-Detail (25/09, Étape 10bis) — remplace la liste verticale
-// à plat par une mise en page liste/détail. Voir docs/Tasks.md pour le
-// détail du chantier et les 3 points explicitement retirés de cette
-// itération (lieu, téléphone, Modifier/Annuler — aucun n'existe dans le
-// modèle de données actuel).
+function memeJour(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// Refonte Master-Detail (25/09, Étape 10bis), reprise ergonomique (28/09) —
+// voir docs/Tasks.md pour le détail des deux chantiers et les points
+// explicitement retirés (lieu, téléphone, WhatsApp, Modifier/Annuler —
+// aucun n'existe dans le modèle de données actuel).
 export function MaraudesClient() {
   const profile = useSession();
   const isAdmin = profile.roles.includes("admin");
@@ -127,6 +142,7 @@ export function MaraudesClient() {
   const [filtre, setFiltre] = useState<Filtre>("toutes");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [creationOuverte, setCreationOuverte] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["maraudes", profile.id, isAdminOrManagerForQuery],
@@ -138,9 +154,12 @@ export function MaraudesClient() {
     managerNom: string | null;
     isOwnManager: boolean;
     isPassee: boolean;
+    isJourJ: boolean;
   })[] = useMemo(() => {
     if (!data) return [];
+    const maintenant = new Date();
     return data.maraudes.map((m) => {
+      const date = new Date(m.date_heure);
       const mesInscriptions = m.inscriptions_maraude ?? [];
       const inscrits = mesInscriptions
         .filter((i) => i.statut === "inscrit")
@@ -168,7 +187,10 @@ export function MaraudesClient() {
         mineStatut: mine?.statut,
         managerNom: managerRow?.full_name ?? null,
         isOwnManager: m.manager_id === profile.id,
-        isPassee: new Date(m.date_heure).getTime() < Date.now(),
+        isPassee: date.getTime() < maintenant.getTime(),
+        // Jour J = même date calendaire (heure locale de l'appareil) —
+        // conditionne le chrono et les 4 boutons de pointage terrain.
+        isJourJ: memeJour(date, maintenant),
       };
     });
   }, [data, profile.id]);
@@ -195,7 +217,7 @@ export function MaraudesClient() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
         <p className="text-sm text-muted-foreground">
           Impossible de charger les maraudes pour l&apos;instant.
         </p>
@@ -219,24 +241,48 @@ export function MaraudesClient() {
           ? "Aucune maraude à venir."
           : "Aucun historique pour l'instant.";
 
-  return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Capacité par événement, liste d&apos;attente automatique au-delà.
-        </p>
-      </div>
+  const etatBenevole =
+    selected?.mineStatut === "inscrit"
+      ? "✅ Vous êtes inscrit(e)"
+      : selected?.mineStatut === "liste_attente"
+        ? "⏳ En liste d'attente"
+        : selected?.mineStatut === "desiste"
+          ? "Désisté(e)"
+          : selected
+            ? `${Math.max(0, selected.maxParticipants - selected.inscritsCount)} place(s) disponible(s)`
+            : "";
 
-      {isAdminOrManagerForQuery && (
-        <CollapsibleSection
-          title="Créer un événement"
-          description="Ponctuel ou série récurrente."
-          icon={CalendarPlus}
-        >
-          <CreerEvenementForm typesEvenement={typesEvenement} managers={managers} />
-        </CollapsibleSection>
-      )}
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 pt-6 pb-16 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Maraudes</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Capacité par événement, liste d&apos;attente automatique au-delà.
+          </p>
+        </div>
+
+        {isAdminOrManagerForQuery && (
+          <Dialog open={creationOuverte} onOpenChange={setCreationOuverte}>
+            <DialogTrigger asChild>
+              <Button type="button" className="h-10 shrink-0">
+                <Plus className="size-4" /> Créer
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Créer un événement</DialogTitle>
+                <DialogDescription>Ponctuel ou série récurrente.</DialogDescription>
+              </DialogHeader>
+              <CreerEvenementForm
+                typesEvenement={typesEvenement}
+                managers={managers}
+                onCree={() => setCreationOuverte(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex h-10 w-fit items-center justify-center rounded-lg bg-brand-pastel p-1 text-brand-navy">
@@ -245,8 +291,8 @@ export function MaraudesClient() {
               key={o}
               type="button"
               onClick={() => setOnglet(o)}
-              className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                onglet === o ? "bg-brand-navy text-white shadow-sm" : ""
+              className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                onglet === o ? "bg-brand-navy text-white shadow-sm" : "hover:bg-white/60"
               }`}
             >
               {o === "a_venir" ? "À venir" : "Historique"}
@@ -269,9 +315,12 @@ export function MaraudesClient() {
         </div>
       </div>
 
-      <div className="lg:grid lg:grid-cols-12 lg:gap-6">
+      <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
+        {/* Liste : défile indépendamment du détail sur grand écran. */}
         <div
-          className={`flex-col gap-2 lg:col-span-5 lg:flex ${mobileDetailOpen ? "hidden" : "flex"}`}
+          className={`flex-col gap-2 lg:sticky lg:top-4 lg:col-span-5 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:pr-1 ${
+            mobileDetailOpen ? "hidden" : "flex"
+          }`}
         >
           {filteredCards.length === 0 ? (
             <Card>
@@ -291,39 +340,60 @@ export function MaraudesClient() {
           )}
         </div>
 
+        {/* Détail : plein écran au-dessus de la liste sur mobile (retour collé
+            en haut, barre d'action collée en bas), colonne de droite toujours
+            visible sur grand écran. Bascule purement CSS, aucune détection de
+            largeur en JS. */}
         <div
-          className={`lg:relative lg:inset-auto lg:z-auto lg:col-span-7 lg:block lg:overflow-visible lg:bg-transparent lg:p-0 ${
-            mobileDetailOpen ? "fixed inset-0 z-50 overflow-y-auto bg-background p-4" : "hidden"
+          className={`lg:static lg:z-auto lg:col-span-7 lg:block lg:overflow-visible lg:bg-transparent ${
+            mobileDetailOpen ? "fixed inset-0 z-50 overflow-y-auto bg-background" : "hidden"
           }`}
         >
-          {mobileDetailOpen && (
+          <div className="sticky top-0 z-10 border-b bg-background/95 px-2 py-1.5 backdrop-blur lg:hidden">
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="mb-3 lg:hidden"
+              className="h-11"
               onClick={() => setMobileDetailOpen(false)}
             >
-              <ArrowLeft className="size-4" /> Retour
+              <ArrowLeft className="size-4" /> Retour aux maraudes
             </Button>
-          )}
+          </div>
 
-          {selected ? (
-            <MaraudeDetailPanel
-              maraude={selected}
-              statut={selected.raw.statut}
-              managerNom={selected.managerNom}
-              profileId={profile.id}
-              isAdmin={isAdmin}
-              isOwnManager={selected.isOwnManager}
-              estPassee={selected.isPassee}
-            />
-          ) : (
-            <Card>
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                Sélectionnez une maraude.
-              </CardContent>
-            </Card>
+          <div className="px-4 pt-4 pb-32 lg:p-0">
+            {selected ? (
+              <MaraudeDetailPanel
+                maraude={selected}
+                statut={selected.raw.statut}
+                managerNom={selected.managerNom}
+                profileId={profile.id}
+                isAdmin={isAdmin}
+                isOwnManager={selected.isOwnManager}
+                estPassee={selected.isPassee}
+                estJourJ={selected.isJourJ}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                  Sélectionnez une maraude.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {mobileDetailOpen && selected && (
+            <div className="fixed inset-x-0 bottom-0 z-10 flex items-center gap-3 border-t bg-background px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:hidden">
+              <p className="min-w-0 flex-1 text-sm font-medium text-foreground">{etatBenevole}</p>
+              <div className="w-3/5 shrink-0">
+                <InscriptionForm
+                  key={selected.id}
+                  maraudeId={selected.id}
+                  inscriptionId={selected.mineId}
+                  statut={selected.mineStatut}
+                  variante="barre"
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

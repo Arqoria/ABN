@@ -1537,6 +1537,140 @@ pertinent.
   (circuit planifié) ; onglet Historique → les 3 liens, dont Parcours réel
   (chrono).
 
+### ✅ Refonte ergonomique — vue détail `/dashboard/maraudes` sans sous-pages (28/09)
+
+Objectif : supprimer le labyrinthe de sous-pages (chaque onglet renvoyait
+vers 3-4 pages dédiées), les zones vides, et finir le mobile-first. **Aucun
+nouveau champ en base, aucune modification RLS, logique métier inchangée**
+(inscriptions, statuts, pointages géolocalisés, météo, dépenses, checklist).
+
+**Précisions du Chef de Produit appliquées** (prioritaires sur la demande
+initiale) :
+- Bouton d'appel `tel:` et lien WhatsApp **non implémentés** —
+  `profiles.phone` et toute config de groupe n'existent pas (voir entrée
+  "Report — Téléphone bénévole & groupe WhatsApp" plus bas).
+- Météo : saisie Admin/Manager uniquement — **déjà en place** (migration
+  `20260925100000`, vérifiée), rien à refaire.
+- Chrono Démarrer/Terminer : dans l'onglet Parcours & Terrain, Manager/
+  Admin de la maraude, **le jour J uniquement** (remplace la règle
+  "Historique seulement" du correctif 25/09). Circuit RÉEL visible
+  uniquement sur Historique ; sur À venir, seul le circuit planifié.
+- 4 boutons de pointage : **maraude du jour uniquement** (ni future, ni
+  passée). "Jour J" = même date calendaire que `date_heure`, heure locale
+  de l'appareil.
+- Checklist : génération automatique stock/dons + lignes libres
+  conservée telle quelle, aucun libellé en dur.
+- Besoins : catégories existantes réutilisées (`CATEGORIES_BESOIN` —
+  couvertures, vêtements chauds, hygiène, nourriture spécifique, autre),
+  elles correspondaient déjà exactement à la demande.
+
+**Liste & navigation** :
+- Mobile : plus aucune bordure bleue sur la carte "sélectionnée par
+  défaut" (surbrillance réservée à `lg:`) — c'était la cause perçue du
+  "bug de clic sur la 1ère carte" : elle paraissait déjà ouverte. Toute
+  carte ouvre le détail plein écran ; le bouton S'inscrire de la carte
+  arrête clic ET clavier (`stopPropagation`).
+- Jauge : à 0 inscrit, barre entièrement vide (l'ancien minimum de 6 %
+  affichait un trait rouge résiduel). Couleurs : orange partiel, vert
+  complet.
+- "Créer un événement" : l'accordéon est remplacé par un bouton compact
+  `+ Créer` à côté du titre, ouvrant le formulaire dans un tiroir (bas
+  d'écran sur mobile, modale centrée au-delà) — nouveau composant
+  `src/components/ui/dialog.tsx` (wrapper shadcn sur `radix-ui`, pas de
+  nouvelle dépendance). Le tiroir se ferme après création réussie.
+- Desktop : `max-w-7xl`, grille 5/12 – 7/12, liste collante défilant
+  indépendamment, action S'inscrire/Se désister dans l'en-tête du détail.
+- Mobile : barre "← Retour aux maraudes" collée en haut, **barre d'action
+  fixe en bas** (état du bénévole + gros bouton "S'inscrire à cette
+  maraude" orange corail / "Se désister").
+
+**Onglets du détail — tout est directement exploitable** :
+- **Parcours & Terrain** : carte Leaflet intégrée (260px mobile / 360px
+  PC) avec édition du circuit planifié, chrono (jour J, Manager/Admin),
+  4 gros boutons de pointage en grille 2x2 (jour J, équipe inscrite ou
+  Admin/Manager — mêmes règles d'accès que la page Points de passage).
+  L'onglet reste monté (`forceMount`) quand on consulte Équipe/Logistique,
+  sinon le chrono (`watchPosition`) serait coupé à chaque changement
+  d'onglet en pleine marche.
+- **Équipe** : grille de créneaux (`max_participants`) — occupés (avatar
+  initiales, nom, fonctions cuisinier/maraudeur, météo 🟢🟡🔴 pour
+  Admin/Manager) puis places libres en pointillés.
+- **Logistique / Bilan** : 4 blocs (empilés mobile, 2x2 PC) — Repas
+  préparés (totaux + liste + dons + "+ Ajouter un plat" inline, Cuisinier
+  uniquement comme avant), Avant le départ (présences + checklist
+  cochables sur place, cases agrandies pour les gants), Besoins signalés
+  (boutons de catégorie + liste), Tickets de dépense (total, en attente de
+  remboursement, liste + "+ Ajouter un ticket" en tiroir).
+
+**Architecture** : chaque bloc réutilise la requête react-query et les
+composants de saisie de sa page dédiée (mêmes clés de cache → une case
+cochée met à jour les deux vues) — extraits `carte-data.ts`,
+`parcours-chrono.tsx`, `AvantDepartBloc`, `BesoinsBloc`, `RepasBloc`,
+`TicketsBloc`. Les pages dédiées (`/carte`, `/parcours`, `/points`,
+`/depart`, `/repas`, `/besoins`, `/tickets`, `/equipe`, `/meteo`) restent
+fonctionnelles à leur URL, simplement plus liées depuis la liste.
+
+**Bugs trouvés et corrigés au passage** :
+- Leaflet + `leaflet.heat` plantaient ("getImageData … source width is
+  0") quand la carte est montée dans un conteneur masqué (panneau mobile
+  fermé, onglet inactif) → la couche heatmap n'est ajoutée qu'une fois la
+  carte dimensionnée, `invalidateSize` ignoré tant que le conteneur est
+  masqué, `trackResize` Leaflet désactivé au profit d'un `ResizeObserver`.
+  Carte isolée (`isolate`) pour que ses z-index internes (jusqu'à 1000)
+  ne passent pas au-dessus des barres collées.
+- La création d'une maraude **ponctuelle** ne rafraîchissait pas la liste
+  (seule la création de série invalidait le cache) — corrigé.
+- S'inscrire/Se désister ne rafraîchissait pas la liste non plus
+  (`revalidatePath` seul ne touche pas les données react-query) —
+  invalidation ajoutée, y compris des requêtes dépendant de l'inscription
+  (carte, checklist, besoins, accès aux pointages).
+
+**Testé en conditions réelles** (2 comptes de test — Admin+Manager+
+Cuisinier+Maraudeur et Maraudeur simple — et 4 maraudes : aujourd'hui
+21h, aujourd'hui 8h, J+3, veille ; tout supprimé ensuite, y compris la
+photo de ticket dans Storage, suppression de chaque compte vérifiée) :
+- Mobile 375px : clic sur la 1ère carte → détail plein écran, retour
+  liste, 2e carte ; barre d'action fixe présente (bouton corail
+  `rgb(255,104,61)`), inscription/désistement mis à jour sans rechargement ;
+  carte + 4 boutons de pointage affichés directement le jour J.
+- Mobile, Logistique : présence confirmée, ligne libre ajoutée puis
+  cochée, besoin "Couvertures" signalé, plat ajouté, ticket envoyé via le
+  tiroir (fermé automatiquement) — le tout sans changement d'écran ni
+  d'URL. Aucune erreur console sur les allers-retours d'onglets.
+- Desktop 1280px : Master-Detail côte à côte, Logistique en 2x2, pas de
+  bouton retour ni de barre du bas ; `+ Créer` → maraude créée, tiroir
+  fermé, liste rafraîchie.
+- Règles jour J / À venir / Historique vérifiées sur les 4 maraudes
+  (chrono + boutons seulement le jour J, circuit réel seulement en
+  Historique, libellé "Bilan" en Historique). Maraudeur simple : ni
+  `+ Créer`, ni chrono, ni édition de circuit, ni météo.
+- Dark mode vérifié. Build + `tsc --noEmit` + ESLint propres.
+
+⚠️ **Bug pré-existant découvert en testant — NON corrigé (hors périmètre :
+modification BDD)** : depuis la migration `20260922100000`,
+`set_inscription_statut` lit la capacité via `select max_participants …
+for update` **sans `security definer`**. Un bénévole sans droit UPDATE sur
+`maraudes` (Maraudeur/Cuisinier simple) ne récupère aucune ligne →
+`capacite` = NULL → `nb_inscrits < NULL` est faux → **toute inscription
+d'un bénévole simple part en liste d'attente**, même à 0/6 (reproduit en
+test). Le `count(*)` des inscrits est lui aussi soumis à la RLS de
+l'appelant. Correctif proposé : passer la fonction en `security definer`
+(comme `current_user_role()`), à valider par le Chef de Produit.
+
+⚠️ **Limite à trancher** : "jour J" = date calendaire. Une maraude du
+soir qui dépasse minuit perd ses boutons de pointage et son chrono à
+00:00 — fenêtre élargie (ex. jusqu'à 6h le lendemain) à décider.
+
+### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
+
+Bouton d'appel `tel:` (onglet Équipe) et lien `[💬 Ouvrir le groupe
+WhatsApp]` demandés dans la refonte du 28/09, **reportés** : ni
+`profiles.phone` ni aucune configuration de groupe WhatsApp n'existent
+dans le modèle. À reprendre en session dédiée une fois décidé comment
+collecter le numéro (consentement RGPD, visibilité limitée à l'équipe de
+la maraude) et où stocker le lien de groupe (par maraude, par série, ou
+global). Lié à la piste "note de service" (lien `wa.me` pré-rempli).
+
 - ⬜ Pages détail pour les cartes "Nos actions sur le terrain" (site
   vitrine) — une page dédiée par action (distribution, lien social,
   orientation sociale, action humanitaire), à commencer par celle où le

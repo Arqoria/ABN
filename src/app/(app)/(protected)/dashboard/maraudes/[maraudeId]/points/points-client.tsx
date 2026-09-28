@@ -13,7 +13,7 @@ import { CapturePointForm } from "./capture-point-form";
 // d'accès légère (pas de liste à afficher). La vraie barrière reste le
 // trigger côté base à l'insertion. Voir docs/Tasks.md, "Chantier lancé,
 // suite (16/09)".
-async function checkAcces(
+export async function checkAcces(
   maraudeId: string,
   profileId: string,
   isAdminOrManager: boolean,

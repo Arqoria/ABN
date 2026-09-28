@@ -24,7 +24,16 @@ type Message = { type: "error" | "queued"; text: string };
 // dans la file d'attente locale (Dexie/IndexedDB, photo comprise — un
 // Blob/File se stocke nativement en IndexedDB) au lieu d'appeler la Server
 // Action, et sera rejouée automatiquement au retour du réseau — Étape 8.
-export function TicketForm({ maraudeId }: { maraudeId: string }) {
+// onSuccess (refonte 28/09) : permet au tiroir de l'onglet Logistique de se
+// refermer après un envoi réussi. Jamais appelé pour une mise en file
+// hors-ligne — le message "enregistré sur l'appareil" doit rester lisible.
+export function TicketForm({
+  maraudeId,
+  onSuccess,
+}: {
+  maraudeId: string;
+  onSuccess?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<Message | null>(null);
   const queryClient = useQueryClient();
@@ -82,6 +91,7 @@ export function TicketForm({ maraudeId }: { maraudeId: string }) {
         setMessage(null);
         form.reset();
         queryClient.invalidateQueries({ queryKey: ["tickets", maraudeId] });
+        onSuccess?.();
       } catch {
         await queueOffline();
         setMessage({

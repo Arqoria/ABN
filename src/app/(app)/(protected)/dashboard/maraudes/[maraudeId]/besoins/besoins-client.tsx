@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
 import { BesoinForm } from "./besoin-form";
 
@@ -57,17 +58,79 @@ async function fetchBesoins(
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".
-export function BesoinsClient() {
+// Partagé avec l'onglet Logistique du panneau de détail (refonte 28/09) —
+// BesoinForm invalide déjà le préfixe ["besoins", maraudeId].
+function useBesoins(maraudeId: string) {
   const profile = useSession();
-  const { maraudeId } = useParams<{ maraudeId: string }>();
-  const router = useRouter();
   const isAdminOrManager =
     profile.roles.includes("admin") || profile.roles.includes("manager");
 
-  const { data, isLoading, isError } = useQuery({
+  return useQuery({
     queryKey: ["besoins", maraudeId, isAdminOrManager],
     queryFn: () => fetchBesoins(maraudeId, isAdminOrManager, profile.id),
   });
+}
+
+function ListeBesoins({ besoins }: { besoins: Besoin[] }) {
+  return (
+    <div className="flex flex-col divide-y divide-border">
+      {besoins.map((b) => {
+        const p = Array.isArray(b.profil) ? b.profil[0] : b.profil;
+        const nom = p?.full_name;
+        return (
+          <div key={b.id} className="flex flex-col gap-1 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-foreground">
+                {CATEGORIE_BESOIN_LABELS[b.categorie]}
+              </span>
+              <CardDescription>
+                {new Date(b.created_at).toLocaleDateString("fr-FR")}
+                {nom ? ` · ${nom}` : ""}
+              </CardDescription>
+            </div>
+            {b.commentaire && <p className="text-sm text-muted-foreground">{b.commentaire}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Bloc "Besoins signalés" de l'onglet Logistique : boutons de catégorie
+// prêts à taper + liste des besoins de la maraude, sans page intermédiaire.
+export function BesoinsBloc({ maraudeId }: { maraudeId: string }) {
+  const { data, isLoading, isError } = useBesoins(maraudeId);
+
+  if (isLoading) {
+    return <Skeleton className="h-24 w-full" />;
+  }
+  if (isError || !data) {
+    return <p className="text-sm text-muted-foreground">Impossible de charger les besoins.</p>;
+  }
+  if (data.refuse) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Réservé à l&apos;équipe inscrite sur cette maraude.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <BesoinForm maraudeId={maraudeId} />
+      {data.besoins.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun besoin signalé pour l&apos;instant.</p>
+      ) : (
+        <ListeBesoins besoins={data.besoins} />
+      )}
+    </div>
+  );
+}
+
+export function BesoinsClient() {
+  const { maraudeId } = useParams<{ maraudeId: string }>();
+  const router = useRouter();
+  const { data, isLoading, isError } = useBesoins(maraudeId);
 
   useEffect(() => {
     if (data?.refuse) {
@@ -124,27 +187,8 @@ export function BesoinsClient() {
         </Card>
       ) : (
         <Card>
-          <CardContent className="flex flex-col divide-y divide-border py-0">
-            {besoins.map((b) => {
-              const p = Array.isArray(b.profil) ? b.profil[0] : b.profil;
-              const nom = p?.full_name;
-              return (
-                <div key={b.id} className="flex flex-col gap-1 py-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      {CATEGORIE_BESOIN_LABELS[b.categorie]}
-                    </span>
-                    <CardDescription>
-                      {new Date(b.created_at).toLocaleDateString("fr-FR")}
-                      {nom ? ` · ${nom}` : ""}
-                    </CardDescription>
-                  </div>
-                  {b.commentaire && (
-                    <p className="text-sm text-muted-foreground">{b.commentaire}</p>
-                  )}
-                </div>
-              );
-            })}
+          <CardContent className="py-0">
+            <ListeBesoins besoins={besoins} />
           </CardContent>
         </Card>
       )}

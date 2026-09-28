@@ -39,9 +39,13 @@ const JOURS_SEMAINE = [
 export function CreerEvenementForm({
   typesEvenement,
   managers,
+  onCree,
 }: {
   typesEvenement: TypeEvenement[];
   managers: Manager[];
+  // Refonte 28/09 : le formulaire vit dans un tiroir/modale ouvert par le
+  // bouton "+ Créer" — appelé après une création réussie pour le refermer.
+  onCree?: () => void;
 }) {
   const [mode, setMode] = useState<"ponctuel" | "serie">("ponctuel");
 
@@ -91,9 +95,9 @@ export function CreerEvenementForm({
         </Button>
       </div>
       {mode === "ponctuel" ? (
-        <CreerPonctuelForm typesEvenement={typesEvenement} managers={managers} />
+        <CreerPonctuelForm typesEvenement={typesEvenement} managers={managers} onCree={onCree} />
       ) : (
-        <CreerSerieForm typesEvenement={typesEvenement} managers={managers} />
+        <CreerSerieForm typesEvenement={typesEvenement} managers={managers} onCree={onCree} />
       )}
     </div>
   );
@@ -102,11 +106,27 @@ export function CreerEvenementForm({
 function CreerPonctuelForm({
   typesEvenement,
   managers,
+  onCree,
 }: {
   typesEvenement: TypeEvenement[];
   managers: Manager[];
+  onCree?: () => void;
 }) {
-  const [state, action, pending] = useActionState(creerMaraude, undefined);
+  const queryClient = useQueryClient();
+  // Correctif 28/09 : la création ponctuelle ne rafraîchissait pas la liste
+  // (données react-query, revalidatePath seul ne suffit pas) — même
+  // principe que CreerSerieForm ci-dessous.
+  const [state, action, pending] = useActionState(async (
+    prevState: Awaited<ReturnType<typeof creerMaraude>>,
+    formData: FormData,
+  ) => {
+    const resultat = await creerMaraude(prevState, formData);
+    if (!resultat?.error) {
+      queryClient.invalidateQueries({ queryKey: ["maraudes"] });
+      onCree?.();
+    }
+    return resultat;
+  }, undefined);
 
   return (
     <form action={action} className="flex flex-col gap-3">
@@ -176,9 +196,11 @@ function CreerPonctuelForm({
 function CreerSerieForm({
   typesEvenement,
   managers,
+  onCree,
 }: {
   typesEvenement: TypeEvenement[];
   managers: Manager[];
+  onCree?: () => void;
 }) {
   const queryClient = useQueryClient();
   const [frequence, setFrequence] = useState("hebdomadaire");
@@ -194,6 +216,7 @@ function CreerSerieForm({
     const resultat = await creerSerieEvenement(prevState, formData);
     if (!resultat?.error) {
       queryClient.invalidateQueries({ queryKey: ["maraudes"] });
+      onCree?.();
     }
     return resultat;
   }, undefined);

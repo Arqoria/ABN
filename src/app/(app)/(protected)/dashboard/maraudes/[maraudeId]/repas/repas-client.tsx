@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
@@ -12,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { RepasForm } from "./repas-form";
 
 type Repas = { id: string; quoi: string; quantite: number; created_at: string };
@@ -45,6 +48,86 @@ async function fetchRepasEtDons(maraudeId: string): Promise<Payload> {
       .order("created_at", { ascending: false }),
   ]);
   return { repas: repas ?? [], dons: dons ?? [] };
+}
+
+// Bloc "Repas préparés" de l'onglet Logistique (refonte 28/09) : même clé
+// ["repas", maraudeId] que la page dédiée, déjà invalidée par RepasForm.
+// Récapitulatif (total repas cuisinés + dons reçus) et ajout inline, sans
+// page intermédiaire — le formulaire ne se déplie qu'au tap sur
+// "+ Ajouter un plat" pour ne pas alourdir l'écran.
+export function RepasBloc({ maraudeId }: { maraudeId: string }) {
+  const profile = useSession();
+  const [formOuvert, setFormOuvert] = useState(false);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["repas", maraudeId],
+    queryFn: () => fetchRepasEtDons(maraudeId),
+  });
+
+  if (isLoading) {
+    return <Skeleton className="h-24 w-full" />;
+  }
+  if (isError || !data) {
+    return <p className="text-sm text-muted-foreground">Impossible de charger les repas.</p>;
+  }
+
+  const { repas, dons } = data;
+  const totalRepas = repas.reduce((s, r) => s + r.quantite, 0);
+  const estCuisinier = profile.roles.includes("cuisinier");
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg bg-brand-pastel px-3 py-2 text-brand-navy dark:bg-brand-navy/40 dark:text-white">
+          <p className="text-2xl font-bold">{totalRepas}</p>
+          <p className="text-xs">repas cuisiné(s)</p>
+        </div>
+        <div className="rounded-lg bg-brand-pastel px-3 py-2 text-brand-navy dark:bg-brand-navy/40 dark:text-white">
+          <p className="text-2xl font-bold">{dons.length}</p>
+          <p className="text-xs">don(s) reçu(s)</p>
+        </div>
+      </div>
+
+      {repas.length > 0 && (
+        <div className="flex flex-col divide-y divide-border">
+          {repas.map((r) => (
+            <div key={r.id} className="flex items-center justify-between py-2">
+              <span className="text-sm text-foreground">{r.quoi}</span>
+              <span className="text-sm text-muted-foreground">x{r.quantite}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {dons.length > 0 && (
+        <div className="flex flex-col divide-y divide-border">
+          {dons.map((d) => (
+            <div key={d.id} className="flex items-center justify-between gap-2 py-2">
+              <span className="text-sm text-foreground">
+                🎁 {d.donateur} — <span className="text-muted-foreground">{d.description}</span>
+              </span>
+              {d.quantite !== null && (
+                <span className="shrink-0 text-sm text-muted-foreground">x{d.quantite}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {repas.length === 0 && dons.length === 0 && (
+        <p className="text-sm text-muted-foreground">Aucun repas ni don enregistré.</p>
+      )}
+
+      {estCuisinier ? (
+        formOuvert ? (
+          <RepasForm maraudeId={maraudeId} />
+        ) : (
+          <Button type="button" variant="outline" className="h-12" onClick={() => setFormOuvert(true)}>
+            + Ajouter un plat
+          </Button>
+        )
+      ) : (
+        <p className="text-xs text-muted-foreground">Seul un Cuisinier peut ajouter un repas.</p>
+      )}
+    </div>
+  );
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".

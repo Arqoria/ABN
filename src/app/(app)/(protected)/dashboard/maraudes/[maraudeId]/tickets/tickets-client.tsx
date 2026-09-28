@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-provider";
@@ -14,6 +15,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CATEGORIE_LABELS, type CategorieDepense } from "@/lib/categorie-depense";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { TicketForm } from "./ticket-form";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -54,6 +65,98 @@ async function fetchTickets(maraudeId: string): Promise<Payload> {
   );
 
   return { tickets: tickets ?? [], urlByPath };
+}
+
+// Bloc "Tickets de dépense" de l'onglet Logistique (refonte 28/09) :
+// récapitulatif des montants (RLS : chacun ne voit que ses tickets, Admin
+// voit tout) + saisie dans un tiroir pour ne pas alourdir la page.
+export function TicketsBloc({ maraudeId }: { maraudeId: string }) {
+  const [tiroirOuvert, setTiroirOuvert] = useState(false);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["tickets", maraudeId],
+    queryFn: () => fetchTickets(maraudeId),
+  });
+
+  if (isLoading) {
+    return <Skeleton className="h-24 w-full" />;
+  }
+  if (isError || !data) {
+    return <p className="text-sm text-muted-foreground">Impossible de charger les tickets.</p>;
+  }
+
+  const { tickets, urlByPath } = data;
+  const total = tickets.reduce((s, t) => s + Number(t.montant), 0);
+  const enAttente = tickets
+    .filter((t) => t.statut_remboursement !== "rembourse")
+    .reduce((s, t) => s + Number(t.montant), 0);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg bg-brand-pastel px-3 py-2 text-brand-navy dark:bg-brand-navy/40 dark:text-white">
+          <p className="text-2xl font-bold">{total.toFixed(2)} €</p>
+          <p className="text-xs">{tickets.length} ticket(s)</p>
+        </div>
+        <div className="rounded-lg bg-brand-pastel px-3 py-2 text-brand-navy dark:bg-brand-navy/40 dark:text-white">
+          <p className="text-2xl font-bold">{enAttente.toFixed(2)} €</p>
+          <p className="text-xs">en attente de remboursement</p>
+        </div>
+      </div>
+
+      {tickets.length > 0 && (
+        <div className="flex flex-col divide-y divide-border">
+          {tickets.map((t) => {
+            const url = urlByPath[t.photo_path];
+            return (
+              <div key={t.id} className="flex items-center justify-between gap-2 py-2">
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-medium text-foreground">
+                    {Number(t.montant).toFixed(2)} €
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {CATEGORIE_LABELS[t.categorie]}
+                    {url && (
+                      <>
+                        {" · "}
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-blue underline-offset-4 hover:underline"
+                        >
+                          photo
+                        </a>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <Badge variant={t.statut_remboursement === "rembourse" ? "default" : "secondary"}>
+                  {STATUT_LABELS[t.statut_remboursement] ?? t.statut_remboursement}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={tiroirOuvert} onOpenChange={setTiroirOuvert}>
+        <DialogTrigger asChild>
+          <Button type="button" variant="outline" className="h-12">
+            + Ajouter un ticket
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau ticket de dépense</DialogTitle>
+            <DialogDescription>
+              Photo du ticket de caisse pour remboursement par le Trésorier.
+            </DialogDescription>
+          </DialogHeader>
+          <TicketForm maraudeId={maraudeId} onSuccess={() => setTiroirOuvert(false)} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 // Voir docs/Tasks.md, "Chantier lancé".

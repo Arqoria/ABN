@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { genererChecklistDepart } from "@/lib/actions/checklist-depart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardListSkeleton } from "@/components/card-list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChecklistItemToggle } from "./checklist-item-toggle";
 import { AjouterLigneLibreForm } from "./ajouter-ligne-libre-form";
 import { PresenceToggle } from "./presence-toggle";
@@ -19,7 +20,7 @@ type Inscrit = {
   presence_confirmee: boolean;
   profil: { full_name: string | null } | { full_name: string | null }[] | null;
 };
-type Payload = {
+export type DepartPayload = {
   items: ChecklistItem[];
   inscrits: Inscrit[];
   canWriteChecklist: boolean;
@@ -30,7 +31,7 @@ type Payload = {
 // Lecture directe Supabase depuis le navigateur — RLS fait la restriction
 // réelle. Voir docs/Tasks.md, "Checklist de départ + présence confirmée +
 // parcours réel".
-async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolean): Promise<Payload> {
+async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolean): Promise<DepartPayload> {
   const supabase = createClient();
 
   const { data: maraude } = await supabase
@@ -88,22 +89,138 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
   };
 }
 
+// Partagé entre la page dédiée /depart et l'onglet Logistique du panneau de
+// détail (refonte 28/09) — même clé ["depart", maraudeId], déjà invalidée
+// par ChecklistItemToggle/PresenceToggle/AjouterLigneLibreForm : cocher une
+// case met à jour les deux vues sans rechargement.
+export function useDepart(maraudeId: string) {
+  const profile = useSession();
+  const isAdmin = profile.roles.includes("admin");
+  return useQuery({
+    queryKey: ["depart", maraudeId],
+    queryFn: () => fetchDepart(maraudeId, profile.id, isAdmin),
+  });
+}
+
 const SOURCE_LABELS: Record<string, string> = {
   stock: "Depuis le stock",
   don: "Dons reçus",
   libre: "Ajouté manuellement",
 };
 
+export function ChecklistDepart({ maraudeId, data }: { maraudeId: string; data: DepartPayload }) {
+  const { items, canWriteChecklist } = data;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Rien à charger pour l&apos;instant (aucun stock ni don disponible).
+        </p>
+      ) : (
+        ["stock", "don", "libre"].map((source) => {
+          const lignes = items.filter((i) => i.source === source);
+          if (lignes.length === 0) return null;
+          return (
+            <div key={source} className="flex flex-col">
+              <p className="text-xs font-medium text-muted-foreground uppercase">
+                {SOURCE_LABELS[source]}
+              </p>
+              {lignes.map((item) => (
+                <ChecklistItemToggle
+                  key={item.id}
+                  maraudeId={maraudeId}
+                  itemId={item.id}
+                  libelle={item.libelle}
+                  coche={item.coche}
+                  canWrite={canWriteChecklist}
+                  canDelete={canWriteChecklist && source === "libre"}
+                />
+              ))}
+            </div>
+          );
+        })
+      )}
+      {canWriteChecklist && <AjouterLigneLibreForm maraudeId={maraudeId} />}
+    </div>
+  );
+}
+
+export function PresencesDepart({ maraudeId, data }: { maraudeId: string; data: DepartPayload }) {
+  const { inscrits, canWritePresence } = data;
+
+  return (
+    <div className="flex flex-col">
+      {inscrits.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun inscrit.</p>
+      ) : (
+        inscrits.map((i) => {
+          const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
+          return (
+            <PresenceToggle
+              key={i.id}
+              maraudeId={maraudeId}
+              inscriptionId={i.id}
+              nom={p?.full_name ?? "(sans nom)"}
+              presenceConfirmee={i.presence_confirmee}
+              canWrite={canWritePresence}
+            />
+          );
+        })
+      )}
+      {!canWritePresence && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Seul le Manager de cette maraude (ou un Admin) peut confirmer la présence.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Bloc "Avant le départ" de l'onglet Logistique : présences + checklist sur
+// le même écran, cochables directement.
+export function AvantDepartBloc({ maraudeId }: { maraudeId: string }) {
+  const { data, isLoading, isError } = useDepart(maraudeId);
+
+  if (isLoading) {
+    return <Skeleton className="h-24 w-full" />;
+  }
+  if (isError || !data) {
+    return <p className="text-sm text-muted-foreground">Impossible de charger la checklist.</p>;
+  }
+  if (data.refuse) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Réservé à l&apos;équipe inscrite sur cette maraude.
+      </p>
+    );
+  }
+
+  const presents = data.inscrits.filter((i) => i.presence_confirmee).length;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-foreground">
+          Présences{" "}
+          <span className="font-normal text-muted-foreground">
+            ({presents}/{data.inscrits.length})
+          </span>
+        </p>
+        <PresencesDepart maraudeId={maraudeId} data={data} />
+      </div>
+      <div className="flex flex-col gap-1 border-t pt-3">
+        <p className="text-sm font-medium text-foreground">Matériel &amp; dons à charger</p>
+        <ChecklistDepart maraudeId={maraudeId} data={data} />
+      </div>
+    </div>
+  );
+}
+
 export function DepartClient() {
-  const profile = useSession();
   const { maraudeId } = useParams<{ maraudeId: string }>();
   const router = useRouter();
-  const isAdmin = profile.roles.includes("admin");
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["depart", maraudeId],
-    queryFn: () => fetchDepart(maraudeId, profile.id, isAdmin),
-  });
+  const { data, isLoading, isError } = useDepart(maraudeId);
 
   useEffect(() => {
     if (data?.refuse) {
@@ -129,8 +246,6 @@ export function DepartClient() {
     );
   }
 
-  const { items, inscrits, canWriteChecklist, canWritePresence } = data;
-
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 pt-8 pb-16">
       <div>
@@ -144,36 +259,8 @@ export function DepartClient() {
         <CardHeader>
           <CardTitle>Checklist de départ</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Rien à charger pour l&apos;instant (aucun stock ni don disponible).
-            </p>
-          ) : (
-            ["stock", "don", "libre"].map((source) => {
-              const lignes = items.filter((i) => i.source === source);
-              if (lignes.length === 0) return null;
-              return (
-                <div key={source} className="flex flex-col gap-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">
-                    {SOURCE_LABELS[source]}
-                  </p>
-                  {lignes.map((item) => (
-                    <ChecklistItemToggle
-                      key={item.id}
-                      maraudeId={maraudeId}
-                      itemId={item.id}
-                      libelle={item.libelle}
-                      coche={item.coche}
-                      canWrite={canWriteChecklist}
-                      canDelete={canWriteChecklist && source === "libre"}
-                    />
-                  ))}
-                </div>
-              );
-            })
-          )}
-          {canWriteChecklist && <AjouterLigneLibreForm maraudeId={maraudeId} />}
+        <CardContent>
+          <ChecklistDepart maraudeId={maraudeId} data={data} />
         </CardContent>
       </Card>
 
@@ -181,29 +268,8 @@ export function DepartClient() {
         <CardHeader>
           <CardTitle>Présence confirmée</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {inscrits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun inscrit.</p>
-          ) : (
-            inscrits.map((i) => {
-              const p = Array.isArray(i.profil) ? i.profil[0] : i.profil;
-              return (
-                <PresenceToggle
-                  key={i.id}
-                  maraudeId={maraudeId}
-                  inscriptionId={i.id}
-                  nom={p?.full_name ?? "(sans nom)"}
-                  presenceConfirmee={i.presence_confirmee}
-                  canWrite={canWritePresence}
-                />
-              );
-            })
-          )}
-          {!canWritePresence && (
-            <p className="text-xs text-muted-foreground">
-              Seul le Manager de cette maraude (ou un Admin) peut confirmer la présence.
-            </p>
-          )}
+        <CardContent>
+          <PresencesDepart maraudeId={maraudeId} data={data} />
         </CardContent>
       </Card>
     </div>

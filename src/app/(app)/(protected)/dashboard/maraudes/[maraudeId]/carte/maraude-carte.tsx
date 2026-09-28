@@ -38,14 +38,50 @@ function HeatLayer({ points }: { points: LatLng[] }) {
 
   useEffect(() => {
     if (points.length === 0) return;
-    const layer = L.heatLayer(
-      points.map((p) => [p.lat, p.lng, 1] as [number, number, number]),
-      { radius: 30, blur: 20, maxZoom: 17 },
-    ).addTo(map);
+    let layer: L.Layer | null = null;
+
+    // leaflet.heat plante (getImageData sur un canvas de largeur 0) si la
+    // carte n'a jamais été dimensionnée — montée dans un conteneur masqué
+    // (panneau de détail mobile fermé). On n'ajoute la couche qu'une fois
+    // la carte réellement dimensionnée (évènement "resize" d'AutoResize).
+    function ajouter() {
+      if (layer || map.getSize().x === 0 || map.getSize().y === 0) return;
+      layer = L.heatLayer(
+        points.map((p) => [p.lat, p.lng, 1] as [number, number, number]),
+        { radius: 30, blur: 20, maxZoom: 17 },
+      ).addTo(map);
+    }
+
+    ajouter();
+    map.on("resize", ajouter);
     return () => {
-      map.removeLayer(layer);
+      map.off("resize", ajouter);
+      if (layer) map.removeLayer(layer);
     };
   }, [map, points]);
+
+  return null;
+}
+
+// La carte peut être montée dans un conteneur encore masqué (panneau de
+// détail mobile fermé) : Leaflet calcule alors une taille nulle et n'affiche
+// que des tuiles grises à l'ouverture. On recalcule la taille à chaque
+// redimensionnement réel du conteneur — jamais vers 0 quand il est masqué
+// (onglet Terrain inactif, retour à la liste) : leaflet.heat plante sur un
+// canvas de largeur nulle, et la dernière taille connue reste la bonne.
+function AutoResize() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => {
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        map.invalidateSize();
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
 
   return null;
 }
@@ -73,6 +109,8 @@ export function MaraudeCarte({
   circuitPlanifieInitial,
   circuitPlanifieGeometrieInitial,
   canEdit,
+  afficherCircuitReel = true,
+  hauteurClass = "h-[420px]",
 }: {
   maraudeId: string;
   center: LatLng;
@@ -81,6 +119,11 @@ export function MaraudeCarte({
   circuitPlanifieInitial: LatLng[];
   circuitPlanifieGeometrieInitial: GeometrieLigne | null;
   canEdit: boolean;
+  // false : maraude à venir — seul le circuit PLANIFIÉ a un sens (voir
+  // docs/Tasks.md, correctif 25/09) ; circuit réel et légende par type
+  // d'action masqués.
+  afficherCircuitReel?: boolean;
+  hauteurClass?: string;
 }) {
   const [planned, setPlanned] = useState<LatLng[]>(circuitPlanifieInitial);
   const [geometrieReelle, setGeometrieReelle] = useState<GeometrieLigne | null>(
@@ -89,7 +132,8 @@ export function MaraudeCarte({
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  const reelLine: LatLngExpression[] = circuitReel.map((p) => [p.lat, p.lng]);
+  const pointsReels = afficherCircuitReel ? circuitReel : [];
+  const reelLine: LatLngExpression[] = pointsReels.map((p) => [p.lat, p.lng]);
   // Tracé réel (suivant les rues) si disponible pour les points ACTUELLEMENT
   // enregistrés ; sinon repli sur la ligne droite entre les points bruts —
   // jamais d'écran cassé si l'API a échoué ou n'a pas encore été appelée.
@@ -130,7 +174,10 @@ export function MaraudeCarte({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="h-[420px] w-full overflow-hidden rounded-lg border"
+        // isolate : confine les z-index internes de Leaflet (jusqu'à 1000)
+        // pour qu'ils ne passent pas au-dessus des barres collées du panneau
+        // de détail mobile.
+        className={`${hauteurClass} isolate w-full overflow-hidden rounded-lg border`}
         role="application"
         aria-label="Carte de la maraude"
       >
@@ -138,12 +185,17 @@ export function MaraudeCarte({
           center={[center.lat, center.lng]}
           zoom={14}
           scrollWheelZoom={false}
+          // Redimensionnement géré par AutoResize (qui ignore les tailles
+          // nulles d'un conteneur masqué) plutôt que par l'écoute interne
+          // de window.resize de Leaflet.
+          trackResize={false}
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <AutoResize />
           <HeatLayer points={heatPoints} />
 
           {reelLine.length > 1 && (
@@ -152,7 +204,7 @@ export function MaraudeCarte({
               pathOptions={{ color: "#0b3d91", weight: 4 }}
             />
           )}
-          {circuitReel.map((p, i) => (
+          {pointsReels.map((p, i) => (
             <CircleMarker
               key={i}
               center={[p.lat, p.lng]}
@@ -220,19 +272,23 @@ export function MaraudeCarte({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        {TYPE_ACTIONS.map((type) => (
-          <span key={type} className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-3 w-3 rounded-full"
-              style={{ backgroundColor: TYPE_COLORS[type] }}
-            />
-            {TYPE_LABELS_COURT[type]}
-          </span>
-        ))}
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 bg-[#0b3d91]" />
-          Circuit réalisé
-        </span>
+        {afficherCircuitReel && (
+          <>
+            {TYPE_ACTIONS.map((type) => (
+              <span key={type} className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: TYPE_COLORS[type] }}
+                />
+                {TYPE_LABELS_COURT[type]}
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-0.5 w-4 bg-[#0b3d91]" />
+              Circuit réalisé
+            </span>
+          </>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-[#ff683d]" />
           Circuit planifié
