@@ -21,7 +21,7 @@ import { MaraudeCard, type MaraudeCardData } from "./maraude-card";
 import { MaraudeDetailPanel } from "./maraude-detail-panel";
 import { InscriptionForm } from "./inscription-form";
 
-type Inscription = {
+export type Inscription = {
   id: string;
   maraude_id: string;
   user_id: string;
@@ -33,7 +33,7 @@ type Inscription = {
 type Manager = { id: string; full_name: string | null };
 type TypeEvenement = { id: string; nom: string };
 
-type Maraude = {
+export type Maraude = {
   id: string;
   date_heure: string;
   statut: string;
@@ -45,7 +45,7 @@ type Maraude = {
   inscriptions_maraude: Inscription[];
 };
 
-type Payload = {
+export type MaraudesPayload = {
   managers: Manager[];
   typesEvenement: TypeEvenement[];
   maraudes: Maraude[];
@@ -57,7 +57,7 @@ type Payload = {
 // (25/09, refonte Master-Detail) : noms des inscrits (avatars à initiales)
 // et mes propres affectations toutes maraudes confondues (filtre "Mes
 // maraudes").
-async function fetchMaraudes(profileId: string, isAdminOrManager: boolean): Promise<Payload> {
+async function fetchMaraudes(profileId: string, isAdminOrManager: boolean): Promise<MaraudesPayload> {
   const supabase = createClient();
 
   async function chargerManagers() {

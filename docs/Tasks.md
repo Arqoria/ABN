@@ -1672,6 +1672,49 @@ faux après minuit). Bornes vérifiées (J-1 23:59 → non ; J 00:00, J+1
 25-26/10 → oui) et câblage vérifié dans l'UI (maraude du jour 8h et 21h
 actives, maraude de la veille 20h inactive à 11h).
 
+### ✅ Perf — clics inscription et météo instantanés (28/09)
+
+Retour client : "les clics inscription et météo sont lents". Mesuré en
+local avant correctif (production + réseau mobile = nettement plus) :
+- **Météo** : ~470 ms avant tout changement à l'écran, 5 requêtes — Server
+  Action (~420 ms, dont un re-rendu serveur complet) PUIS rechargement des
+  4 requêtes de l'équipe.
+- **Inscription** : ~600 ms, **11 requêtes** — Server Action (~540 ms),
+  rechargement de toute la liste des maraudes, et même de la heatmap
+  (2 × 5000 points) d'un Admin qui y avait déjà accès.
+
+Causes et correctifs (logique métier inchangée) :
+- `revalidatePath` dans `inscrireMaraude`/`seDesisterMaraude`/
+  `creerMaraude`/`saisirMeteo` : dans une Server Action, Next 16 re-rend
+  immédiatement la page courante (layout protégé + vérification de
+  session Supabase) et force le rafraîchissement de toutes les pages déjà
+  visitées — inutile ici, ces pages lisent leurs données via React Query.
+  **Retiré.**
+- **Mises à jour optimistes** : l'écran bascule au tap. Inscription :
+  statut prédit (places restantes connues) puis remplacé par celui
+  réellement attribué par le trigger (l'action renvoie désormais `id` +
+  `statut`). Erreur métier ou réseau coupé → état précédent restauré +
+  message ("Connexion indisponible, réessayez.").
+- Rafraîchissement **ciblé et en arrière-plan** : seules l'équipe, la
+  checklist/présences et les requêtes qui avaient refusé l'accès faute
+  d'inscription sont rechargées ; la liste n'est resynchronisée qu'après
+  un désistement (promotion possible depuis la liste d'attente).
+- `inscrireMaraude` : `auth.getUser()` au lieu de `getCurrentProfile()`
+  (un aller-retour Supabase de moins). `seDesisterMaraude` détecte
+  désormais une mise à jour refusée silencieusement par RLS (0 ligne).
+
+Après correctif (mêmes mesures) : météo **~35 ms**, 1 requête ; inscription
+/ désistement **~55-60 ms**, 1 requête (+ rafraîchissements ciblés en
+arrière-plan) ; Server Actions elles-mêmes plus courtes (~280-320 ms au
+lieu de ~420-540 ms). État en base vérifié identique à l'affichage ;
+coupure réseau simulée → retour à l'état réel + message, sans erreur
+console. Comptes de test supprimés, suppression vérifiée.
+
+⬜ **Même problème probable ailleurs** : 31 autres `revalidatePath` dans
+`src/lib/actions/` (repas, tickets, besoins, checklist, affectations…),
+appelés depuis des pages elles aussi en React Query — même re-rendu
+serveur inutile à chaque clic. À traiter dans un chantier dédié.
+
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 
 Bouton d'appel `tel:` (onglet Équipe) et lien `[💬 Ouvrir le groupe

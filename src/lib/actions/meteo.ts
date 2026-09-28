@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type MeteoState =
@@ -46,8 +45,6 @@ export async function saisirMeteo(
     .insert({ maraude_id: maraudeId, user_id: userId, valeur });
 
   if (!insertError) {
-    revalidatePath("/dashboard/maraudes");
-    revalidatePath(`/dashboard/maraudes/${maraudeId}/meteo`);
     return { status: "success" };
   }
 
@@ -65,7 +62,6 @@ export async function saisirMeteo(
       };
     }
 
-    revalidatePath(`/dashboard/maraudes/${maraudeId}/meteo`);
     return { status: "success" };
   }
 

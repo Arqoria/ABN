@@ -1,10 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 
 export type ActionState = { error: string } | undefined;
+export type InscriptionResult =
+  | { error: string }
+  | { id: string; statut: "inscrit" | "liste_attente" };
+
+// Perf (28/09, retour client "le clic inscription est lent") : plus aucun
+// revalidatePath dans ces actions — /dashboard/maraudes lit ses données via
+// React Query côté client, le re-rendu serveur déclenché par revalidatePath
+// (layout protégé + vérification de session Supabase) ne rafraîchissait
+// rien d'utile et retardait chaque clic. Le client met son cache à jour
+// lui-même (mise à jour optimiste, voir inscription-form.tsx).
 
 // Toute la logique de capacité (max_participants, liste d'attente) est déjà
 // gérée en base par le trigger set_inscription_statut (Étape 3, mis à jour
@@ -55,15 +64,13 @@ export async function creerMaraude(
     return { error: "Impossible de créer la maraude." };
   }
 
-  revalidatePath("/dashboard/maraudes");
   return undefined;
 }
 
-export async function inscrireMaraude(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const caller = await getCurrentProfile();
+// Renvoie l'id et le statut RÉELLEMENT attribués par le trigger (inscrit ou
+// liste d'attente) : le client remplace sa prédiction optimiste par cette
+// valeur, sans recharger toute la liste des maraudes.
+export async function inscrireMaraude(formData: FormData): Promise<InscriptionResult> {
   const maraudeId = formData.get("maraudeId");
 
   if (typeof maraudeId !== "string" || !maraudeId) {
@@ -71,27 +78,35 @@ export async function inscrireMaraude(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("inscriptions_maraude").insert({
-    maraude_id: maraudeId,
-    user_id: caller.id,
-  });
+  // Seul l'id de l'appelant est nécessaire (le profil complet de
+  // getCurrentProfile coûtait un aller-retour de plus) — getUser() vérifie
+  // quand même la session contre Supabase Auth ; la RLS d'insertion reste la
+  // vraie barrière (compte actif, user_id = auth.uid()).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Session expirée, reconnectez-vous." };
+  }
 
-  if (error) {
+  const { data, error } = await supabase
+    .from("inscriptions_maraude")
+    .insert({ maraude_id: maraudeId, user_id: user.id })
+    .select("id, statut")
+    .single<{ id: string; statut: "inscrit" | "liste_attente" }>();
+
+  if (error || !data) {
     return { error: "Impossible de s'inscrire." };
   }
 
-  revalidatePath("/dashboard/maraudes");
-  return undefined;
+  return data;
 }
 
 // Un désistement passe toujours par une mise à jour de statut, jamais une
 // suppression (historique conservé, voir migration Étape 3). Le bénévole ne
 // peut désister QUE sa propre inscription — c'est la policy RLS
 // inscriptions_update_own_desist qui l'impose, pas cette action.
-export async function seDesisterMaraude(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
+export async function seDesisterMaraude(formData: FormData): Promise<ActionState> {
   const inscriptionId = formData.get("inscriptionId");
 
   if (typeof inscriptionId !== "string" || !inscriptionId) {
@@ -99,15 +114,18 @@ export async function seDesisterMaraude(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  // .select() : une mise à jour refusée par RLS ne lève pas d'erreur, elle
+  // modifie simplement 0 ligne — à détecter pour que le client annule son
+  // affichage optimiste au lieu de montrer un faux désistement.
+  const { data, error } = await supabase
     .from("inscriptions_maraude")
     .update({ statut: "desiste" })
-    .eq("id", inscriptionId);
+    .eq("id", inscriptionId)
+    .select("id");
 
-  if (error) {
+  if (error || !data?.length) {
     return { error: "Impossible de se désister." };
   }
 
-  revalidatePath("/dashboard/maraudes");
   return undefined;
 }

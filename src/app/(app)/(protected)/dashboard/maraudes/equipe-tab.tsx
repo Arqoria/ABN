@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { saisirMeteo } from "@/lib/actions/meteo";
+import { saisirMeteo, type MeteoState } from "@/lib/actions/meteo";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FONCTIONS_MARAUDE, type FonctionMaraude } from "@/lib/fonction-maraude";
@@ -95,36 +95,67 @@ function MeteoSelector({
   userId: string;
   valeur?: "vert" | "jaune" | "rouge";
 }) {
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  // Perf (28/09, retour client "le clic météo est lent") : mise à jour
+  // OPTIMISTE du cache de l'onglet — la pastille bascule au tap, sans
+  // attendre la Server Action ni recharger les 4 requêtes de l'équipe. En
+  // cas d'échec, on recharge la vérité depuis la base (plutôt que de
+  // restaurer un instantané, qui écraserait un tap plus récent) et on
+  // affiche le message. Boutons jamais désactivés : une correction rapide
+  // (vert → jaune) reste possible, les Server Actions s'exécutent dans
+  // l'ordre, la dernière saisie gagne.
   function choisir(v: "vert" | "jaune" | "rouge") {
+    setErreur(null);
+    queryClient.setQueryData<Payload>(invalidateKey(maraudeId), (old) =>
+      old
+        ? {
+            ...old,
+            meteos: [...old.meteos.filter((m) => m.user_id !== userId), { user_id: userId, valeur: v }],
+          }
+        : old,
+    );
+
     const formData = new FormData();
     formData.set("maraudeId", maraudeId);
     formData.set("userId", userId);
     formData.set("valeur", v);
     startTransition(async () => {
-      await saisirMeteo(undefined, formData);
-      queryClient.invalidateQueries({ queryKey: invalidateKey(maraudeId) });
+      const resultat = await saisirMeteo(undefined, formData).catch(
+        (): MeteoState => ({ status: "error", message: "Connexion indisponible, réessayez." }),
+      );
+      if (resultat?.status === "error") {
+        setErreur(resultat.message);
+        queryClient.invalidateQueries({ queryKey: invalidateKey(maraudeId) });
+      }
     });
   }
 
   return (
-    <div className="flex items-center gap-1 border-t pt-2">
-      <span className="mr-1 text-xs text-muted-foreground">Météo</span>
-      {METEO_OPTIONS.map((o) => (
-        <Button
-          key={o.value}
-          type="button"
-          size="sm"
-          variant={valeur === o.value ? "default" : "outline"}
-          disabled={pending}
-          onClick={() => choisir(o.value)}
-          aria-label={o.value}
-        >
-          {o.label}
-        </Button>
-      ))}
+    <div className="flex flex-col gap-1 border-t pt-2">
+      <div className="flex items-center gap-1">
+        <span className="mr-1 text-xs text-muted-foreground">Météo</span>
+        {METEO_OPTIONS.map((o) => (
+          <Button
+            key={o.value}
+            type="button"
+            size="sm"
+            variant={valeur === o.value ? "default" : "outline"}
+            onClick={() => choisir(o.value)}
+            aria-label={o.value}
+            aria-pressed={valeur === o.value}
+          >
+            {o.label}
+          </Button>
+        ))}
+      </div>
+      {erreur && (
+        <p role="alert" className="text-xs text-destructive">
+          {erreur}
+        </p>
+      )}
     </div>
   );
 }
