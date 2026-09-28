@@ -1750,6 +1750,28 @@ suppression vérifiée.
 `react-hooks/set-state-in-effect` dans
 `dashboard/cuisine/don-ponctuel-form.tsx`.
 
+### ✅ Défilement PC, compteurs, réinscription, checklist par défaut, rôle à l'inscription (28/09)
+
+**Partie A — UI (points 1 et 4, sans changement de données)**
+- **Défilement PC** : sur `lg`, la zone liste/détail occupe exactement la
+  hauteur restante de l'écran et chaque colonne défile indépendamment
+  (`overflow-y-auto`, `overscroll-contain`) — le bas de Logistique
+  (Besoins, Tickets) n'est plus hors d'atteinte. L'en-tête ayant une
+  hauteur variable (badges de rôles qui passent à la ligne), la position
+  réelle de la grille est mesurée (variable CSS `--grille-haut`,
+  recalculée au redimensionnement) plutôt que codée en dur ; hauteur
+  minimale 28rem pour les écrans très bas. Mobile inchangé : aucune classe
+  appliquée sous `lg`, pas de conteneur à défilement imbriqué, la page
+  défile.
+- **Compteurs** : `Toutes (X) / Mes maraudes (Y) / À compléter (Z)`,
+  calculés sur l'onglet actif à partir des mêmes listes que celles
+  affichées (un compteur = exactement le nombre de cartes du filtre).
+- **"À compléter" masqué dans Historique** ; s'il était actif, on retombe
+  sur "Toutes" en changeant d'onglet.
+- Vérifié à 1366×768 : page non défilante, grille jusqu'en bas de
+  l'écran, bas des Tickets visible après défilement de la colonne de
+  droite seule ; à 375px, la page défile normalement.
+
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 
 Bouton d'appel `tel:` (onglet Équipe) et lien `[💬 Ouvrir le groupe
