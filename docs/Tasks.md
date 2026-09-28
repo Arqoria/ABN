@@ -1710,10 +1710,45 @@ lieu de ~420-540 ms). État en base vérifié identique à l'affichage ;
 coupure réseau simulée → retour à l'état réel + message, sans erreur
 console. Comptes de test supprimés, suppression vérifiée.
 
-⬜ **Même problème probable ailleurs** : 31 autres `revalidatePath` dans
-`src/lib/actions/` (repas, tickets, besoins, checklist, affectations…),
-appelés depuis des pages elles aussi en React Query — même re-rendu
-serveur inutile à chaque clic. À traiter dans un chantier dédié.
+✅ **Généralisé au reste de l'app (28/09, suite)** — vérifié dans le code
+de Next (`action-handler.js`) : **n'importe quel** `revalidatePath`, même
+vers une autre page, force le re-rendu complet de la page courante dans la
+réponse de l'action. Toutes les pages ciblées (`/adherents`,
+`/configuration`, `/stocks`, `/cuisine`, sous-pages maraude) sont des
+composants clients en React Query et aucune page serveur ne lit ces
+tables : ces re-rendus ne rafraîchissaient rien.
+- **28 appels retirés** (affectations, besoins, candidatures, checklist,
+  circuit, commerçants, parcours, présence, repas, séries, stocks,
+  tickets, types d'événement). Chaque formulaire appelant invalidait déjà
+  son cache React Query (vérifié un par un). Notable : `ajouterPointParcours`
+  re-rendait la page **toutes les ~30 s** pendant le chrono.
+- **Gardés volontairement** : les 3 de `comptes.ts` (validation/rôles des
+  adhérents) — seul ce re-rendu met à jour les badges de rôle de l'en-tête
+  si un Admin modifie son propre compte ; action rare, sans enjeu de
+  latence.
+- **Bascules optimistes** (même mécanique partagée, `src/lib/optimiste.ts`) :
+  case de checklist, suppression de ligne, présence, affectation. Ajout de
+  ligne libre : la ligne créée est renvoyée par l'action et insérée dans le
+  cache (plus de rechargement de la checklist, qui relançait sa
+  régénération depuis le stock). `toggleChecklistItem`,
+  `supprimerLigneChecklist`, `confirmerPresence`, `retirerAffectation`
+  renvoient désormais une erreur (y compris refus RLS silencieux, 0 ligne)
+  au lieu de l'avaler.
+- **Bug corrigé au passage** : après enregistrement d'un circuit planifié,
+  le cache de la carte gardait l'ancien tracé 30 s (changer de maraude puis
+  revenir le réaffichait) — cache mis à jour directement.
+
+Mesures (local) : actions ~165-300 ms avec une réponse de 400 octets (plus
+d'arbre de page renvoyé) ; affichage checklist/présence/affectation
+**~20-40 ms au lieu de ~400-600 ms**. État en base vérifié identique à
+l'affichage, coupure réseau simulée → retour à l'état réel + message,
+circuit conservé après changement de maraude, pages stocks/cuisine/
+configuration/adhérents chargées sans erreur. Comptes de test supprimés,
+suppression vérifiée.
+
+⬜ Signalé, non traité (pré-existant, hors sujet) : erreur ESLint
+`react-hooks/set-state-in-effect` dans
+`dashboard/cuisine/don-ponctuel-form.tsx`.
 
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 

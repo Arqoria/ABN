@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { FONCTIONS_MARAUDE, type FonctionMaraude } from "@/lib/fonction-maraude";
 
@@ -46,7 +45,6 @@ export async function affecterFonction(
     return { error: "Impossible d'affecter cette fonction (rôle requis ou déjà affecté)." };
   }
 
-  revalidatePath("/dashboard/maraudes");
   return undefined;
 }
 
@@ -54,14 +52,20 @@ export async function retirerAffectation(
   maraudeId: string,
   userId: string,
   fonction: FonctionMaraude,
-) {
+): Promise<ActionState> {
   const supabase = await createClient();
-  await supabase
+  // .select() : un refus RLS supprime 0 ligne sans lever d'erreur — renvoyé
+  // comme erreur pour que le client annule son affichage optimiste (28/09).
+  const { data, error } = await supabase
     .from("affectations_maraude")
     .delete()
     .eq("maraude_id", maraudeId)
     .eq("user_id", userId)
-    .eq("fonction", fonction);
+    .eq("fonction", fonction)
+    .select("user_id");
 
-  revalidatePath("/dashboard/maraudes");
+  if (error || !data?.length) {
+    return { error: "Impossible de retirer cette fonction." };
+  }
+  return undefined;
 }

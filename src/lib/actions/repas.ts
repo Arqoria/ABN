@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 
@@ -42,6 +41,5 @@ export async function ajouterRepas(
     return { error: "Impossible d'enregistrer le repas." };
   }
 
-  revalidatePath(`/dashboard/maraudes/${maraudeId}/repas`);
   return undefined;
 }

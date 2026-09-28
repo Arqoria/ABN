@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { error: string } | undefined;
@@ -24,7 +23,6 @@ export async function demarrerParcours(
     return { error: "Un parcours est déjà en cours pour cette maraude, ou action non autorisée." };
   }
 
-  revalidatePath("/dashboard/maraudes");
   return { id: data.id as string };
 }
 
@@ -55,6 +53,4 @@ export async function terminerParcours(parcoursReelId: string) {
     .from("parcours_reels")
     .update({ statut: "termine", termine_le: new Date().toISOString() })
     .eq("id", parcoursReelId);
-
-  revalidatePath("/dashboard/maraudes");
 }

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 
@@ -44,7 +43,6 @@ export async function creerTypeEvenement(
     return { error: error.message.includes("unique") ? "Ce nom existe déjà." : "Impossible de créer le type." };
   }
 
-  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -53,5 +51,4 @@ export async function creerTypeEvenement(
 export async function basculerActifTypeEvenement(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("types_evenement").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/configuration");
 }

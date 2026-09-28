@@ -1,7 +1,6 @@
 "use server";
 
 import { createHash } from "crypto";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIE_BESOIN_LABELS, type CategorieBesoin } from "@/lib/categorie-besoin";
 
@@ -108,16 +107,32 @@ export async function genererChecklistDepart(maraudeId: string): Promise<void> {
 // RLS (checklist_depart_items_update_manager_ou_affecte) fait toute la
 // vérification de permission ; coche_par/coche_le forcés côté serveur par
 // le trigger force_checklist_item_coche_meta.
-export async function toggleChecklistItem(itemId: string, coche: boolean) {
+//
+// Perf (28/09) : ces actions renvoient une erreur (ou la ligne créée) pour
+// que le client mette son cache à jour lui-même — affichage optimiste,
+// annulé si la base refuse. Un refus RLS ne lève pas d'erreur mais modifie
+// 0 ligne, d'où les .select().
+export type ChecklistResult = { error: string } | undefined;
+
+export async function toggleChecklistItem(itemId: string, coche: boolean): Promise<ChecklistResult> {
   const supabase = await createClient();
-  await supabase.from("checklist_depart_items").update({ coche }).eq("id", itemId);
-  revalidatePath("/dashboard/maraudes");
+  const { data, error } = await supabase
+    .from("checklist_depart_items")
+    .update({ coche })
+    .eq("id", itemId)
+    .select("id");
+  if (error || !data?.length) {
+    return { error: "Case non enregistrée." };
+  }
+  return undefined;
 }
+
+export type LigneChecklist = { id: string; libelle: string; source: string; coche: boolean };
 
 export async function ajouterLigneChecklistLibre(
   _prevState: ActionState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<{ error: string } | { ligne: LigneChecklist }> {
   const maraudeId = formData.get("maraudeId");
   const libelleRaw = formData.get("libelle");
 
@@ -129,22 +144,32 @@ export async function ajouterLigneChecklistLibre(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("checklist_depart_items").insert({
-    maraude_id: maraudeId,
-    libelle: libelleRaw.trim(),
-    source: "libre",
-  });
+  const { data, error } = await supabase
+    .from("checklist_depart_items")
+    .insert({
+      maraude_id: maraudeId,
+      libelle: libelleRaw.trim(),
+      source: "libre",
+    })
+    .select("id, libelle, source, coche")
+    .single<LigneChecklist>();
 
-  if (error) {
+  if (error || !data) {
     return { error: "Impossible d'ajouter cette ligne." };
   }
 
-  revalidatePath("/dashboard/maraudes");
-  return undefined;
+  return { ligne: data };
 }
 
-export async function supprimerLigneChecklist(itemId: string) {
+export async function supprimerLigneChecklist(itemId: string): Promise<ChecklistResult> {
   const supabase = await createClient();
-  await supabase.from("checklist_depart_items").delete().eq("id", itemId);
-  revalidatePath("/dashboard/maraudes");
+  const { data, error } = await supabase
+    .from("checklist_depart_items")
+    .delete()
+    .eq("id", itemId)
+    .select("id");
+  if (error || !data?.length) {
+    return { error: "Ligne non supprimée." };
+  }
+  return undefined;
 }

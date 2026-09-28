@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { calculerTraceReel, type GeometrieLigne } from "@/lib/ors";
@@ -75,7 +74,6 @@ export async function enregistrerCircuitPlanifie(
     return { error: "Impossible d'enregistrer le circuit." };
   }
 
-  revalidatePath(`/dashboard/maraudes/${maraudeId}/carte`);
   return { success: true, geometrieReelle };
 }
 
@@ -84,5 +82,4 @@ export async function enregistrerCircuitPlanifie(
 export async function supprimerCircuitPlanifie(maraudeId: string) {
   const supabase = await createClient();
   await supabase.from("circuits_planifies").delete().eq("maraude_id", maraudeId);
-  revalidatePath(`/dashboard/maraudes/${maraudeId}/carte`);
 }

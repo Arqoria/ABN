@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 
@@ -34,7 +33,6 @@ export async function creerCommercant(
     return { error: error.message.includes("unique") ? "Ce commerçant existe déjà." : "Impossible de créer le commerçant." };
   }
 
-  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -65,7 +63,6 @@ export async function modifierCommercant(
     return { error: error.message.includes("unique") ? "Ce nom existe déjà." : "Impossible de modifier le commerçant." };
   }
 
-  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
@@ -76,5 +73,4 @@ export async function modifierCommercant(
 export async function basculerActifCommercant(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("commercants_partenaires").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/configuration");
 }

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { genererOccurrencesPourSerie, type SerieEvenement } from "@/lib/generer-occurrences";
@@ -119,13 +118,10 @@ export async function creerSerieEvenement(
     return { error: "Série créée, mais la génération immédiate a échoué (le cron la rattrapera).", details: resultat.erreur };
   }
 
-  revalidatePath("/dashboard/maraudes");
-  revalidatePath("/dashboard/configuration");
   return undefined;
 }
 
 export async function basculerActifSerie(id: string, actif: boolean) {
   const supabase = await createClient();
   await supabase.from("series_evenements").update({ actif }).eq("id", id);
-  revalidatePath("/dashboard/configuration");
 }

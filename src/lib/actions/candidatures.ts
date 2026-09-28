@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { error: string } | { success: true } | undefined;
@@ -52,5 +51,4 @@ export async function soumettreCandidature(
 export async function marquerCandidatureTraitee(id: string, traitee: boolean) {
   const supabase = await createClient();
   await supabase.from("candidatures_benevolat").update({ traitee }).eq("id", id);
-  revalidatePath("/dashboard/adherents");
 }

@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ajouterLigneChecklistLibre } from "@/lib/actions/checklist-depart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { DepartPayload } from "./depart-client";
 
 // "C'est une association, tout n'est pas dans le stock formel" — décision
 // explicite du Chef de Produit : le Manager doit pouvoir ajouter une ligne
@@ -22,12 +23,21 @@ export function AjouterLigneLibreForm({ maraudeId }: { maraudeId: string }) {
     formData.set("maraudeId", maraudeId);
     formData.set("libelle", libelle.trim());
     startTransition(async () => {
-      const result = await ajouterLigneChecklistLibre(undefined, formData);
-      setMessage(result?.error ?? null);
-      if (!result?.error) {
-        setLibelle("");
-        queryClient.invalidateQueries({ queryKey: ["depart", maraudeId] });
+      const result = await ajouterLigneChecklistLibre(undefined, formData).catch(() => ({
+        error: "Connexion indisponible, réessayez.",
+      }));
+      if ("error" in result) {
+        setMessage(result.error);
+        return;
       }
+      setMessage(null);
+      setLibelle("");
+      // Perf (28/09) : la ligne créée (renvoyée par l'action) est ajoutée
+      // directement au cache — plus de rechargement complet de la checklist,
+      // qui relançait sa régénération depuis le stock.
+      queryClient.setQueryData<DepartPayload>(["depart", maraudeId], (old) =>
+        old ? { ...old, items: [...old.items, result.ligne] } : old,
+      );
     });
   }
 

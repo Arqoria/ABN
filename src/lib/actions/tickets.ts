@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
 import { CATEGORIES, type CategorieDepense } from "@/lib/categorie-depense";
@@ -70,6 +69,5 @@ export async function creerTicket(
     return { error: "Impossible d'enregistrer le ticket." };
   }
 
-  revalidatePath(`/dashboard/maraudes/${maraudeId}/tickets`);
   return undefined;
 }

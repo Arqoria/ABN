@@ -13,7 +13,9 @@ import {
 import type { LatLngExpression } from "leaflet";
 import L from "leaflet";
 import "leaflet.heat";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import type { CartePayload } from "./carte-data";
 import { enregistrerCircuitPlanifie } from "@/lib/actions/circuits";
 import type { GeometrieLigne } from "@/lib/ors";
 import { TYPE_ACTIONS, TYPE_COLORS, TYPE_LABELS_COURT, type TypeAction } from "@/lib/type-action";
@@ -130,6 +132,7 @@ export function MaraudeCarte({
     circuitPlanifieGeometrieInitial,
   );
   const [pending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
 
   const pointsReels = afficherCircuitReel ? circuitReel : [];
@@ -163,6 +166,18 @@ export function MaraudeCarte({
         return;
       }
       setGeometrieReelle(result?.geometrieReelle ?? null);
+      // Le cache ["carte", id] garde sinon l'ancien circuit pendant 30 s
+      // (staleTime) : changer de maraude puis revenir réafficherait l'ancien
+      // tracé. Mis à jour directement, sans recharger la heatmap.
+      queryClient.setQueryData<CartePayload>(["carte", maraudeId], (old) =>
+        old
+          ? {
+              ...old,
+              circuitPlanifieInitial: planned,
+              circuitPlanifieGeometrieInitial: result?.geometrieReelle ?? null,
+            }
+          : old,
+      );
       setMessage(
         planned.length >= 2 && !result?.geometrieReelle
           ? "Circuit planifié enregistré (tracé réel indisponible pour l'instant, ligne droite affichée)."

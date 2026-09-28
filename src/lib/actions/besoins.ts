@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES_BESOIN, type CategorieBesoin } from "@/lib/categorie-besoin";
 
@@ -40,6 +39,5 @@ export async function signalerBesoin(
     return { error: "Impossible d'enregistrer le besoin." };
   }
 
-  revalidatePath(`/dashboard/maraudes/${maraudeId}/besoins`);
   return undefined;
 }

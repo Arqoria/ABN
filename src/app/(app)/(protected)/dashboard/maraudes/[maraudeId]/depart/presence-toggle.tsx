@@ -1,11 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { confirmerPresence } from "@/lib/actions/presence";
+import { avecOptimisme } from "@/lib/optimiste";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import type { DepartPayload } from "./depart-client";
 
+// Perf (28/09) : présence cochée instantanément (cache ["depart", id]
+// modifié directement), annulée si la base refuse — voir src/lib/optimiste.ts.
 export function PresenceToggle({
   maraudeId,
   inscriptionId,
@@ -19,26 +23,46 @@ export function PresenceToggle({
   presenceConfirmee: boolean;
   canWrite: boolean;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   function toggle() {
+    setErreur(null);
     startTransition(async () => {
-      await confirmerPresence(inscriptionId, !presenceConfirmee);
-      queryClient.invalidateQueries({ queryKey: ["depart", maraudeId] });
+      setErreur(
+        await avecOptimisme<DepartPayload>(
+          queryClient,
+          ["depart", maraudeId],
+          (old) => ({
+            ...old,
+            inscrits: old.inscrits.map((i) =>
+              i.id === inscriptionId ? { ...i, presence_confirmee: !presenceConfirmee } : i,
+            ),
+          }),
+          () => confirmerPresence(inscriptionId, !presenceConfirmee),
+        ),
+      );
     });
   }
 
   return (
-    <div className="flex min-h-11 items-center gap-3">
-      <Checkbox
-        id={`presence-${inscriptionId}`}
-        className="size-6"
-        checked={presenceConfirmee}
-        disabled={!canWrite || pending}
-        onCheckedChange={toggle}
-      />
-      <Label htmlFor={`presence-${inscriptionId}`}>{nom}</Label>
+    <div className="flex flex-col">
+      <div className="flex min-h-11 items-center gap-3">
+        <Checkbox
+          id={`presence-${inscriptionId}`}
+          className="size-6"
+          checked={presenceConfirmee}
+          disabled={!canWrite}
+          onCheckedChange={toggle}
+        />
+        <Label htmlFor={`presence-${inscriptionId}`}>{nom}</Label>
+      </div>
+      {erreur && (
+        <p role="alert" className="text-xs text-destructive">
+          {erreur}
+        </p>
+      )}
     </div>
   );
 }

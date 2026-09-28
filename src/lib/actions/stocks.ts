@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES_BESOIN, type CategorieBesoin } from "@/lib/categorie-besoin";
 
@@ -58,14 +57,12 @@ export async function ajouterMouvementMateriel(
     return { error: "Impossible d'enregistrer ce mouvement." };
   }
 
-  revalidatePath("/dashboard/stocks");
   return undefined;
 }
 
 export async function supprimerMouvementMateriel(id: string) {
   const supabase = await createClient();
   await supabase.from("stock_materiel_mouvements").delete().eq("id", id);
-  revalidatePath("/dashboard/stocks");
 }
 
 // Même principe que ajouterMouvementMateriel, mais RLS
@@ -108,14 +105,12 @@ export async function ajouterMouvementDenree(
     return { error: "Impossible d'enregistrer ce mouvement." };
   }
 
-  revalidatePath("/dashboard/cuisine");
   return undefined;
 }
 
 export async function supprimerMouvementDenree(id: string) {
   const supabase = await createClient();
   await supabase.from("stock_denrees_mouvements").delete().eq("id", id);
-  revalidatePath("/dashboard/cuisine");
 }
 
 // RLS (dons_ponctuels_insert_admin_manager_cuisinier) — maraudeId
@@ -186,12 +181,10 @@ export async function ajouterDonPonctuel(
     return { error: "Impossible d'enregistrer ce don." };
   }
 
-  revalidatePath("/dashboard/cuisine");
   return undefined;
 }
 
 export async function supprimerDonPonctuel(id: string) {
   const supabase = await createClient();
   await supabase.from("dons_ponctuels").delete().eq("id", id);
-  revalidatePath("/dashboard/cuisine");
 }
