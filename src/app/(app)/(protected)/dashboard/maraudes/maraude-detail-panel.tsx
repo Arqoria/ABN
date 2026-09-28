@@ -1,11 +1,22 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "@/components/session-provider";
+import { affecterFonction } from "@/lib/actions/affectations";
+import {
+  FONCTIONS_MARAUDE,
+  FONCTION_MARAUDE_ICONES,
+  FONCTION_MARAUDE_LABELS,
+  type FonctionMaraude,
+} from "@/lib/fonction-maraude";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TerrainTab } from "./terrain-tab";
 import { EquipeTab } from "./equipe-tab";
 import { LogistiqueTab } from "./logistique-tab";
-import { InscriptionForm } from "./inscription-form";
+import { InscriptionForm, patcherMesAffectations } from "./inscription-form";
 import type { MaraudeCardData } from "./maraude-card";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -14,6 +25,64 @@ const STATUT_LABELS: Record<string, string> = {
   terminee: "Terminée",
   annulee: "Annulée",
 };
+
+// Bandeau "Choisissez votre rôle" (28/09) : inscrit confirmé, détient au
+// moins un rôle Cuisinier/Maraudeur, mais aucune affectation sur cette
+// maraude — cas typique d'une promotion depuis la liste d'attente (décision
+// Chef de Produit : pas d'affectation automatique à la promotion, le
+// bénévole choisit ensuite) ou d'une inscription antérieure à cette
+// fonctionnalité. Auto-affectation autorisée par la RLS (sa propre ligne,
+// inscrit, rôle détenu).
+function ChoixRoleBandeau({ maraudeId }: { maraudeId: string }) {
+  const profile = useSession();
+  const queryClient = useQueryClient();
+  const [pending, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+  const rolesDetenus = FONCTIONS_MARAUDE.filter((f) => profile.roles.includes(f));
+
+  if (rolesDetenus.length === 0) return null;
+
+  function choisir(fonction: FonctionMaraude) {
+    setErreur(null);
+    patcherMesAffectations(queryClient, maraudeId, true);
+    const formData = new FormData();
+    formData.set("maraudeId", maraudeId);
+    formData.set("userId", profile.id);
+    formData.set("fonction", fonction);
+    startTransition(async () => {
+      const resultat = await affecterFonction(undefined, formData).catch(() => ({
+        error: "Connexion indisponible, réessayez.",
+      }));
+      if (resultat?.error) {
+        patcherMesAffectations(queryClient, maraudeId, false);
+        setErreur(resultat.error);
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["maraude-equipe-tab", maraudeId] });
+      queryClient.invalidateQueries({ queryKey: ["depart", maraudeId] });
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-brand-coral/40 bg-brand-coral/10 p-3">
+      <p className="text-sm font-medium text-foreground">
+        Vous êtes inscrit(e) — choisissez votre rôle sur cette maraude.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {rolesDetenus.map((f) => (
+          <Button key={f} type="button" className="h-11" disabled={pending} onClick={() => choisir(f)}>
+            {FONCTION_MARAUDE_ICONES[f]} {FONCTION_MARAUDE_LABELS[f]}
+          </Button>
+        ))}
+      </div>
+      {erreur && (
+        <p role="alert" className="text-xs text-destructive">
+          {erreur}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const ANIMATION_ONGLET = "pt-3 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-200";
 
@@ -31,6 +100,7 @@ export function MaraudeDetailPanel({
   isOwnManager,
   estPassee,
   estJourJ,
+  estAffecte,
 }: {
   maraude: MaraudeCardData;
   statut: string;
@@ -40,6 +110,7 @@ export function MaraudeDetailPanel({
   isOwnManager: boolean;
   estPassee: boolean;
   estJourJ: boolean;
+  estAffecte: boolean;
 }) {
   const date = new Date(maraude.dateHeure);
 
@@ -76,6 +147,10 @@ export function MaraudeDetailPanel({
           />
         </div>
       </div>
+
+      {maraude.mineStatut === "inscrit" && !estAffecte && maraude.mineId !== "optimiste" && (
+        <ChoixRoleBandeau maraudeId={maraude.id} />
+      )}
 
       <Tabs key={maraude.id} defaultValue="terrain">
         <TabsList className="w-full">

@@ -1772,6 +1772,126 @@ suppression vérifiée.
   l'écran, bas des Tickets visible après défilement de la colonne de
   droite seule ; à 375px, la page défile normalement.
 
+**Partie B — données (points 2, 3 et réinscription du point 4)** — migration
+`20260928110000_reinscription_checklist_defaut_affectation_self.sql`,
+appliquée via `supabase db push`.
+
+État des lieux vérifié AVANT de coder, deux décisions demandées au Chef de
+Produit :
+- **"Désisté" dans le modèle** : `inscriptions_maraude.statut = 'desiste'`,
+  ligne **unique par (maraude, bénévole)** (contrainte `unique`) → se
+  réinscrire = réactiver cette ligne, pas en créer une. Or la RLS
+  n'autorisait un bénévole qu'à passer sa ligne EN `desiste`, et le
+  trigger de capacité `set_inscription_statut` ne tournait qu'à l'INSERT.
+  **Décision : modifier** (réinscription autorisée).
+- **Liste d'attente → promotion** : appliquer automatiquement le rôle
+  choisi à la promotion aurait exigé de modifier `promote_next_in_waitlist`
+  + une nouvelle colonne. **Décision : pas d'affectation automatique** ; une
+  fois promu, un bandeau "choisissez votre rôle" apparaît sur la maraude.
+- **Auto-affectation déjà en place** : la policy d'insertion autorisait déjà
+  `user_id = auth.uid()`, et le trigger `check_affectation_maraude_qualification`
+  refusait déjà un rôle non détenu ou une affectation hors inscription
+  confirmée (donc pas en liste d'attente).
+
+**Réinscription ("S'inscrire à nouveau")**
+- `set_inscription_statut` s'exécute aussi sur `UPDATE OF statut`, mais ne
+  recalcule QUE les réactivations (`desiste` → autre) : capacité → inscrit
+  ou liste d'attente, `inscrit_le` remis à maintenant (fin de file), présence
+  à reconfirmer. Tout autre UPDATE (promotion, correction Admin/Manager,
+  désistement) passe inchangé.
+- ⚠️ **Faille évitée, signalée** : une policy UPDATE "desiste → inscrit"
+  aurait été combinée (OU) avec `inscriptions_update_own_desist`, dont le
+  USING accepte sa propre ligne quel que soit son statut → un bénévole en
+  liste d'attente aurait pu se passer lui-même `inscrit` et doubler la file.
+  La réactivation passe donc par une fonction `reinscrire_maraude(maraude)`
+  (`security definer`, ne touche que la ligne `desiste` de l'appelant,
+  compte actif requis) ; **la RLS d'inscription reste strictement
+  inchangée**. Tentative testée : refusée.
+- UI : "S'inscrire à nouveau" (carte, en-tête du détail, barre mobile) au
+  lieu de l'état figé "Désisté" ; même parcours que l'inscription (choix du
+  rôle).
+
+**Désistement → retrait des affectations** : trigger
+`retirer_affectations_au_desistement` (`security definer`, logique fixe —
+un Manager global qui désiste quelqu'un d'une maraude qu'il ne manage pas
+nettoie quand même ses affectations, ce que la RLS delete refuserait
+silencieusement).
+
+**Rôle choisi à l'inscription**
+- Seuls les rôles détenus (Cuisinier/Maraudeur de `profile_roles`) sont
+  proposés. Aucun ou un seul → pas de modale (inscription directe, avec ce
+  rôle). Les deux → modale, rôles cumulables, "Confirmer" désactivé tant
+  qu'aucun rôle n'est choisi.
+- `inscrireMaraude` crée les affectations **uniquement si le statut final
+  est `inscrit`** (jamais en liste d'attente, donc pas d'écriture checklist
+  tant que la place n'est pas confirmée).
+- **RLS affectations (changement validé)** : un bénévole ne crée/supprime
+  QUE sa propre affectation, sur une maraude où il est inscrit confirmé —
+  condition ajoutée aux policies insert ET delete (elle n'était que dans le
+  trigger pour l'insertion, absente pour la suppression). Admin et Manager
+  de la maraude inchangés. Rôle détenu toujours vérifié par le trigger.
+- Bandeau "Vous êtes inscrit(e) — choisissez votre rôle" : inscrit
+  confirmé, rôle détenu, aucune affectation sur la maraude (promotion depuis
+  la liste d'attente, ou inscription antérieure à cette fonctionnalité).
+- "Mes maraudes" (et son compteur) suit en direct : inscription avec rôle,
+  choix via le bandeau, désistement.
+
+**Checklist par défaut** (6 lignes, source `libre`) : Thermos de café / eau
+chaude ; Sucre, touillettes et gobelets ; Barquettes repas chauds ; Pain et
+collations ; Sacs poubelle et serviettes ; Trousse de secours.
+- Créées **une seule fois**, par un trigger `AFTER INSERT` sur `maraudes` —
+  couvre le formulaire manuel, la génération à la création d'une série et
+  le cron, qui passent tous par un INSERT. Jamais à l'ouverture de la page
+  (`genererChecklistDepart` ne gère que stock/dons) : une ligne supprimée
+  ne revient pas.
+- `force_checklist_item_cree_par` : `coalesce(auth.uid(), cree_par)` — sans
+  utilisateur (cron via clé service, migration), `auth.uid()` est NULL et la
+  contrainte NOT NULL aurait fait échouer la création ; `cree_par` = Manager
+  désigné de la maraude dans ce cas. Pour tout utilisateur, toujours forcé à
+  son propre id (inchangé).
+- `ajouter_checklist_par_defaut` : idempotente, **non appelable par un
+  client** (EXECUTE révoqué, testé).
+- **Rattrapage unique** dans la migration : les maraudes à venir existantes
+  (vérifié : 11/11 avec leurs 6 lignes, dont 8 réelles).
+- Corbeille (icône `Trash2`) uniquement sur les lignes libres/par défaut, et
+  uniquement pour Admin + Manager de CETTE maraude — exactement la RLS de
+  suppression (auparavant visible aussi pour un bénévole affecté, qui
+  échouait). Les lignes stock/don n'en ont pas (régénérées). Section
+  renommée "Liste de base et ajouts", affichée en premier.
+- ⚠️ **Doublons potentiels avec les stocks** (stocks vides au 28/09, aucun
+  doublon réel aujourd'hui) : les lignes stock matériel reprennent les
+  catégories de besoin (dont "Hygiène" ≈ "Sacs poubelle et serviettes") ;
+  les denrées sont en texte libre ("Pain", "Sucre", "Café"… feraient
+  doublon avec "Pain et collations", "Sucre, touillettes et gobelets",
+  "Thermos de café"). "Barquettes repas chauds" recoupe aussi le bloc Repas.
+- ⚠️ À noter : les lignes par défaut s'appliquent à **tous** les types
+  d'événement, y compris à point fixe (goûter) — à restreindre par nature
+  si besoin.
+
+**Testé en conditions réelles** (2 comptes de test — Admin+Manager+
+Cuisinier+Maraudeur et Maraudeur simple — créés puis supprimés,
+suppression vérifiée ; sessions réelles, RLS réelle) :
+- RLS : auto-affectation autorisée ; affectation d'un tiers refusée ;
+  rôle non détenu refusé ; maraude non inscrite refusée ; liste d'attente
+  refusée ; suppression de l'affectation d'un tiers refusée (0 ligne) ;
+  suppression de la sienne autorisée ; se passer soi-même d'"attente" à
+  "inscrit" refusé.
+- Désistement → affectations retirées ; réinscription → `inscrit` (places
+  libres) ou `liste_attente` (complet) ; promotion depuis la liste
+  d'attente → `inscrit` sans affectation, bandeau affiché avec le seul rôle
+  détenu, disparaît après choix.
+- Occurrence créée comme le cron (clé service, sans utilisateur, avec
+  `serie_id`) → 6 lignes par défaut, `cree_par` = Manager.
+- UI : modale (2 rôles) → inscrit + 2 affectations en base ; ligne par
+  défaut supprimée → absente après rechargement complet ; désistement → "S'inscrire à nouveau" (carte, en-tête,
+  barre mobile) → 1 seul rôle choisi → 1 seule affectation en base ;
+  Maraudeur simple : pas de modale, affecté directement.
+
+Note : quand un bénévole tente d'affecter un tiers, le refus vient du
+trigger de qualification avant la policy, avec un message trompeur ("ne
+détient pas le rôle", car il ne peut pas lire les rôles d'autrui) — refus
+correct, message à améliorer si besoin.
+
 ### ⬜ Report — Téléphone bénévole & groupe WhatsApp (28/09)
 
 Bouton d'appel `tel:` (onglet Équipe) et lien `[💬 Ouvrir le groupe

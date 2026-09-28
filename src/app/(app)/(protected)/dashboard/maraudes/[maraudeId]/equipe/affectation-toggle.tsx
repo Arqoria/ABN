@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { affecterFonction, retirerAffectation } from "@/lib/actions/affectations";
 import { avecOptimisme } from "@/lib/optimiste";
+import { useSession } from "@/components/session-provider";
 import { Button } from "@/components/ui/button";
 import {
   FONCTION_MARAUDE_ICONES,
@@ -46,6 +47,7 @@ export function AffectationToggle({
   const [, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const profile = useSession();
 
   if (!canToggle) {
     return assigned ? (
@@ -58,8 +60,7 @@ export function AffectationToggle({
   function toggle() {
     setErreur(null);
     startTransition(async () => {
-      setErreur(
-        await avecOptimisme<AvecAffectations>(
+      const message = await avecOptimisme<AvecAffectations>(
           queryClient,
           invalidateKey ?? ["equipe", maraudeId],
           (old) => ({
@@ -78,8 +79,14 @@ export function AffectationToggle({
             formData.set("fonction", fonction);
             return affecterFonction(undefined, formData);
           },
-        ),
       );
+      setErreur(message);
+      // Sa propre affectation alimente le filtre "Mes maraudes" (et son
+      // compteur) et le bandeau "Choisissez votre rôle" : resynchronisés en
+      // arrière-plan, sans bloquer l'affichage.
+      if (!message && userId === profile.id) {
+        queryClient.invalidateQueries({ queryKey: ["maraudes"] });
+      }
     });
   }
 

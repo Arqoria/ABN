@@ -7,7 +7,7 @@ import { avecOptimisme } from "@/lib/optimiste";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { DepartPayload } from "./depart-client";
 
 // canWrite=false : ligne lue seule (checkbox désactivée), RLS refuserait de
@@ -95,7 +95,7 @@ export function ChecklistItemToggle({
             onClick={supprimer}
             aria-label="Supprimer cette ligne"
           >
-            <X className="size-4" />
+            <Trash2 className="size-4" />
           </Button>
         )}
       </div>

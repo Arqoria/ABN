@@ -415,6 +415,7 @@ export function MaraudesClient() {
                 isOwnManager={selected.isOwnManager}
                 estPassee={selected.isPassee}
                 estJourJ={selected.isJourJ}
+                estAffecte={data.mesAffectations.includes(selected.id)}
               />
             ) : (
               <Card>

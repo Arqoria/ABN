@@ -2,11 +2,21 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/dal";
+import { FONCTIONS_MARAUDE, type FonctionMaraude } from "@/lib/fonction-maraude";
 
 export type ActionState = { error: string } | undefined;
 export type InscriptionResult =
   | { error: string }
-  | { id: string; statut: "inscrit" | "liste_attente" };
+  | {
+      id: string;
+      statut: "inscrit" | "liste_attente";
+      // Fonctions réellement affectées (vide en liste d'attente : aucune
+      // affectation tant que l'inscription n'est pas confirmée).
+      fonctions: FonctionMaraude[];
+      // Affectation demandée mais refusée par la base (ne devrait pas arriver
+      // depuis l'UI, qui ne propose que les rôles détenus).
+      avertissement?: string;
+    };
 
 // Perf (28/09, retour client "le clic inscription est lent") : plus aucun
 // revalidatePath dans ces actions — /dashboard/maraudes lit ses données via
@@ -70,8 +80,22 @@ export async function creerMaraude(
 // Renvoie l'id et le statut RÉELLEMENT attribués par le trigger (inscrit ou
 // liste d'attente) : le client remplace sa prédiction optimiste par cette
 // valeur, sans recharger toute la liste des maraudes.
+//
+// 28/09 — deux ajouts, logique de capacité inchangée (toujours le trigger) :
+// - `reinscription=1` ("S'inscrire à nouveau" après un désistement) : la
+//   ligne est unique par (maraude, bénévole), elle est réactivée via la
+//   fonction reinscrire_maraude (voir migration 20260928110000) plutôt
+//   qu'insérée ;
+// - `fonctions` (Cuisinier/Maraudeur, cumulables) : affectations créées
+//   UNIQUEMENT si l'inscription est confirmée (pas en liste d'attente). RLS +
+//   trigger de qualification refusent de toute façon un rôle non détenu ou
+//   une affectation hors inscription confirmée.
 export async function inscrireMaraude(formData: FormData): Promise<InscriptionResult> {
   const maraudeId = formData.get("maraudeId");
+  const reinscription = formData.get("reinscription") === "1";
+  const fonctions = formData
+    .getAll("fonctions")
+    .filter((f): f is FonctionMaraude => FONCTIONS_MARAUDE.includes(f as FonctionMaraude));
 
   if (typeof maraudeId !== "string" || !maraudeId) {
     return { error: "Maraude introuvable." };
@@ -89,17 +113,43 @@ export async function inscrireMaraude(formData: FormData): Promise<InscriptionRe
     return { error: "Session expirée, reconnectez-vous." };
   }
 
-  const { data, error } = await supabase
-    .from("inscriptions_maraude")
-    .insert({ maraude_id: maraudeId, user_id: user.id })
-    .select("id, statut")
-    .single<{ id: string; statut: "inscrit" | "liste_attente" }>();
+  type Ligne = { id: string; statut: "inscrit" | "liste_attente" };
+  let inscription: Ligne | null = null;
 
-  if (error || !data) {
+  if (reinscription) {
+    const { data, error } = await supabase.rpc("reinscrire_maraude", { p_maraude_id: maraudeId });
+    inscription = !error && Array.isArray(data) && data[0] ? (data[0] as Ligne) : null;
+  } else {
+    const { data, error } = await supabase
+      .from("inscriptions_maraude")
+      .insert({ maraude_id: maraudeId, user_id: user.id })
+      .select("id, statut")
+      .single<Ligne>();
+    inscription = !error && data ? data : null;
+  }
+
+  if (!inscription) {
     return { error: "Impossible de s'inscrire." };
   }
 
-  return data;
+  if (inscription.statut !== "inscrit" || fonctions.length === 0) {
+    return { ...inscription, fonctions: [] };
+  }
+
+  const { data: affectees, error: affError } = await supabase
+    .from("affectations_maraude")
+    .insert(fonctions.map((fonction) => ({ maraude_id: maraudeId, user_id: user.id, fonction })))
+    .select("fonction");
+
+  if (affError) {
+    return {
+      ...inscription,
+      fonctions: [],
+      avertissement: "Inscrit, mais le rôle n'a pas pu être enregistré — choisissez-le dans l'onglet Équipe.",
+    };
+  }
+
+  return { ...inscription, fonctions: (affectees ?? []).map((a) => a.fonction as FonctionMaraude) };
 }
 
 // Un désistement passe toujours par une mise à jour de statut, jamais une

@@ -25,6 +25,10 @@ export type DepartPayload = {
   inscrits: Inscrit[];
   canWriteChecklist: boolean;
   canWritePresence: boolean;
+  // Suppression d'une ligne (corbeille) : Admin ou Manager de CETTE maraude,
+  // exactement la RLS checklist_depart_items_delete_admin_ou_manager — un
+  // bénévole affecté peut cocher/ajouter, pas supprimer.
+  canDeleteLibre: boolean;
   refuse: boolean;
 };
 
@@ -41,7 +45,7 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
     .single();
 
   if (!maraude) {
-    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, refuse: true };
+    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
   }
 
   const isOwnManager = maraude.manager_id === profileId;
@@ -59,7 +63,7 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
   const estAffecte = (affectations ?? []).some((a) => a.user_id === profileId);
 
   if (!isAdmin && !isOwnManager && !estInscrit) {
-    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, refuse: true };
+    return { items: [], inscrits: [], canWriteChecklist: false, canWritePresence: false, canDeleteLibre: false, refuse: true };
   }
 
   const canWriteChecklist = isAdmin || isOwnManager || estAffecte;
@@ -85,6 +89,7 @@ async function fetchDepart(maraudeId: string, profileId: string, isAdmin: boolea
     inscrits: inscrits ?? [],
     canWriteChecklist,
     canWritePresence,
+    canDeleteLibre: isAdmin || isOwnManager,
     refuse: false,
   };
 }
@@ -105,7 +110,7 @@ export function useDepart(maraudeId: string) {
 const SOURCE_LABELS: Record<string, string> = {
   stock: "Depuis le stock",
   don: "Dons reçus",
-  libre: "Ajouté manuellement",
+  libre: "Liste de base et ajouts",
 };
 
 export function ChecklistDepart({ maraudeId, data }: { maraudeId: string; data: DepartPayload }) {
@@ -118,7 +123,7 @@ export function ChecklistDepart({ maraudeId, data }: { maraudeId: string; data: 
           Rien à charger pour l&apos;instant (aucun stock ni don disponible).
         </p>
       ) : (
-        ["stock", "don", "libre"].map((source) => {
+        ["libre", "stock", "don"].map((source) => {
           const lignes = items.filter((i) => i.source === source);
           if (lignes.length === 0) return null;
           return (
@@ -134,7 +139,7 @@ export function ChecklistDepart({ maraudeId, data }: { maraudeId: string; data: 
                   libelle={item.libelle}
                   coche={item.coche}
                   canWrite={canWriteChecklist}
-                  canDelete={canWriteChecklist && source === "libre"}
+                  canDelete={data.canDeleteLibre && source === "libre"}
                 />
               ))}
             </div>

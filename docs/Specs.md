@@ -11,6 +11,12 @@ Source de vérité fonctionnelle du projet. CLAUDE.md y renvoie plutôt que de d
 ## Gestion des maraudes
 - Équipe limitée à `max_participants` par événement (6 par défaut, configurable par événement ou par série — voir ci-dessous)
 - Liste d'attente automatique au-delà de la capacité, promotion automatique en cas de désistement
+- **Rôle choisi à l'inscription (28/09)** : Cuisinier et/ou Maraudeur (cumulables), parmi les seuls rôles
+  détenus. Affectation créée uniquement si la place est confirmée ; en liste d'attente, aucune affectation —
+  une fois promu, le bénévole choisit son rôle (pas d'affectation automatique à la promotion).
+  Un bénévole ne crée/supprime que sa propre affectation, sur une maraude où il est inscrit confirmé.
+- **Désistement** : retire les affectations du bénévole sur la maraude. **Réinscription** possible
+  ("S'inscrire à nouveau") : la place est recalculée (inscrit ou fin de liste d'attente), présence à reconfirmer.
 
 ## Types d'événements, nature, séries récurrentes et vacances scolaires (22/09)
 
@@ -132,6 +138,11 @@ Trois origines de lignes (`checklist_depart_items.source`) :
 - **`libre`** : ajoutée à la main par un Manager/Admin/bénévole affecté —
   "c'est une association, tout n'est pas dans le stock formel" (décision
   explicite du Chef de Produit). Jamais touchée par la régénération.
+  **Lignes par défaut (28/09)**, même source : Thermos de café / eau chaude ;
+  Sucre, touillettes et gobelets ; Barquettes repas chauds ; Pain et
+  collations ; Sacs poubelle et serviettes ; Trousse de secours — créées une
+  seule fois à la création de la maraude (manuelle ou par série/cron),
+  jamais à l'ouverture de la page : une ligne supprimée ne revient pas.
 
 Écriture (cocher/décocher, ajouter une ligne libre) : Manager de cette
 maraude, Admin, ou tout bénévole affecté à cette maraude
